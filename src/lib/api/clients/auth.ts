@@ -39,23 +39,45 @@ export async function authClient<T>({
 
   try {
     const response = await fetch(url, requestOptions);
-    const data = await response.json();
+    
+    // Handle network errors or non-JSON responses
+    if (!response.ok) {
+      try {
+        const data = await response.json();
+        console.error('Server error response:', data);
+        console.groupEnd();
+        return { 
+          error: data.message || data.error || `Request failed with status ${response.status}`
+        };
+      } catch (jsonError) {
+        console.error('Failed to parse error response:', jsonError);
+        console.groupEnd();
+        return { 
+          error: `Request failed with status ${response.status}`
+        };
+      }
+    }
+    
+    // Try to parse JSON response
+    let data;
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      console.error('Failed to parse JSON response:', jsonError);
+      console.groupEnd();
+      return { 
+        error: 'Invalid response format from server'
+      };
+    }
     
     console.log('Response:', {
       status: response.status,
       ok: response.ok,
-      data: { ...data, accessToken: '********', refreshToken: '********' }
+      data: { ...data, accessToken: data.accessToken ? '********' : undefined, refreshToken: data.refreshToken ? '********' : undefined }
     });
 
-    if (!response.ok) {
-      const error = data as { message?: string; error?: string };
-      console.error('Request failed:', error);
-      console.groupEnd();
-      throw new Error(error.message || error.error || 'Request failed');
-    }
-
     // Store tokens if present in response
-    if ('accessToken' in data) {
+    if (data.accessToken) {
       console.group('🔑 Processing Auth Tokens');
       
       // Ensure token is in Bearer format before storing
@@ -89,10 +111,10 @@ export async function authClient<T>({
     console.groupEnd();
     return { data };
   } catch (error) {
-    console.error('Request error:', error);
+    console.error('Network or request error:', error);
     console.groupEnd();
     return { 
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
+      error: error instanceof Error ? error.message : 'Network error connecting to authentication service'
     };
   }
 }

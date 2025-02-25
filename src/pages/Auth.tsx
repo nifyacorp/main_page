@@ -100,14 +100,25 @@ const Auth: React.FC = () => {
           password: '********'
         });
         
-        const { error } = await auth.signup(formData.email, formData.password, formData.name);
-        
-        console.log('Signup response received');
-        console.groupEnd();
-        
-        if (error) throw new Error(error);
-        setSuccessMessage('¡Cuenta creada correctamente! Por favor, verifica tu email para activar tu cuenta.');
-        setIsLogin(true);
+        try {
+          const response = await auth.signup(formData.email, formData.password, formData.name);
+          
+          console.log('Signup response received:', response);
+          console.groupEnd();
+          
+          if (response && response.error) {
+            setError(response.error);
+          } else if (!response || !response.data) {
+            setError('Could not connect to the authentication service. Please try again later.');
+          } else {
+            setSuccessMessage('¡Cuenta creada correctamente! Por favor, verifica tu email para activar tu cuenta.');
+            setIsLogin(true);
+          }
+        } catch (err) {
+          console.error('Signup error:', err);
+          console.groupEnd();
+          setError(err instanceof Error ? err.message : 'An unexpected error occurred during signup');
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ha ocurrido un error');

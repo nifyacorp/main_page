@@ -28,13 +28,22 @@ export const authService = {
     }).finally(() => console.groupEnd());
   },
 
-  signup: (email: string, password: string, name: string) =>
-    console.group('📝 Signup Process') &&
-    authClient({
+  signup: (email: string, password: string, name: string): Promise<ApiResponse<AuthResponse>> => {
+    console.group('📝 Signup Process');
+    console.log('Signup attempt:', { email, name, password: '********' });
+    
+    return authClient({
       endpoint: '/api/auth/signup',
       method: 'POST',
       body: { email, password, name },
-    }).finally(() => console.groupEnd()),
+    })
+    .catch(error => {
+      console.error('Signup request failed:', error);
+      // Ensure we always return an object with an error property
+      return { error: error instanceof Error ? error.message : 'Failed to connect to authentication service' };
+    })
+    .finally(() => console.groupEnd());
+  },
 
   googleLogin: () =>
     console.group('🔑 Google Login Process') &&
