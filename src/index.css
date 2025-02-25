@@ -4,225 +4,159 @@
 
 @layer base {
   :root {
-    /* Colores base del tema */
-    --background: 60 100% 99%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 326 100% 60%;
-    --primary-foreground: 60 100% 99%;
-    --secondary: 252 100% 65%;
-    --secondary-foreground: 60 100% 99%;
-    --muted: 60 100% 96%;
-    --muted-foreground: 240 10% 40%;
-    --accent: 198 100% 60%;
-    --accent-foreground: 60 100% 99%;
-    --destructive: 0 100% 60%;
-    --destructive-foreground: 60 100% 99%;
-    --border: 240 10% 3.9%;
-    --input: 240 10% 3.9%;
-    --ring: 326 100% 60%;
-    --radius: 0.5rem;
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
 
-    /* Variables específicas para neobrutalism */
-    --neo-border-width: 2px;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --ring: 215 20.2% 65.1%;
+
+    --radius: 0.75rem;
+
+    /* Neobrutalism variables */
     --neo-shadow-offset: 4px;
     --neo-shadow-color: rgba(0, 0, 0, 1);
-    --neo-shadow-hover-offset: 6px;
-    --neo-active-offset: 2px;
+    --neo-border-width: 2px;
+    --neo-border-color: black;
+    --neo-border-radius: 0.5rem;
   }
- 
-  .dark {
-    --background: 240 10% 10%;
-    --foreground: 60 100% 99%;
-    --card: 240 10% 15%;
-    --card-foreground: 60 100% 99%;
-    --popover: 240 10% 15%;
-    --popover-foreground: 60 100% 99%;
-    --primary: 326 100% 60%;
-    --primary-foreground: 60 100% 99%;
-    --secondary: 252 100% 65%;
-    --secondary-foreground: 60 100% 99%;
-    --muted: 240 10% 20%;
-    --muted-foreground: 60 100% 80%;
-    --accent: 198 100% 60%;
-    --accent-foreground: 60 100% 99%;
-    --destructive: 0 100% 60%;
-    --destructive-foreground: 60 100% 99%;
-    --border: 60 100% 99%;
-    --input: 60 100% 99%;
-    --ring: 326 100% 60%;
 
-    /* Variables específicas para neobrutalism en modo oscuro */
-    --neo-shadow-color: rgba(255, 255, 255, 0.8);
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 85.7% 97.3%;
+
+    --ring: 217.2 32.6% 17.5%;
+
+    /* Neobrutalism variables in dark mode */
+    --neo-shadow-offset: 4px;
+    --neo-shadow-color: rgba(255, 255, 255, 0.7);
+    --neo-border-width: 2px;
+    --neo-border-color: white;
+    --neo-border-radius: 0.5rem;
   }
 }
- 
+
 @layer base {
   * {
     @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
-    background-image: 
-      radial-gradient(circle at top left, hsl(var(--primary) / 0.1), transparent 25%),
-      radial-gradient(circle at top right, hsl(var(--primary) / 0.05), transparent 25%);
-    background-attachment: fixed;
-  }
-
-  /* Neobrutalism base elements */
-  .gradient-border {
-    @apply relative border-4 border-black rounded-lg shadow-[4px_4px_0_0_rgba(0,0,0,1)];
-  }
-
-  .gradient-border > * {
-    @apply bg-background rounded-md transition-transform hover:-translate-y-0.5 hover:translate-x-0.5 hover:shadow-[6px_6px_0_0_rgba(0,0,0,1)];
-  }
-
-  .feature-card {
-    @apply border-4 border-black rounded-lg shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition-all hover:-translate-y-0.5 hover:translate-x-0.5 hover:shadow-[6px_6px_0_0_rgba(0,0,0,1)];
-  }
-
-  .step-number {
-    @apply bg-primary border-4 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)];
-  }
-
-  .testimonial-card {
-    @apply relative overflow-hidden border-4 border-black rounded-lg shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition-all hover:-translate-y-0.5 hover:translate-x-0.5 hover:shadow-[6px_6px_0_0_rgba(0,0,0,1)];
-  }
-
-  .testimonial-card::before {
-    @apply content-['"'] absolute -top-4 right-4 text-8xl leading-none font-serif text-primary opacity-10;
   }
 }
 
-/* Extended Neobrutalism Styles */
-@layer components {
-  /* Botones con estilo neobrutalism */
-  .btn-neobrutalism {
-    @apply px-4 py-2 border-2 border-black bg-white rounded-md font-bold shadow-[4px_4px_0_0_rgba(0,0,0,1)] 
-    transition-all hover:-translate-y-0.5 hover:translate-x-0.5 hover:shadow-[6px_6px_0_0_rgba(0,0,0,1)]
-    active:translate-x-0.5 active:translate-y-0.5 active:shadow-[2px_2px_0_0_rgba(0,0,0,1)];
-  }
-
-  .btn-neobrutalism-primary {
-    @apply btn-neobrutalism bg-primary text-primary-foreground;
-  }
-
-  .btn-neobrutalism-secondary {
-    @apply btn-neobrutalism bg-secondary text-secondary-foreground;
-  }
-
-  .btn-neobrutalism-accent {
-    @apply btn-neobrutalism bg-accent text-accent-foreground;
-  }
-
-  /* Cards con estilo neobrutalism */
-  .card-neobrutalism {
-    @apply border-4 border-black bg-white rounded-lg p-6 shadow-[4px_4px_0_0_rgba(0,0,0,1)];
-  }
-
-  /* Inputs con estilo neobrutalism */
-  .input-neobrutalism {
-    @apply border-2 border-black bg-white rounded-md px-4 py-2 shadow-[2px_2px_0_0_rgba(0,0,0,1)] 
-    focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2;
-  }
-
-  /* Tabs con estilo neobrutalism */
-  .tabs-neobrutalism {
-    @apply flex border-4 border-black rounded-lg overflow-hidden;
-  }
-  
-  .tab-neobrutalism {
-    @apply p-3 font-bold border-r-4 border-black last:border-r-0 transition-colors;
-  }
-  
-  .tab-neobrutalism-active {
-    @apply bg-primary text-primary-foreground;
-  }
-
-  /* Badges con estilo neobrutalism */
-  .badge-neobrutalism {
-    @apply border-2 border-black rounded-md px-2 py-0.5 font-bold text-sm shadow-[2px_2px_0_0_rgba(0,0,0,1)];
-  }
-
-  /* Elementos de navegación */
-  .nav-link-neobrutalism {
-    @apply font-bold relative after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-0 
-    after:h-1 after:bg-primary after:transition-all hover:after:w-full;
-  }
-
-  /* Efectos generales */
-  .rotate-hover {
-    @apply transition-transform hover:rotate-1;
-  }
-
-  .skew-hover {
-    @apply transition-transform hover:skew-x-1;
-  }
-
-  /* Contenedores típicos */
-  .container-neobrutalism {
-    @apply border-4 border-black rounded-lg p-6 shadow-[4px_4px_0_0_rgba(0,0,0,1)];
-  }
-
-  /* Tablas */
-  .table-neobrutalism {
-    @apply border-2 border-black rounded-lg overflow-hidden;
-  }
-
-  .table-neobrutalism thead {
-    @apply bg-muted border-b-2 border-black;
-  }
-
-  .table-neobrutalism th {
-    @apply font-bold p-3 text-left border-r-2 border-black last:border-r-0;
-  }
-
-  .table-neobrutalism td {
-    @apply p-3 border-b border-black border-dashed border-r-2 last:border-r-0;
-  }
-
-  .table-neobrutalism tr:last-child td {
-    @apply border-b-0;
-  }
+/* Neobrutalism utility classes - only for buttons and elements that need the style */
+.btn-neobrutalism {
+  @apply relative border-2 border-black rounded-md bg-white 
+    shadow-[var(--neo-shadow-offset)_var(--neo-shadow-offset)_0_0_var(--neo-shadow-color)]
+    transition-all duration-150 ease-in-out
+    hover:translate-x-[2px] hover:translate-y-[2px] 
+    hover:shadow-[2px_2px_0_0_var(--neo-shadow-color)];
 }
 
-/* Mejoras específicas para componentes shadcn */
-button, .btn, [type="button"], [type="reset"], [type="submit"] {
-  @apply border-2 border-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] 
-  transition-all hover:-translate-y-0.5 hover:translate-x-0.5 hover:shadow-[5px_5px_0_0_rgba(0,0,0,1)]
-  active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_0_rgba(0,0,0,1)];
+.btn-neobrutalism-primary {
+  @apply relative border-2 border-black rounded-md bg-primary 
+    shadow-[var(--neo-shadow-offset)_var(--neo-shadow-offset)_0_0_var(--neo-shadow-color)]
+    transition-all duration-150 ease-in-out
+    hover:translate-x-[2px] hover:translate-y-[2px] 
+    hover:shadow-[2px_2px_0_0_var(--neo-shadow-color)];
 }
 
-.card, [data-shadcn-card] {
-  @apply border-2 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] rounded-lg
-  hover:shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition-all;
+.card-neobrutalism {
+  @apply border-2 border-black rounded-md bg-card
+    shadow-[var(--neo-shadow-offset)_var(--neo-shadow-offset)_0_0_var(--neo-shadow-color)]
+    transition-all duration-300 ease-in-out hover:shadow-[5px_5px_0_0_var(--neo-shadow-color)];
 }
 
-input, select, textarea, [data-shadcn-input] {
-  @apply border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] rounded-md
-  focus:shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition-all;
+.input-neobrutalism {
+  @apply border-2 border-black rounded-md px-4 py-2
+    shadow-[var(--neo-shadow-offset)_var(--neo-shadow-offset)_0_0_var(--neo-shadow-color)]
+    focus:shadow-[2px_2px_0_0_var(--neo-shadow-color)]
+    focus:translate-x-[2px] focus:translate-y-[2px] 
+    focus:outline-none;
 }
 
-/* Mejoras para navegación y menús */
-nav, [data-shadcn-nav] {
-  @apply border-2 border-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] rounded-lg;
+.tab-neobrutalism {
+  @apply relative border-2 border-black rounded-t-md
+    bg-white px-4 py-2 font-medium
+    shadow-[var(--neo-shadow-offset)_var(--neo-shadow-offset)_0_0_var(--neo-shadow-color)]
+    transition-all duration-150 ease-in-out
+    hover:translate-x-[2px] hover:translate-y-[2px] 
+    hover:shadow-[2px_2px_0_0_var(--neo-shadow-color)];
 }
 
-/* Elementos de formularios */
-label {
-  @apply font-bold;
+.tab-neobrutalism.active {
+  @apply bg-primary text-primary-foreground translate-x-[2px] translate-y-[2px] 
+    shadow-[2px_2px_0_0_var(--neo-shadow-color)];
 }
 
-/* Efectos visuales adicionales */
-.neo-text-shadow {
-  text-shadow: 2px 2px 0 rgba(0, 0, 0, 1);
+.badge-neobrutalism {
+  @apply border-2 border-black rounded-full px-2 py-1 text-xs font-medium
+    shadow-[2px_2px_0_0_var(--neo-shadow-color)];
 }
 
-.neo-box-shadow {
-  box-shadow: 4px 4px 0 rgba(0, 0, 0, 1);
+/* Only apply neobrutalism to nav links that have the neo class */
+.nav-link-neobrutalism {
+  @apply relative border-2 border-black rounded-md px-4 py-2
+    shadow-[var(--neo-shadow-offset)_var(--neo-shadow-offset)_0_0_var(--neo-shadow-color)]
+    transition-all duration-150 ease-in-out
+    hover:translate-x-[2px] hover:translate-y-[2px] 
+    hover:shadow-[2px_2px_0_0_var(--neo-shadow-color)];
 }
+
+/* Animation utilities */
+.rotate-hover {
+  @apply transition-transform duration-200 hover:rotate-2;
+}
+
+.skew-hover {
+  @apply transition-transform duration-200 hover:skew-x-2;
+}
+
+/* Keep normal shadcn styles for navigation and other UI elements not marked explicitly for neobrutalism */

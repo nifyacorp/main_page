@@ -46,11 +46,28 @@ function SplashCursor({
   TRANSPARENT = true,
   containerId,
 }: SplashCursorProps) {
-  const canvasRef = useRef(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const activeRef = useRef<boolean>(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    // Create container reference
+    const container = containerId ? document.getElementById(containerId) : document.body;
+    if (!container) return;
+
+    // Add event listeners for hover
+    const handleMouseEnter = () => {
+      activeRef.current = true;
+    };
+
+    const handleMouseLeave = () => {
+      activeRef.current = false;
+    };
+
+    container.addEventListener('mouseenter', handleMouseEnter);
+    container.addEventListener('mouseleave', handleMouseLeave);
 
     function pointerPrototype() {
       this.id = -1;
@@ -860,6 +877,8 @@ function SplashCursor({
     }
 
     function applyInputs() {
+      if (!activeRef.current) return;
+      
       pointers.forEach((p) => {
         if (p.moved) {
           p.moved = false;
@@ -1183,34 +1202,31 @@ function SplashCursor({
       return hash;
     }
 
-    window.addEventListener("mousedown", (e) => {
+    const handleMouseDown = (e: MouseEvent) => {
+      if (!activeRef.current) return;
+      
       let pointer = pointers[0];
       let posX = scaleByPixelRatio(e.clientX);
       let posY = scaleByPixelRatio(e.clientY);
       updatePointerDownData(pointer, -1, posX, posY);
       clickSplat(pointer);
-    });
+    };
 
-    document.body.addEventListener(
-      "mousemove",
-      function handleFirstMouseMove(e) {
-        let pointer = pointers[0];
-        let posX = scaleByPixelRatio(e.clientX);
-        let posY = scaleByPixelRatio(e.clientY);
-        let color = generateColor();
-        updateFrame(); // start animation loop
-        updatePointerMoveData(pointer, posX, posY, color);
-        document.body.removeEventListener("mousemove", handleFirstMouseMove);
-      }
-    );
-
-    window.addEventListener("mousemove", (e) => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!activeRef.current) return;
+      
       let pointer = pointers[0];
       let posX = scaleByPixelRatio(e.clientX);
       let posY = scaleByPixelRatio(e.clientY);
       let color = pointer.color;
       updatePointerMoveData(pointer, posX, posY, color);
-    });
+    };
+
+    window.removeEventListener("mousedown", handleMouseDown);
+    window.removeEventListener("mousemove", handleMouseMove);
+    
+    window.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("mousemove", handleMouseMove);
 
     document.body.addEventListener(
       "touchstart",
@@ -1260,29 +1276,30 @@ function SplashCursor({
     });
 
     updateFrame();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    SIM_RESOLUTION,
-    DYE_RESOLUTION,
-    CAPTURE_RESOLUTION,
-    DENSITY_DISSIPATION,
-    VELOCITY_DISSIPATION,
-    PRESSURE,
-    PRESSURE_ITERATIONS,
-    CURL,
-    SPLAT_RADIUS,
-    SPLAT_FORCE,
-    SHADING,
-    COLOR_UPDATE_SPEED,
-    BACK_COLOR,
-    TRANSPARENT,
-  ]);
+
+    // Cleanup event listeners
+    return () => {
+      container.removeEventListener('mouseenter', handleMouseEnter);
+      container.removeEventListener('mouseleave', handleMouseLeave);
+      window.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("mousemove", handleMouseMove);
+    };
+  }, [containerId]);
 
   return (
-    <div className={containerId ? "absolute inset-0 z-50 pointer-events-none" : "fixed top-0 left-0 z-50 pointer-events-none"}>
-      <canvas ref={canvasRef} id="fluid" className="w-full h-full" />
-    </div>
+    <canvas
+      ref={canvasRef}
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        zIndex: 0,
+        pointerEvents: 'none', // Ensure it doesn't interfere with interactions
+      }}
+    />
   );
 }
 
-export { SplashCursor };
+export default SplashCursor;
