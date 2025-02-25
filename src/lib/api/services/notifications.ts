@@ -1,4 +1,4 @@
-import { backendClient } from '../client';
+import { backendClient } from '../clients/backend';
 import type { PaginatedResponse } from '../types';
 
 export interface Notification {
