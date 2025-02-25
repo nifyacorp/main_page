@@ -1,0 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 60 100% 99%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 326 100% 60%;
+    --primary-foreground: 60 100% 99%;
+    --secondary: 252 100% 65%;
+    --secondary-foreground: 60 100% 99%;
+    --muted: 60 100% 96%;
+    --muted-foreground: 240 10% 40%;
+    --accent: 198 100% 60%;
+    --accent-foreground: 60 100% 99%;
+    --destructive: 0 100% 60%;
+    --destructive-foreground: 60 100% 99%;
+    --border: 240 10% 3.9%;
+    --input: 240 10% 3.9%;
+    --ring: 326 100% 60%;
+    --radius: 0.5rem;
+  }
+ 
+  .dark {
+    --background: 240 10% 10%;
+    --foreground: 60 100% 99%;
+    --card: 240 10% 15%;
+    --card-foreground: 60 100% 99%;
+    --popover: 240 10% 15%;
+    --popover-foreground: 60 100% 99%;
+    --primary: 326 100% 60%;
+    --primary-foreground: 60 100% 99%;
+    --secondary: 252 100% 65%;
+    --secondary-foreground: 60 100% 99%;
+    --muted: 240 10% 20%;
+    --muted-foreground: 60 100% 80%;
+    --accent: 198 100% 60%;
+    --accent-foreground: 60 100% 99%;
+    --destructive: 0 100% 60%;
+    --destructive-foreground: 60 100% 99%;
+    --border: 60 100% 99%;
+    --input: 60 100% 99%;
+    --ring: 326 100% 60%;
+  }
+}
+ 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    background-image: 
+      radial-gradient(circle at top left, hsl(var(--primary) / 0.1), transparent 25%),
+      radial-gradient(circle at top right, hsl(var(--primary) / 0.05), transparent 25%);
+    background-attachment: fixed;
+  }
+
+  .gradient-border {
+    @apply relative border-4 border-black rounded-lg shadow-[4px_4px_0_0_rgba(0,0,0,1)];
+  }
+
+  .gradient-border > * {
+    @apply bg-background rounded-md transition-transform hover:-translate-y-0.5 hover:translate-x-0.5 hover:shadow-[6px_6px_0_0_rgba(0,0,0,1)];
+  }
+
+  .feature-card {
+    @apply border-4 border-black rounded-lg shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition-all hover:-translate-y-0.5 hover:translate-x-0.5 hover:shadow-[6px_6px_0_0_rgba(0,0,0,1)];
+  }
+
+  .step-number {
+    @apply bg-primary border-4 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)];
+  }
+
+  .testimonial-card {
+    @apply relative overflow-hidden border-4 border-black rounded-lg shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition-all hover:-translate-y-0.5 hover:translate-x-0.5 hover:shadow-[6px_6px_0_0_rgba(0,0,0,1)];
+  }
+
+  .testimonial-card::before {
+    @apply content-['"'] absolute -top-4 right-4 text-8xl leading-none font-serif text-primary opacity-10;
+  }
+}
