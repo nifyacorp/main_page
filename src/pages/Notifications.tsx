@@ -131,7 +131,7 @@ const Notifications: React.FC = () => {
       </div>
 
       {error && (
-        <div className="mb-6 p-4 bg-destructive/10 border-3 border-destructive rounded-md text-destructive flex items-center gap-2 shadow-[3px_3px_0_0_rgba(220,38,38,0.3)]">
+        <div className="mb-6 p-4 bg-destructive/10 border-2 border-destructive rounded-md text-destructive flex items-center gap-2 shadow-[3px_3px_0_0_rgba(220,38,38,0.3)]">
           <AlertCircle className="h-5 w-5" />
           <span>{error}</span>
         </div>
@@ -140,7 +140,7 @@ const Notifications: React.FC = () => {
       {loading ? (
         <div className="space-y-4">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="p-4 border-3 border-black rounded-md animate-pulse bg-card shadow-[3px_3px_0_0_rgba(0,0,0,1)]">
+            <div key={i} className="p-4 border-2 border-black rounded-md animate-pulse bg-card shadow-[3px_3px_0_0_rgba(0,0,0,1)]">
               <div className="flex gap-2 items-start">
                 <div className="h-6 w-6 rounded-full bg-muted" />
                 <div className="flex-1 space-y-2">
@@ -167,7 +167,7 @@ const Notifications: React.FC = () => {
             {notifications.map((notification) => (
               <div
                 key={notification.id}
-                className={`p-4 border-3 border-black rounded-md transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:shadow-[5px_5px_0_0_rgba(0,0,0,1)] ${
+                className={`p-4 border-2 border-black rounded-md transition-colors shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:shadow-[5px_5px_0_0_rgba(0,0,0,1)] ${
                   notification.read ? 'bg-card/50' : 'bg-card'
                 }`}
               >

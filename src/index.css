@@ -27,7 +27,7 @@
     --radius: 0.5rem;
 
     /* Variables específicas para neobrutalism */
-    --neo-border-width: 3px;
+    --neo-border-width: 2px;
     --neo-shadow-offset: 4px;
     --neo-shadow-color: rgba(0, 0, 0, 1);
     --neo-shadow-hover-offset: 6px;
@@ -103,7 +103,7 @@
 @layer components {
   /* Botones con estilo neobrutalism */
   .btn-neobrutalism {
-    @apply px-4 py-2 border-3 border-black bg-white rounded-md font-bold shadow-[4px_4px_0_0_rgba(0,0,0,1)] 
+    @apply px-4 py-2 border-2 border-black bg-white rounded-md font-bold shadow-[4px_4px_0_0_rgba(0,0,0,1)] 
     transition-all hover:-translate-y-0.5 hover:translate-x-0.5 hover:shadow-[6px_6px_0_0_rgba(0,0,0,1)]
     active:translate-x-0.5 active:translate-y-0.5 active:shadow-[2px_2px_0_0_rgba(0,0,0,1)];
   }
@@ -127,7 +127,7 @@
 
   /* Inputs con estilo neobrutalism */
   .input-neobrutalism {
-    @apply border-3 border-black bg-white rounded-md px-4 py-2 shadow-[2px_2px_0_0_rgba(0,0,0,1)] 
+    @apply border-2 border-black bg-white rounded-md px-4 py-2 shadow-[2px_2px_0_0_rgba(0,0,0,1)] 
     focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2;
   }
 
@@ -171,19 +171,19 @@
 
   /* Tablas */
   .table-neobrutalism {
-    @apply border-3 border-black rounded-lg overflow-hidden;
+    @apply border-2 border-black rounded-lg overflow-hidden;
   }
 
   .table-neobrutalism thead {
-    @apply bg-muted border-b-3 border-black;
+    @apply bg-muted border-b-2 border-black;
   }
 
   .table-neobrutalism th {
-    @apply font-bold p-3 text-left border-r-3 border-black last:border-r-0;
+    @apply font-bold p-3 text-left border-r-2 border-black last:border-r-0;
   }
 
   .table-neobrutalism td {
-    @apply p-3 border-b border-black border-dashed border-r-3 last:border-r-0;
+    @apply p-3 border-b border-black border-dashed border-r-2 last:border-r-0;
   }
 
   .table-neobrutalism tr:last-child td {
@@ -199,7 +199,7 @@ button, .btn, [type="button"], [type="reset"], [type="submit"] {
 }
 
 .card, [data-shadcn-card] {
-  @apply border-3 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] rounded-lg
+  @apply border-2 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] rounded-lg
   hover:shadow-[6px_6px_0_0_rgba(0,0,0,1)] transition-all;
 }
 

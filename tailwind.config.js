@@ -35,6 +35,9 @@ export default {
       backgroundImage: {
         'gradient-border': 'linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet)',
       },
+      borderWidth: {
+        '3': '3px',
+      },
     },
   },
   plugins: [],
