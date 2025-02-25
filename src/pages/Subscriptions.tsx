@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Plus, X, FileText, Building2, Brain, ChevronRight } from 'lucide-react';
+import { Bell, Plus, X, FileText, Building2, Brain, ChevronRight, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { subscriptions } from '../lib/api';
 
@@ -31,6 +31,7 @@ const Subscriptions = () => {
   const [userSubscriptions, setUserSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [processing, setProcessing] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
     const fetchSubscriptions = async () => {
@@ -80,6 +81,24 @@ const Subscriptions = () => {
       setUserSubscriptions(subs => subs.filter(sub => sub.id !== id));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete subscription');
+    }
+  };
+
+  const handleProcessImmediately = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation(); // Prevent navigation when clicking the process button
+    
+    try {
+      setProcessing(prev => ({ ...prev, [id]: true }));
+      
+      const { error } = await subscriptions.processImmediately(id);
+      if (error) throw new Error(error);
+      
+      // Show success notification
+      alert('Suscripción enviada para procesamiento inmediato');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al procesar la suscripción');
+    } finally {
+      setProcessing(prev => ({ ...prev, [id]: false }));
     }
   };
 
@@ -170,6 +189,17 @@ const Subscriptions = () => {
                       >
                         {subscription.active ? 'Activa' : 'Inactiva'}
                       </button>
+                      {subscription.active && (
+                        <button
+                          onClick={(e) => handleProcessImmediately(e, subscription.id)}
+                          disabled={processing[subscription.id]}
+                          className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700 hover:bg-green-200 transition-colors flex items-center gap-1"
+                          title="Procesar inmediatamente"
+                        >
+                          <Play className="h-3 w-3" />
+                          {processing[subscription.id] ? 'Procesando...' : 'Procesar'}
+                        </button>
+                      )}
                       <button
                         onClick={(e) => handleDeleteSubscription(e, subscription.id)}
                         className="text-muted-foreground hover:text-destructive transition-colors"

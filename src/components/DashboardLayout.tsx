@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Home, Bell, Settings, LogOut, User } from 'lucide-react';
+import { Home, Bell, Settings, LogOut, User, Archive } from 'lucide-react';
 
 import type { UserProfile } from '../lib/api/types';
 import { user } from '../lib/api';
 
 const menuItems = [
   { icon: Home, label: 'Inicio', href: '/dashboard' },
-  { icon: Bell, label: 'Subscripciones', href: '/subscriptions' },
+  { icon: Bell, label: 'Notificaciones', href: '/notifications' },
+  { icon: Archive, label: 'Subscripciones', href: '/subscriptions' },
   { icon: Settings, label: 'Ajustes', href: '/settings' },
 ];
 
@@ -116,14 +117,14 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="flex h-screen bg-background">
       {/* Left Sidebar */}
-      <nav className="w-64 border-r bg-card flex flex-col">
+      <nav className="w-64 border-r-4 border-black bg-card flex flex-col shadow-[4px_0_0_0_rgba(0,0,0,1)]">
         {/* Logo Section */}
-        <div className="p-6 border-b">
+        <div className="p-6 border-b-4 border-black">
           <Link 
             to="/dashboard" 
             className="flex items-center gap-3 hover:opacity-80 transition-opacity"
           >
-            <img src="https://ik.imagekit.io/appraisily/NYFIA/logo.png" alt="NIFYA" className="h-10 w-10" />
+            <img src="https://ik.imagekit.io/appraisily/NYFIA/logo.png" alt="NIFYA" className="h-10 w-10 border-2 border-black rounded-full shadow-[2px_2px_0_0_rgba(0,0,0,1)]" />
             <div>
               <h1 className="text-xl font-bold text-foreground">NIFYA</h1>
               <p className="text-xs text-muted-foreground">Notificaciones Inteligentes</p>
@@ -132,11 +133,11 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         </div>
 
         {/* User Section */}
-        <div className="p-6 border-b">
+        <div className="p-6 border-b-4 border-black">
           {loading ? (
             <div className="animate-pulse">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-full bg-primary/10">
+                <div className="p-2 rounded-full bg-primary/10 border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)]">
                   <User className="h-6 w-6 text-primary/50" />
                 </div>
                 <div className="space-y-2">
@@ -147,7 +148,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             </div>
           ) : user ? (
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-full bg-primary/10">
+              <div className="p-2 rounded-full bg-primary/10 border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)]">
                 {profile?.avatar ? (
                   <img 
                     src={profile.avatar} 
@@ -169,7 +170,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               </div>
             </div>
           ) : error ? (
-            <div className="text-sm text-destructive">
+            <div className="text-sm text-destructive p-2 border-2 border-destructive rounded-md shadow-[2px_2px_0_0_rgba(220,38,38,0.3)]">
               {error}
             </div>
           ) : null}
@@ -182,23 +183,23 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               <Link
                 key={item.label}
                 to={item.href}
-                className="flex items-center gap-3 px-3 py-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
+                className="flex items-center gap-3 px-3 py-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted border-2 border-transparent hover:border-black hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition-all"
               >
                 <item.icon className="h-5 w-5" />
-                <span>{item.label}</span>
+                <span className="font-medium">{item.label}</span>
               </Link>
             ))}
           </div>
         </div>
 
         {/* Logout Section */}
-        <div className="p-6 border-t mt-auto">
+        <div className="p-6 border-t-4 border-black mt-auto">
             <button
               onClick={handleLogout}
-              className="flex items-center gap-3 px-3 py-2 w-full rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+              className="flex items-center gap-3 px-3 py-2 w-full rounded-md text-muted-foreground border-2 border-transparent hover:border-destructive hover:text-destructive hover:shadow-[3px_3px_0_0_rgba(220,38,38,0.3)] transition-all"
             >
               <LogOut className="h-5 w-5" />
-              <span>Cerrar sesión</span>
+              <span className="font-medium">Cerrar sesión</span>
             </button>
         </div>
       </nav>

@@ -8,8 +8,10 @@ import Settings from './pages/Settings';
 import SubscriptionCatalog from './pages/SubscriptionCatalog';
 import SubscriptionPrompt from './pages/SubscriptionPrompt';
 import TemplateConfig from './pages/TemplateConfig';
+import Notifications from './pages/Notifications';
 import DashboardLayout from './components/DashboardLayout';
 import GoogleCallback from './components/GoogleCallback';
+import { SplashCursor } from './components/SplashCursor';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
@@ -121,7 +123,16 @@ const MainLayout = () => {
         </div>
       </nav>
 
-      <header className="relative overflow-hidden pt-32 pb-48 bg-background">
+      <header className="relative overflow-hidden pt-32 pb-48 bg-background cursor-pointer" id="hero-section">
+        <SplashCursor 
+          SIM_RESOLUTION={128}
+          DYE_RESOLUTION={1024}
+          DENSITY_DISSIPATION={0.97}
+          VELOCITY_DISSIPATION={0.98}
+          SPLAT_RADIUS={0.6}
+          COLOR={[0.19, 0.0, 0.95]}
+          containerId="hero-section"
+        />
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 z-10">
           <div className="mx-auto max-w-2xl text-center">
             <div className="flex justify-center mb-12">
@@ -304,6 +315,14 @@ function App() {
         element={
           <ProtectedRoute>
             <Subscriptions />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute>
+            <Notifications />
           </ProtectedRoute>
         }
       />

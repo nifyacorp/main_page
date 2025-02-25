@@ -1,6 +1,33 @@
 "use client";
 import { useEffect, useRef } from "react";
 
+type SplashCursorProps = {
+  SIM_RESOLUTION?: number;
+  DYE_RESOLUTION?: number;
+  CAPTURE_RESOLUTION?: number;
+  DENSITY_DISSIPATION?: number;
+  VELOCITY_DISSIPATION?: number;
+  PRESSURE?: number;
+  PRESSURE_ITERATIONS?: number;
+  CURL?: number;
+  SPLAT_RADIUS?: number;
+  SPLAT_FORCE?: number;
+  SHADING?: boolean;
+  COLORFUL?: boolean;
+  COLOR_UPDATE_SPEED?: number;
+  PAUSED?: boolean;
+  BACK_COLOR?: number[];
+  TRANSPARENT?: boolean;
+  BLOOM?: boolean;
+  BLOOM_ITERATIONS?: number;
+  BLOOM_RESOLUTION?: number;
+  BLOOM_INTENSITY?: number;
+  BLOOM_THRESHOLD?: number;
+  BLOOM_SOFT_KNEE?: number;
+  COLOR?: number[];
+  containerId?: string;
+};
+
 function SplashCursor({
   // Add whatever props you like for customization
   SIM_RESOLUTION = 128,
@@ -17,7 +44,8 @@ function SplashCursor({
   COLOR_UPDATE_SPEED = 10,
   BACK_COLOR = { r: 0.5, g: 0, b: 0 },
   TRANSPARENT = true,
-}) {
+  containerId,
+}: SplashCursorProps) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -1251,8 +1279,8 @@ function SplashCursor({
   ]);
 
   return (
-    <div className="fixed top-0 left-0 z-50 pointer-events-none">
-      <canvas ref={canvasRef} id="fluid" className="w-screen h-screen" />
+    <div className={containerId ? "absolute inset-0 z-50 pointer-events-none" : "fixed top-0 left-0 z-50 pointer-events-none"}>
+      <canvas ref={canvasRef} id="fluid" className="w-full h-full" />
     </div>
   );
 }

@@ -88,5 +88,16 @@ export const subscriptionService = {
       method: 'PATCH',
       body: { active },
     }).finally(() => console.groupEnd());
+  },
+  
+  processImmediately: (id: string): Promise<ApiResponse<{ message: string }>> => {
+    console.group('🔄 Process Subscription Immediately');
+    console.log('Processing subscription:', id);
+    
+    return backendClient({
+      endpoint: `/api/v1/subscriptions/${id}/process`,
+      method: 'POST',
+      body: {}, // Empty body to satisfy content-type requirement
+    }).finally(() => console.groupEnd());
   }
 }
