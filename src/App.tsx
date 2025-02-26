@@ -18,17 +18,8 @@ import GoogleCallback from './components/GoogleCallback';
 const LandingPage = lazy(() => import('./pages/Landing'));
 
 // Helper to check if the user is authenticated
-const isAuthenticated = () => {
+const checkIsAuthenticated = () => {
   return localStorage.getItem('isAuthenticated') === 'true';
-};
-
-// Protected route component
-const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
-  if (!isAuthenticated()) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  return children;
 };
 
 export const features = [
