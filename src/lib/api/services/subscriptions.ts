@@ -98,6 +98,14 @@ export const subscriptionService = {
       endpoint: `/api/v1/subscriptions/${id}/process`,
       method: 'POST',
       body: {}, // Empty body to satisfy content-type requirement
-    }).finally(() => console.groupEnd());
+      headers: {
+        'Accept': 'application/json, text/plain, */*'
+      }
+    })
+      .catch(error => {
+        console.error('Error processing subscription:', error);
+        return { error: error.message || 'Failed to process subscription' };
+      })
+      .finally(() => console.groupEnd());
   }
 }

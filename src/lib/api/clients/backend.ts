@@ -59,7 +59,7 @@ export async function backendClient<T>({
   let retryCount = 0;
   const maxRetries = 1;
 
-  async function executeRequest(): Promise<Response> {
+  async function executeRequest(): Promise<{ response: Response; data: any }> {
     const token = localStorage.getItem('accessToken');
     const userId = localStorage.getItem('userId');
     
@@ -74,6 +74,7 @@ export async function backendClient<T>({
       'Content-Type': 'application/json',
       'Authorization': bearerToken,
       'X-User-ID': userId,
+      'Accept': 'application/json, text/plain, */*',
       ...headers,
     };
 
@@ -82,22 +83,50 @@ export async function backendClient<T>({
       Authorization: 'Bearer ***' // Mask token in logs
     });
 
-    return fetch(`${BACKEND_URL}${endpoint}`, {
+    const response = await fetch(`${BACKEND_URL}${endpoint}`, {
       method,
       headers: requestHeaders,
       ...(body && { body: JSON.stringify(body) }),
     });
+
+    let data;
+    try {
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        // Handle non-JSON responses
+        const text = await response.text();
+        console.log('Received non-JSON response:', text);
+        // Try to parse it as JSON anyway in case content-type is wrong
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          // If it's not valid JSON, create a simple object
+          data = { message: text || 'No response body' };
+        }
+      }
+    } catch (error) {
+      console.error('Error parsing response:', error);
+      data = { 
+        error: 'Could not parse server response',
+        status: response.status,
+        statusText: response.statusText
+      };
+    }
+
+    return { response, data };
   }
 
   console.group('🔄 Backend Service Request');
+  console.log(`Making ${method} request to ${endpoint}`);
   
   try {
     while (retryCount <= maxRetries) {
       console.log(`Attempt ${retryCount + 1} of ${maxRetries + 1}`);
   
       try {
-        const response = await executeRequest();
-        const data = await response.json();
+        const { response, data } = await executeRequest();
   
         if (response.ok) {
           console.log('Request successful');
@@ -122,14 +151,15 @@ export async function backendClient<T>({
           return { error: 'Session expired' };
         }
 
-        // For 500 errors, include more details in the error
-        if (response.status === 500) {
-          const errorMessage = data.error || data.message || 'Internal server error';
-          throw new Error(`Server error: ${errorMessage}`);
+        // For 4xx and 5xx errors, include more details in the error
+        if (response.status >= 400) {
+          const errorMessage = data.error || data.message || `HTTP Error: ${response.status} ${response.statusText}`;
+          console.error('Request failed with status', response.status, errorMessage);
+          return { error: errorMessage };
         }
 
-        // For other errors, throw them
-        throw new Error(data.error || data.message || 'Request failed');
+        // If we got here, it's an unexpected response
+        throw new Error(data.error || data.message || 'Request failed with unexpected response');
       } catch (err) {
         if (retryCount >= maxRetries) {
           throw err;

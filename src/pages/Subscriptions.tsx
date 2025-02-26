@@ -85,18 +85,30 @@ const Subscriptions = () => {
   };
 
   const handleProcessImmediately = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
     e.stopPropagation(); // Prevent navigation when clicking the process button
     
     try {
       setProcessing(prev => ({ ...prev, [id]: true }));
       
-      const { error } = await subscriptions.processImmediately(id);
-      if (error) throw new Error(error);
+      console.log('Requesting immediate processing for subscription:', id);
+      const result = await subscriptions.processImmediately(id);
       
-      // Show success notification
-      alert('Suscripción enviada para procesamiento inmediato');
+      if (result.error) {
+        console.error('Processing error:', result.error);
+        setError(result.error);
+        // Show error alert
+        alert(`Error al procesar la suscripción: ${result.error}`);
+      } else {
+        // Show success notification
+        console.log('Processing requested successfully:', result.data);
+        alert('Suscripción enviada para procesamiento inmediato');
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al procesar la suscripción');
+      console.error('Exception during processing:', err);
+      const errorMsg = err instanceof Error ? err.message : 'Error al procesar la suscripción';
+      setError(errorMsg);
+      alert(`Error: ${errorMsg}`);
     } finally {
       setProcessing(prev => ({ ...prev, [id]: false }));
     }

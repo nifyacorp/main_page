@@ -5,9 +5,22 @@ import { Bell, GithubIcon, TwitterIcon } from 'lucide-react';
 import { features, steps, testimonials } from '../App';
 
 const MainLayout: React.FC = () => {
-  const handleDebugLogin = () => {
-    localStorage.setItem('isAuthenticated', 'true');
-    window.location.href = '/dashboard';
+  const handleDebugLogin = (e) => {
+    e.preventDefault();
+    
+    try {
+      localStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem('userId', 'debug-user-id');
+      localStorage.setItem('accessToken', 'debug-token');
+      localStorage.setItem('refreshToken', 'debug-refresh-token');
+      
+      // Use a controlled redirect instead of directly changing window.location
+      console.log('Debug login successful, redirecting to dashboard');
+      window.location.href = '/dashboard';
+    } catch (error) {
+      console.error('Error during debug login:', error);
+      alert('Error during debug login. See console for details.');
+    }
   };
 
   return (
