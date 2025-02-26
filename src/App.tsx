@@ -1,9 +1,8 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { AlertTriangle, Bell, Newspaper, CircleDashed, FileText, MessageCircle, User2, BookText } from 'lucide-react';
+import { AlertTriangle, Bell, Newspaper, Home, Users, Archive, BookOpen, BellRing, Info, Compass, ClipboardCheck, PieChart, Lightbulb, Zap } from 'lucide-react';
 import ErrorBoundary from './components/ErrorBoundary';
 import LoadingPage from './components/LoadingPage';
-import { Home, Users, Archive, BookOpen, BellRing, Info, Compass, ClipboardCheck, PieChart, Lightbulb, Zap } from 'lucide-react';
 import Auth from './pages/Auth';
 import Subscriptions from './pages/Subscriptions';
 import Dashboard from './pages/Dashboard';
@@ -13,18 +12,24 @@ import SubscriptionPrompt from './pages/SubscriptionPrompt';
 import TemplateConfig from './pages/TemplateConfig';
 import Notifications from './pages/Notifications';
 import ProtectedRoute from './components/ProtectedRoute';
-import MainLayout from './components/MainLayout';
 import GoogleCallback from './components/GoogleCallback';
 
 // Lazy-load the pages
 const LandingPage = lazy(() => import('./pages/Landing'));
-const AuthPage = lazy(() => import('./pages/Auth'));
-const DashboardPage = lazy(() => import('./pages/Dashboard'));
-const SubscriptionsPage = lazy(() => import('./pages/Subscriptions'));
-const SubscriptionDetailPage = lazy(() => import('./pages/SubscriptionDetail'));
-const AlertsPage = lazy(() => import('./pages/Alerts'));
-const AccountPage = lazy(() => import('./pages/Account'));
-const NotFoundPage = lazy(() => import('./pages/NotFound'));
+
+// Helper to check if the user is authenticated
+const isAuthenticated = () => {
+  return localStorage.getItem('isAuthenticated') === 'true';
+};
+
+// Protected route component
+const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
+  if (!isAuthenticated()) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  return children;
+};
 
 export const features = [
   {
@@ -77,20 +82,6 @@ export const testimonials = [
   },
 ];
 
-// Helper to check if the user is authenticated
-const isAuthenticated = () => {
-  return localStorage.getItem('isAuthenticated') === 'true';
-};
-
-// Protected route component
-const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
-  if (!isAuthenticated()) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  return children;
-};
-
 export default function App() {
   try {
     console.log('App: Rendering routes');
@@ -120,17 +111,17 @@ export default function App() {
               </ErrorBoundary>
             }
           />
-          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/auth" element={<Auth />} />
           
           {/* Protected routes */}
           <Route path="/dashboard" element={
             <ProtectedRoute>
-              <DashboardPage />
+              <Dashboard />
             </ProtectedRoute>
           } />
           <Route path="/subscriptions" element={
             <ProtectedRoute>
-              <SubscriptionsPage />
+              <Subscriptions />
             </ProtectedRoute>
           } />
           <Route path="/notifications" element={
@@ -176,24 +167,25 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/subscriptions/:id" element={
-            <ProtectedRoute>
-              <SubscriptionDetailPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/alerts" element={
-            <ProtectedRoute>
-              <AlertsPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/account" element={
-            <ProtectedRoute>
-              <AccountPage />
-            </ProtectedRoute>
-          } />
           
-          {/* 404 route */}
-          <Route path="*" element={<NotFoundPage />} />
+          {/* 404 fallback - implement a simple inline component for now */}
+          <Route path="*" element={
+            <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center bg-background">
+              <div className="max-w-md">
+                <h1 className="text-6xl font-black mb-6">404</h1>
+                <h2 className="text-2xl font-bold mb-4">Página no encontrada</h2>
+                <p className="mb-8 text-muted-foreground">
+                  La página que estás buscando no existe o ha sido movida.
+                </p>
+                <a
+                  href="/"
+                  className="inline-block btn-neobrutalism-primary px-6 py-3 text-white font-medium"
+                >
+                  Volver al inicio
+                </a>
+              </div>
+            </div>
+          } />
         </Routes>
       </Suspense>
     );
