@@ -160,3 +160,13 @@
 }
 
 /* Keep normal shadcn styles for navigation and other UI elements not marked explicitly for neobrutalism */
+
+/* Temporarily disable animations for debugging */
+#hero-section canvas {
+  display: none !important;
+}
+
+/* Add a placeholder background instead */
+#hero-section {
+  background: linear-gradient(120deg, rgba(79, 70, 229, 0.2), rgba(79, 70, 229, 0.1));
+}
