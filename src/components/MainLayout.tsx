@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import SplashCursor from './SplashCursor';
-import { Bell, Github, Twitter } from 'lucide-react';
+import { Bell, GithubIcon, TwitterIcon } from 'lucide-react';
 import { features, steps, testimonials } from '../App';
 
 const MainLayout: React.FC = () => {
@@ -206,11 +206,11 @@ const MainLayout: React.FC = () => {
               <div className="flex space-x-6">
                 <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
                   <span className="sr-only">Twitter</span>
-                  <Twitter className="h-6 w-6" />
+                  <TwitterIcon className="h-6 w-6" />
                 </a>
                 <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
                   <span className="sr-only">GitHub</span>
-                  <Github className="h-6 w-6" />
+                  <GithubIcon className="h-6 w-6" />
                 </a>
               </div>
             </div>
