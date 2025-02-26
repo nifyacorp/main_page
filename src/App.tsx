@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import { Home, Users, Archive, BookOpen, BellRing, Info, Compass, ClipboardCheck, PieChart, Lightbulb, Zap } from 'lucide-react';
+import { Home, Users, Archive, BookOpen, Bell, BellRing, Info, Compass, ClipboardCheck, PieChart, Lightbulb, Zap } from 'lucide-react';
 import Auth from './pages/Auth';
 import Subscriptions from './pages/Subscriptions';
 import Dashboard from './pages/Dashboard';
