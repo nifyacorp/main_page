@@ -12,16 +12,22 @@ interface NotificationListProps {
 }
 
 export const NotificationList: React.FC<NotificationListProps> = ({ className }) => {
-  const { refreshUnreadCount, deleteNotification, deleteAllNotifications } = useNotifications();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const { 
+    markAsRead, 
+    markAllAsRead, 
+    refreshUnreadCount,
+    deleteNotification,
+    deleteAllNotifications
+  } = useNotifications();
   const [groupedNotifications, setGroupedNotifications] = useState<Record<string, Notification[]>>({});
-  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState<number>(1);
   const [hasMore, setHasMore] = useState<boolean>(false);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [unreadCount, setUnreadCount] = useState<number>(0);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
 
   const loadNotifications = async (reset = false) => {
     setLoading(true);
@@ -130,10 +136,6 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
         const updatedNotifications = notifications.filter(n => n.id !== notification.id);
         setNotifications(updatedNotifications);
         groupNotificationsByDay(updatedNotifications);
-        
-        if (onRefresh) {
-          onRefresh();
-        }
       }
     } catch (err) {
       console.error('Error deleting notification:', err);
@@ -151,15 +153,32 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
         // Clear the notifications list
         setNotifications([]);
         setGroupedNotifications({});
-        
-        if (onRefresh) {
-          onRefresh();
-        }
       }
     } catch (err) {
       console.error('Error deleting all notifications:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      const success = await markAllAsRead();
+      
+      if (success) {
+        // Update all notifications as read
+        const updatedNotifications = notifications.map(notification => ({
+          ...notification,
+          read: true,
+          readAt: new Date().toISOString()
+        }));
+        
+        setNotifications(updatedNotifications);
+        setUnreadCount(0);
+        groupNotificationsByDay(updatedNotifications);
+      }
+    } catch (err) {
+      console.error('Error marking all notifications as read:', err);
     }
   };
 
@@ -189,8 +208,8 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
           <Button 
             variant="secondary" 
             size="sm" 
-            onClick={() => {
-              // Implement the logic to mark all notifications as read
+            onClick={async () => {
+              await handleMarkAllAsRead();
             }}
           >
             Mark all as read

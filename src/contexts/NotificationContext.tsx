@@ -4,8 +4,8 @@ import { Notification, notificationService, NotificationApiResponse } from '../l
 interface NotificationContextType {
   unreadCount: number;
   refreshUnreadCount: () => Promise<void>;
-  markAsRead: (id: string) => Promise<void>;
-  markAllAsRead: () => Promise<void>;
+  markAsRead: (id: string) => Promise<boolean>;
+  markAllAsRead: () => Promise<boolean>;
   deleteNotification: (id: string) => Promise<boolean>;
   deleteAllNotifications: () => Promise<boolean>;
   loading: boolean;
@@ -40,29 +40,35 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     }
   };
 
-  const markAsRead = async (id: string) => {
+  const markAsRead = async (id: string): Promise<boolean> => {
     try {
       const response = await notificationService.markAsRead(id);
       
       if (!response.error && response.data) {
         // Reduce unread count by 1 if successful
         setUnreadCount(prev => Math.max(0, prev - 1));
+        return true;
       }
+      return false;
     } catch (error) {
       console.error('Error marking notification as read:', error);
+      return false;
     }
   };
 
-  const markAllAsRead = async () => {
+  const markAllAsRead = async (): Promise<boolean> => {
     try {
       const response = await notificationService.markAllAsRead();
       
       if (!response.error && response.data) {
         // Reset unread count to 0
         setUnreadCount(0);
+        return true;
       }
+      return false;
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
+      return false;
     }
   };
 
