@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { format, isToday, isYesterday, isThisWeek, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { CheckCheck, Bell, ExternalLink } from 'lucide-react';
-import { Notification, notificationService } from '../../lib/api/services/notifications';
+import { Notification, notificationService, NotificationApiResponse } from '../../lib/api/services/notifications';
 import { useNotifications } from '../../contexts/NotificationContext';
 
 interface NotificationListProps {
@@ -38,7 +38,7 @@ export const NotificationList: React.FC<NotificationListProps> = ({ onRefresh })
         return;
       }
       
-      if (response.data) {
+      if (!response.error && response.data) {
         const newNotifications = reset ? response.data.notifications : [...notifications, ...response.data.notifications];
         setNotifications(newNotifications);
         groupNotificationsByDay(newNotifications);
@@ -100,7 +100,7 @@ export const NotificationList: React.FC<NotificationListProps> = ({ onRefresh })
         return;
       }
       
-      if (response.data) {
+      if (!response.error && response.data) {
         // Update the notification in state
         const updatedNotifications = notifications.map(n => 
           n.id === notification.id ? { ...n, read: true, readAt: new Date().toISOString() } : n

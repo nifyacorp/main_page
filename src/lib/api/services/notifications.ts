@@ -36,11 +36,14 @@ export interface NotificationOptions {
   subscriptionId?: string | null;
 }
 
+// Create a custom type for our return types that includes error as a possible response
+export type NotificationApiResponse<T> = ApiResponse<T> | { error: any; data?: never };
+
 export const notificationService = {
   /**
    * Lista todas las notificaciones del usuario
    */
-  async list(options: NotificationOptions = {}) {
+  async list(options: NotificationOptions = {}): Promise<NotificationApiResponse<NotificationsResponse>> {
     const {
       page = 1,
       limit = 10,
@@ -61,7 +64,7 @@ export const notificationService = {
     }
     
     try {
-      return await backendClient<NotificationsResponse>({
+      return await backendClient({
         endpoint,
         method: 'GET'
       });
@@ -76,19 +79,18 @@ export const notificationService = {
   /**
    * Obtiene los detalles de una notificación
    */
-  async get(id: string) {
+  async get(id: string): Promise<NotificationApiResponse<Notification>> {
     console.log('Getting notification details', { id });
     
     try {
-      const response = await backendClient.get<{ notification: Notification }>(
-        `/notifications/${id}`
-      );
-      return { data: response.data.notification, error: null };
+      return await backendClient({
+        endpoint: `/api/v1/notifications/${id}`,
+        method: 'GET'
+      });
     } catch (error: any) {
       console.error('Error getting notification:', error);
       return { 
-        data: null, 
-        error: error.response?.data?.message || error.message || 'Error al obtener la notificación' 
+        error: error.message || 'Error al obtener la notificación' 
       };
     }
   },
@@ -96,11 +98,11 @@ export const notificationService = {
   /**
    * Marca una notificación como leída
    */
-  async markAsRead(id: string) {
+  async markAsRead(id: string): Promise<NotificationApiResponse<Notification>> {
     console.log('Marking notification as read', { id });
     
     try {
-      return await backendClient<Notification>({
+      return await backendClient({
         endpoint: `/api/v1/notifications/${id}/read`,
         method: 'POST'
       });
@@ -115,7 +117,7 @@ export const notificationService = {
   /**
    * Marca todas las notificaciones como leídas
    */
-  async markAllAsRead(subscriptionId = null) {
+  async markAllAsRead(subscriptionId = null): Promise<NotificationApiResponse<{ updated: number }>> {
     console.log('Marking all notifications as read', { subscriptionId });
     
     let endpoint = `/api/v1/notifications/read-all`;
@@ -124,7 +126,7 @@ export const notificationService = {
     }
     
     try {
-      return await backendClient<{ updated: number }>({
+      return await backendClient({
         endpoint,
         method: 'POST'
       });

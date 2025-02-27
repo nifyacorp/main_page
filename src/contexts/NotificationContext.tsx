@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Notification, notificationService } from '../lib/api/services/notifications';
+import { Notification, notificationService, NotificationApiResponse } from '../lib/api/services/notifications';
 
 interface NotificationContextType {
   unreadCount: number;
@@ -28,7 +28,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         unread: true
       });
       
-      if (response.data) {
+      if (!response.error && response.data) {
         setUnreadCount(response.data.unread);
       }
     } catch (error) {
@@ -42,7 +42,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     try {
       const response = await notificationService.markAsRead(id);
       
-      if (response.data) {
+      if (!response.error && response.data) {
         // Reduce unread count by 1 if successful
         setUnreadCount(prev => Math.max(0, prev - 1));
       }
@@ -55,7 +55,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     try {
       const response = await notificationService.markAllAsRead();
       
-      if (response.data) {
+      if (!response.error && response.data) {
         // Reset unread count to 0
         setUnreadCount(0);
       }
