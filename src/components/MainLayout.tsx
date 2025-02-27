@@ -1,28 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import SplashCursor from './SplashCursor';
-import { Bell, GithubIcon, TwitterIcon } from 'lucide-react';
+import { Bell, Github, Twitter } from 'lucide-react';
 import { features, steps, testimonials } from '../App';
 
 const MainLayout: React.FC = () => {
-  console.log('MainLayout: Component rendering');
-
-  const handleDebugLogin = (e: React.MouseEvent) => {
-    try {
-      console.log('MainLayout: Debug login clicked');
-      e.preventDefault();
-      
-      localStorage.setItem('isAuthenticated', 'true');
-      localStorage.setItem('userId', 'debug-user-id');
-      localStorage.setItem('accessToken', 'debug-token');
-      localStorage.setItem('refreshToken', 'debug-refresh-token');
-      
-      console.log('MainLayout: Debug login successful, redirecting');
-      window.location.href = '/dashboard';
-    } catch (error) {
-      console.error('MainLayout: Error during debug login', error);
-      alert('Error during debug login. See console for details.');
-    }
+  const handleDebugLogin = () => {
+    localStorage.setItem('isAuthenticated', 'true');
+    window.location.href = '/dashboard';
   };
 
   return (
@@ -66,7 +51,15 @@ const MainLayout: React.FC = () => {
       </nav>
 
       <header className="relative overflow-hidden pt-32 pb-48 bg-background cursor-pointer" id="hero-section">
-        <SplashCursor containerId="hero-section" />
+        <SplashCursor 
+          SIM_RESOLUTION={128}
+          DYE_RESOLUTION={1024}
+          DENSITY_DISSIPATION={0.97}
+          VELOCITY_DISSIPATION={0.98}
+          SPLAT_RADIUS={0.6}
+          COLOR={[0.19, 0.0, 0.95]}
+          containerId="hero-section"
+        />
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 z-10">
           <div className="mx-auto max-w-2xl text-center">
             <div className="flex justify-center mb-12">
@@ -213,11 +206,11 @@ const MainLayout: React.FC = () => {
               <div className="flex space-x-6">
                 <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
                   <span className="sr-only">Twitter</span>
-                  <TwitterIcon className="h-6 w-6" />
+                  <Twitter className="h-6 w-6" />
                 </a>
                 <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
                   <span className="sr-only">GitHub</span>
-                  <GithubIcon className="h-6 w-6" />
+                  <Github className="h-6 w-6" />
                 </a>
               </div>
             </div>
