@@ -6,6 +6,8 @@ interface NotificationContextType {
   refreshUnreadCount: () => Promise<void>;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
+  deleteNotification: (id: string) => Promise<boolean>;
+  deleteAllNotifications: () => Promise<boolean>;
   loading: boolean;
 }
 
@@ -64,6 +66,38 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     }
   };
 
+  const deleteNotification = async (id: string): Promise<boolean> => {
+    try {
+      const response = await notificationService.deleteNotification(id);
+      
+      if (!response.error && response.data) {
+        // Refresh the unread count after deletion
+        refreshUnreadCount();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      return false;
+    }
+  };
+
+  const deleteAllNotifications = async (): Promise<boolean> => {
+    try {
+      const response = await notificationService.deleteAllNotifications();
+      
+      if (!response.error && response.data) {
+        // Reset unread count to 0 since all notifications are gone
+        setUnreadCount(0);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error deleting all notifications:', error);
+      return false;
+    }
+  };
+
   useEffect(() => {
     refreshUnreadCount();
     
@@ -82,6 +116,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         refreshUnreadCount,
         markAsRead,
         markAllAsRead,
+        deleteNotification,
+        deleteAllNotifications,
         loading
       }}
     >

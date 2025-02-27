@@ -36,6 +36,17 @@ export interface NotificationOptions {
   subscriptionId?: string | null;
 }
 
+export interface DeleteResult {
+  success: boolean;
+  message: string;
+}
+
+export interface DeleteAllResult {
+  success: boolean;
+  deleted: number;
+  message: string;
+}
+
 // Create a custom type for our return types that includes error as a possible response
 export type NotificationApiResponse<T> = ApiResponse<T> | { error: any; data?: never };
 
@@ -134,6 +145,49 @@ export const notificationService = {
       console.error('Error marking all notifications as read:', error);
       return { 
         error: error.message || 'Error al marcar todas las notificaciones como leídas' 
+      };
+    }
+  },
+
+  /**
+   * Elimina una notificación
+   */
+  async deleteNotification(id: string): Promise<NotificationApiResponse<DeleteResult>> {
+    console.log('Deleting notification', { id });
+    
+    try {
+      return await backendClient({
+        endpoint: `/api/v1/notifications/${id}`,
+        method: 'DELETE'
+      });
+    } catch (error: any) {
+      console.error('Error deleting notification:', error);
+      return { 
+        error: error.message || 'Error al eliminar la notificación' 
+      };
+    }
+  },
+
+  /**
+   * Elimina todas las notificaciones
+   */
+  async deleteAllNotifications(subscriptionId = null): Promise<NotificationApiResponse<DeleteAllResult>> {
+    console.log('Deleting all notifications', { subscriptionId });
+    
+    let endpoint = `/api/v1/notifications/delete-all`;
+    if (subscriptionId) {
+      endpoint += `?subscriptionId=${subscriptionId}`;
+    }
+    
+    try {
+      return await backendClient({
+        endpoint,
+        method: 'DELETE'
+      });
+    } catch (error: any) {
+      console.error('Error deleting all notifications:', error);
+      return { 
+        error: error.message || 'Error al eliminar todas las notificaciones' 
       };
     }
   }

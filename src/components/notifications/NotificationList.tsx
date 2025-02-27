@@ -1,16 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { format, isToday, isYesterday, isThisWeek, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CheckCheck, Bell, ExternalLink } from 'lucide-react';
+import { CheckCheck, Bell, ExternalLink, Trash, Trash2 } from 'lucide-react';
 import { Notification, notificationService, NotificationApiResponse } from '../../lib/api/services/notifications';
 import { useNotifications } from '../../contexts/NotificationContext';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
+import { Button } from '../ui/button';
 
 interface NotificationListProps {
   onRefresh?: () => void;
 }
 
 export const NotificationList: React.FC<NotificationListProps> = ({ onRefresh }) => {
-  const { refreshUnreadCount } = useNotifications();
+  const { refreshUnreadCount, deleteNotification, deleteAllNotifications } = useNotifications();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [groupedNotifications, setGroupedNotifications] = useState<Record<string, Notification[]>>({});
   const [loading, setLoading] = useState<boolean>(true);
@@ -19,6 +21,7 @@ export const NotificationList: React.FC<NotificationListProps> = ({ onRefresh })
   const [hasMore, setHasMore] = useState<boolean>(false);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
 
   const loadNotifications = async (reset = false) => {
     setLoading(true);
@@ -122,40 +125,45 @@ export const NotificationList: React.FC<NotificationListProps> = ({ onRefresh })
     }
   };
 
-  const handleMarkAllAsRead = async () => {
-    if (unreadCount === 0) return;
-    
+  const handleDeleteNotification = async (notification: Notification) => {
     try {
-      const response = await notificationService.markAllAsRead();
+      const success = await deleteNotification(notification.id);
       
-      if (response.error) {
-        console.error('Error marking all notifications as read:', response.error);
-        return;
-      }
-      
-      // Update all notifications in state
-      const updatedNotifications = notifications.map(n => 
-        !n.read ? { ...n, read: true, readAt: new Date().toISOString() } : n
-      );
-      
-      setNotifications(updatedNotifications);
-      setUnreadCount(0);
-      groupNotificationsByDay(updatedNotifications);
-      
-      // Update global notification count
-      refreshUnreadCount();
-      
-      if (onRefresh) {
-        onRefresh();
+      if (success) {
+        // Remove the notification from the list
+        const updatedNotifications = notifications.filter(n => n.id !== notification.id);
+        setNotifications(updatedNotifications);
+        groupNotificationsByDay(updatedNotifications);
+        
+        if (onRefresh) {
+          onRefresh();
+        }
       }
     } catch (err) {
-      console.error('Error marking all notifications as read:', err);
+      console.error('Error deleting notification:', err);
     }
   };
 
-  const loadMore = () => {
-    if (!loading && hasMore) {
-      loadNotifications();
+  const handleDeleteAllNotifications = async () => {
+    setIsDeleteDialogOpen(false);
+    setLoading(true);
+    
+    try {
+      const success = await deleteAllNotifications();
+      
+      if (success) {
+        // Clear the notifications list
+        setNotifications([]);
+        setGroupedNotifications({});
+        
+        if (onRefresh) {
+          onRefresh();
+        }
+      }
+    } catch (err) {
+      console.error('Error deleting all notifications:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -163,122 +171,151 @@ export const NotificationList: React.FC<NotificationListProps> = ({ onRefresh })
     loadNotifications(true);
   }, []);
 
+  const loadMoreNotifications = () => {
+    if (hasMore && !loading) {
+      loadNotifications();
+    }
+  };
+
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold flex items-center gap-2">
+    <div className="w-full h-full flex flex-col">
+      <div className="flex justify-between items-center mb-4 border-b pb-2">
+        <div className="flex items-center gap-2">
           <Bell className="h-5 w-5" />
-          Notificaciones
-          {unreadCount > 0 && (
-            <span className="inline-flex items-center justify-center w-6 h-6 text-xs font-bold text-white bg-red-500 rounded-full">
-              {unreadCount}
-            </span>
-          )}
-        </h2>
+          <h2 className="text-lg font-semibold">
+            Notificaciones {unreadCount > 0 && `(${unreadCount} sin leer)`}
+          </h2>
+        </div>
         
-        {unreadCount > 0 && (
-          <button 
-            onClick={handleMarkAllAsRead}
-            className="flex items-center gap-1 text-sm px-3 py-1 rounded bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            <CheckCheck className="h-4 w-4" />
-            <span>Marcar todas como leídas</span>
-          </button>
-        )}
+        <div className="flex gap-2">
+          <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <DialogTrigger asChild>
+              <Button
+                variant="destructive"
+                size="sm"
+                title="Eliminar todas las notificaciones"
+                disabled={notifications.length === 0 || loading}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Eliminar todo
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Eliminar todas las notificaciones</DialogTitle>
+                <DialogDescription>
+                  ¿Estás seguro de que quieres eliminar todas tus notificaciones? Esta acción no se puede deshacer.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Cancelar</Button>
+                <Button variant="destructive" onClick={handleDeleteAllNotifications}>Eliminar todo</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
-      
-      {error && (
-        <div className="p-4 bg-red-100 text-red-700 rounded-md">
-          <p>{error}</p>
-          <button 
-            onClick={() => loadNotifications(true)}
-            className="mt-2 text-sm underline"
-          >
-            Reintentar
-          </button>
-        </div>
-      )}
-      
-      {loading && notifications.length === 0 ? (
-        <div className="flex justify-center p-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      ) : notifications.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-8 text-center bg-secondary/20 rounded-lg">
-          <Bell className="h-12 w-12 text-muted-foreground mb-3" />
-          <p className="text-lg font-medium">No tienes notificaciones</p>
-          <p className="text-sm text-muted-foreground">
-            Cuando recibas notificaciones, aparecerán aquí.
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {Object.entries(groupedNotifications).map(([dateGroup, groupNotifications]) => (
-            <div key={dateGroup} className="space-y-2">
-              <h3 className="font-medium text-sm text-muted-foreground sticky top-0 bg-background/95 backdrop-blur py-1">
-                {dateGroup}
-              </h3>
-              
-              <div className="space-y-2">
-                {groupNotifications.map((notification) => (
-                  <div 
-                    key={notification.id} 
-                    className={`p-4 rounded-lg border ${notification.read ? 'bg-card' : 'bg-primary/5 border-primary/20'}`}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="text-xs text-muted-foreground">
-                        {format(parseISO(notification.createdAt), 'HH:mm')}
-                        {notification.subscription_name && ` • ${notification.subscription_name}`}
-                      </span>
-                      
-                      <div className="flex gap-1">
-                        {!notification.read && (
+
+      <div className="flex-1 overflow-auto">
+        {error && (
+          <div className="p-4 mb-4 bg-red-50 text-red-700 rounded">
+            {error}
+          </div>
+        )}
+        
+        {loading && notifications.length === 0 ? (
+          <div className="flex justify-center items-center h-full">
+            <div className="animate-pulse text-gray-500">Cargando notificaciones...</div>
+          </div>
+        ) : notifications.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-gray-500">
+            <Bell className="h-10 w-10 mb-2 opacity-30" />
+            <p>No tienes notificaciones</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {Object.entries(groupedNotifications).map(([date, dateNotifications]) => (
+              <div key={date} className="space-y-2">
+                <h3 className="text-sm font-medium text-gray-500 sticky top-0 bg-white py-1">
+                  {date}
+                </h3>
+                
+                <div className="space-y-2">
+                  {dateNotifications.map((notification) => (
+                    <div
+                      key={notification.id}
+                      className={`p-3 rounded-lg border ${
+                        notification.read ? 'bg-white' : 'bg-blue-50'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="font-medium">{notification.title}</div>
+                          <div className="text-sm text-gray-600 mt-1">{notification.content}</div>
+                          
+                          {notification.entity_type && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              {notification.entity_type} • {notification.subscription_name || 'Suscripción'}
+                            </div>
+                          )}
+                          
+                          <div className="text-xs text-gray-500 mt-1">
+                            {format(parseISO(notification.createdAt), 'HH:mm', { locale: es })}
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-1 ml-2">
+                          {!notification.read && (
+                            <button
+                              onClick={() => handleMarkAsRead(notification)}
+                              className="text-blue-600 hover:text-blue-800 p-1"
+                              title="Marcar como leído"
+                            >
+                              <CheckCheck className="h-4 w-4" />
+                            </button>
+                          )}
+                          
+                          {notification.sourceUrl && (
+                            <a
+                              href={notification.sourceUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-gray-600 hover:text-gray-800 p-1"
+                              title="Ver origen"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </a>
+                          )}
+                          
                           <button
-                            onClick={() => handleMarkAsRead(notification)}
-                            title="Marcar como leída"
-                            className="text-muted-foreground hover:text-primary p-1 rounded-full hover:bg-primary/10"
+                            onClick={() => handleDeleteNotification(notification)}
+                            className="text-red-600 hover:text-red-800 p-1"
+                            title="Eliminar notificación"
                           >
-                            <CheckCheck className="h-4 w-4" />
+                            <Trash className="h-4 w-4" />
                           </button>
-                        )}
+                        </div>
                       </div>
                     </div>
-                    
-                    <h4 className="font-medium mb-1">{notification.title}</h4>
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                      {notification.content}
-                    </p>
-                    
-                    {notification.sourceUrl && (
-                      <a
-                        href={notification.sourceUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-2"
-                      >
-                        <ExternalLink className="h-3 w-3" />
-                        <span>Ver documento</span>
-                      </a>
-                    )}
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
-          
-          {hasMore && (
-            <div className="flex justify-center">
-              <button
-                onClick={loadMore}
-                disabled={loading}
-                className="px-4 py-2 text-sm border rounded-md hover:bg-secondary/30 transition disabled:opacity-50"
-              >
-                {loading ? 'Cargando...' : 'Cargar más'}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+            ))}
+            
+            {hasMore && (
+              <div className="flex justify-center pt-2 pb-4">
+                <Button
+                  variant="outline"
+                  onClick={loadMoreNotifications}
+                  disabled={loading}
+                >
+                  {loading ? 'Cargando...' : 'Cargar más'}
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }; 
