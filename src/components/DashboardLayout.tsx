@@ -4,10 +4,17 @@ import { Home, Bell, Settings, LogOut, User, Archive } from 'lucide-react';
 
 import type { UserProfile } from '../lib/api/types';
 import { user } from '../lib/api';
+import { NotificationBadge } from './notifications/NotificationBadge';
+import { NotificationProvider } from '../contexts/NotificationContext';
 
 const menuItems = [
   { icon: Home, label: 'Inicio', href: '/dashboard' },
-  { icon: Bell, label: 'Notificaciones', href: '/notifications' },
+  { 
+    icon: () => <NotificationBadge />, 
+    label: 'Notificaciones', 
+    href: '/notifications',
+    noIcon: true 
+  },
   { icon: Archive, label: 'Subscripciones', href: '/subscriptions' },
   { icon: Settings, label: 'Ajustes', href: '/settings' },
 ];
@@ -115,100 +122,106 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <div className="flex h-screen bg-background">
-      {/* Left Sidebar */}
-      <nav className="w-64 border-r-4 border-black bg-card flex flex-col shadow-[4px_0_0_0_rgba(0,0,0,1)]">
-        {/* Logo Section */}
-        <div className="p-6 border-b-4 border-black">
-          <Link 
-            to="/dashboard" 
-            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-          >
-            <img src="https://ik.imagekit.io/appraisily/NYFIA/logo.png" alt="NIFYA" className="h-10 w-10 border-2 border-black rounded-full shadow-[2px_2px_0_0_rgba(0,0,0,1)]" />
-            <div>
-              <h1 className="text-xl font-bold text-foreground">NIFYA</h1>
-              <p className="text-xs text-muted-foreground">Notificaciones Inteligentes</p>
-            </div>
-          </Link>
-        </div>
+    <NotificationProvider>
+      <div className="flex h-screen bg-background">
+        {/* Left Sidebar */}
+        <nav className="w-64 border-r-4 border-black bg-card flex flex-col shadow-[4px_0_0_0_rgba(0,0,0,1)]">
+          {/* Logo Section */}
+          <div className="p-6 border-b-4 border-black">
+            <Link 
+              to="/dashboard" 
+              className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+            >
+              <img src="https://ik.imagekit.io/appraisily/NYFIA/logo.png" alt="NIFYA" className="h-10 w-10 border-2 border-black rounded-full shadow-[2px_2px_0_0_rgba(0,0,0,1)]" />
+              <div>
+                <h1 className="text-xl font-bold text-foreground">NIFYA</h1>
+                <p className="text-xs text-muted-foreground">Notificaciones Inteligentes</p>
+              </div>
+            </Link>
+          </div>
 
-        {/* User Section */}
-        <div className="p-6 border-b-4 border-black">
-          {loading ? (
-            <div className="animate-pulse">
+          {/* User Section */}
+          <div className="p-6 border-b-4 border-black">
+            {loading ? (
+              <div className="animate-pulse">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-full bg-primary/10 border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)]">
+                    <User className="h-6 w-6 text-primary/50" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-4 w-24 bg-muted rounded" />
+                    <div className="h-3 w-32 bg-muted rounded" />
+                  </div>
+                </div>
+              </div>
+            ) : user ? (
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-full bg-primary/10 border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)]">
-                  <User className="h-6 w-6 text-primary/50" />
+                  {profile?.avatar ? (
+                    <img 
+                      src={profile.avatar} 
+                      alt={profile.name}
+                      className="h-6 w-6 rounded-full"
+                    />
+                  ) : (
+                    <User className="h-6 w-6 text-primary" />
+                  )}
                 </div>
-                <div className="space-y-2">
-                  <div className="h-4 w-24 bg-muted rounded" />
-                  <div className="h-3 w-32 bg-muted rounded" />
+                <div>
+                  <p className="font-medium">{profile?.name}</p>
+                  <p className="text-sm text-muted-foreground">{profile?.email}</p>
+                  {profile?.bio && (
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                      {profile.bio}
+                    </p>
+                  )}
                 </div>
               </div>
-            </div>
-          ) : user ? (
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-full bg-primary/10 border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)]">
-                {profile?.avatar ? (
-                  <img 
-                    src={profile.avatar} 
-                    alt={profile.name}
-                    className="h-6 w-6 rounded-full"
-                  />
-                ) : (
-                  <User className="h-6 w-6 text-primary" />
-                )}
+            ) : error ? (
+              <div className="text-sm text-destructive p-2 border-2 border-destructive rounded-md shadow-[2px_2px_0_0_rgba(220,38,38,0.3)]">
+                {error}
               </div>
-              <div>
-                <p className="font-medium">{profile?.name}</p>
-                <p className="text-sm text-muted-foreground">{profile?.email}</p>
-                {profile?.bio && (
-                  <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                    {profile.bio}
-                  </p>
-                )}
-              </div>
-            </div>
-          ) : error ? (
-            <div className="text-sm text-destructive p-2 border-2 border-destructive rounded-md shadow-[2px_2px_0_0_rgba(220,38,38,0.3)]">
-              {error}
-            </div>
-          ) : null}
-        </div>
-
-        {/* Navigation */}
-        <div className="p-6 flex-1">
-          <div className="space-y-2">
-            {menuItems.map((item) => (
-              <Link
-                key={item.label}
-                to={item.href}
-                className="flex items-center gap-3 px-3 py-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted border-2 border-transparent hover:border-black hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition-all"
-              >
-                <item.icon className="h-5 w-5" />
-                <span className="font-medium">{item.label}</span>
-              </Link>
-            ))}
+            ) : null}
           </div>
-        </div>
 
-        {/* Logout Section */}
-        <div className="p-6 border-t-4 border-black mt-auto">
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-3 px-3 py-2 w-full rounded-md text-muted-foreground border-2 border-transparent hover:border-destructive hover:text-destructive hover:shadow-[3px_3px_0_0_rgba(220,38,38,0.3)] transition-all"
-            >
-              <LogOut className="h-5 w-5" />
-              <span className="font-medium">Cerrar sesión</span>
-            </button>
-        </div>
-      </nav>
+          {/* Menu Section */}
+          <div className="p-6 flex-1">
+            <div className="space-y-2">
+              {menuItems.map((item) => (
+                <Link
+                  key={item.label}
+                  to={item.href}
+                  className="flex items-center gap-3 px-3 py-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted border-2 border-transparent hover:border-black hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition-all"
+                >
+                  {item.noIcon ? (
+                    <item.icon />
+                  ) : (
+                    <item.icon className="h-5 w-5" />
+                  )}
+                  <span className="font-medium">{item.label}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto">
-        {children}
-      </main>
-    </div>
+          {/* Logout Section */}
+          <div className="p-6 border-t-4 border-black mt-auto">
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-3 px-3 py-2 w-full rounded-md text-muted-foreground border-2 border-transparent hover:border-destructive hover:text-destructive hover:shadow-[3px_3px_0_0_rgba(220,38,38,0.3)] transition-all"
+              >
+                <LogOut className="h-5 w-5" />
+                <span className="font-medium">Cerrar sesión</span>
+              </button>
+          </div>
+        </nav>
+
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto">
+          {children}
+        </main>
+      </div>
+    </NotificationProvider>
   );
 };
 
