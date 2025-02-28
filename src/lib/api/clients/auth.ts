@@ -7,8 +7,9 @@ interface RequestConfig {
   headers?: Record<string, string>;
 }
 
-const AUTH_URL = import.meta.env.VITE_AUTH_URL;
-console.log('Auth URL from environment:', AUTH_URL);
+// Ensure we have a valid auth URL, fallback to environment or hardcoded value
+const AUTH_URL = import.meta.env.VITE_AUTH_URL || 'https://authentication-service-415554190254.us-central1.run.app';
+console.log('Auth URL being used:', AUTH_URL);
 
 export async function authClient<T>({
   endpoint,

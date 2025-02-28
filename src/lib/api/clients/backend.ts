@@ -8,8 +8,9 @@ interface RequestConfig {
   headers?: Record<string, string>;
 }
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-console.log('Backend URL from environment:', BACKEND_URL);
+// Ensure we have a valid backend URL, fallback to environment or hardcoded value
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://backend-415554190254.us-central1.run.app';
+console.log('Backend URL being used:', BACKEND_URL);
 
 async function refreshAccessToken() {
   console.group('🔄 Token Refresh');
