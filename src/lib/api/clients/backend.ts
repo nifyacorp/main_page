@@ -8,11 +8,40 @@ interface RequestConfig {
   headers?: Record<string, string>;
 }
 
+// Define token response interface
+interface TokenResponse {
+  accessToken?: string;
+  refreshToken?: string;
+  [key: string]: any;
+}
+
 // Ensure we have a valid backend URL, fallback to environment or hardcoded value
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://backend-415554190254.us-central1.run.app';
 console.log('Backend URL being used:', BACKEND_URL);
 
-async function refreshAccessToken() {
+// Token refresh mutex and queue implementation
+let isRefreshing = false;
+let refreshPromise: Promise<boolean> | null = null;
+const refreshQueue: Array<{
+  resolve: (value: boolean) => void;
+  reject: (reason?: any) => void;
+}> = [];
+
+// Process all queued promises with the refresh result
+function processQueue(success: boolean, error?: any): void {
+  refreshQueue.forEach(promise => {
+    if (success) {
+      promise.resolve(true);
+    } else {
+      promise.reject(error);
+    }
+  });
+  
+  // Clear the queue
+  refreshQueue.length = 0;
+}
+
+async function refreshAccessToken(retryAttempt = 0): Promise<boolean> {
   console.group('🔄 Token Refresh');
   console.log('Attempting to refresh access token');
 
@@ -24,8 +53,27 @@ async function refreshAccessToken() {
     return false;
   }
 
+  // If a refresh is already in progress, queue this request
+  if (isRefreshing) {
+    console.log('Token refresh already in progress, adding to queue');
+    return new Promise<boolean>((resolve, reject) => {
+      refreshQueue.push({ resolve, reject });
+    });
+  }
+
+  // Set the mutex
+  isRefreshing = true;
+  refreshPromise = null;
+  
   try {
-    const { data, error } = await authClient({
+    // Exponential backoff delay if this is a retry
+    if (retryAttempt > 0) {
+      const backoffDelay = Math.min(Math.pow(2, retryAttempt) * 1000, 10000); // Max 10 seconds
+      console.log(`Retry attempt ${retryAttempt}, waiting ${backoffDelay}ms before retry`);
+      await new Promise(resolve => setTimeout(resolve, backoffDelay));
+    }
+
+    const { data, error } = await authClient<TokenResponse>({
       endpoint: '/api/auth/refresh',
       method: 'POST',
       body: { refreshToken }
@@ -33,6 +81,9 @@ async function refreshAccessToken() {
 
     if (error) {
       console.error('Token refresh failed:', error);
+      // Release mutex and notify queue of failure
+      isRefreshing = false;
+      processQueue(false, error);
       return false;
     }
 
@@ -42,14 +93,36 @@ async function refreshAccessToken() {
       if (data.refreshToken) {
         localStorage.setItem('refreshToken', data.refreshToken);
       }
+      
+      // Release mutex and notify queue of success
+      isRefreshing = false;
+      processQueue(true);
+      console.groupEnd();
       return true;
     }
+    
+    // Release mutex and notify queue of failure
+    isRefreshing = false;
+    processQueue(false, new Error('Invalid token response'));
+    console.groupEnd();
+    return false;
   } catch (err) {
     console.error('Token refresh error:', err);
+    
+    // Implement retry with exponential backoff
+    const maxRetries = 3;
+    if (retryAttempt < maxRetries) {
+      console.log(`Will retry token refresh, attempt ${retryAttempt + 1} of ${maxRetries}`);
+      isRefreshing = false; // Release mutex for retry
+      return refreshAccessToken(retryAttempt + 1);
+    }
+    
+    // Release mutex and notify queue of failure after max retries
+    isRefreshing = false;
+    processQueue(false, err);
+    console.groupEnd();
+    return false;
   }
-  
-  console.groupEnd();
-  return false;
 }
 
 export async function backendClient<T>({
@@ -88,11 +161,16 @@ export async function backendClient<T>({
     const fullUrl = `${BACKEND_URL}${endpoint}`;
     console.log('Full request URL:', fullUrl);
 
-    const response = await fetch(fullUrl, {
+    const requestInit: RequestInit = {
       method,
       headers: requestHeaders,
-      ...(body && { body: JSON.stringify(body) }),
-    });
+    };
+    
+    if (body) {
+      requestInit.body = JSON.stringify(body);
+    }
+
+    const response = await fetch(fullUrl, requestInit);
 
     let data;
     try {
