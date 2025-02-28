@@ -281,7 +281,10 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
       </div>
 
       <ul className="divide-y">
-        {notifications.map((notification) => (
+        {notifications
+          // Filter out notifications without valid IDs to prevent errors
+          .filter(notification => !!notification.id)
+          .map((notification) => (
           <li 
             key={notification.id} 
             className={`p-4 hover:bg-gray-50 flex justify-between ${!notification.read ? 'bg-blue-50' : ''}`}
@@ -305,6 +308,7 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
                 variant="ghost" 
                 size="sm" 
                 onClick={() => handleDeleteNotification(notification)}
+                disabled={!notification.id} // Disable the delete button if no valid ID
               >
                 Delete
               </Button>

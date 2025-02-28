@@ -14,6 +14,19 @@ export interface Notification {
   read: boolean;
   createdAt: string;
   readAt?: string;
+  
+  // Helper method to safely access entity type parts
+  getEntityTypeParts(): string[] {
+    if (!this.entity_type) return [];
+    return this.entity_type.split(':');
+  }
+}
+
+// Utility function to safely access entity type parts for any notification
+// This helps when working with notification objects directly
+export function getEntityTypeParts(notification: Notification | undefined | null): string[] {
+  if (!notification || !notification.entity_type) return [];
+  return notification.entity_type.split(':');
 }
 
 export interface NotificationsResponse {
@@ -75,10 +88,33 @@ export const notificationService = {
     }
     
     try {
-      return await backendClient({
+      const response = await backendClient({
         endpoint,
         method: 'GET'
       });
+      
+      // Add validation to ensure all notifications have valid IDs
+      if (response.data?.notifications) {
+        console.log(`Received ${response.data.notifications.length} notifications from API`);
+        
+        // Filter out any notifications without valid IDs to prevent UI errors
+        const validNotifications = response.data.notifications.filter(notification => {
+          const isValid = !!notification && !!notification.id;
+          if (!isValid) {
+            console.warn('Found invalid notification in API response:', notification);
+          }
+          return isValid;
+        });
+        
+        if (validNotifications.length !== response.data.notifications.length) {
+          console.warn(`Filtered out ${response.data.notifications.length - validNotifications.length} invalid notifications`);
+        }
+        
+        // Update the response with only valid notifications
+        response.data.notifications = validNotifications;
+      }
+      
+      return response;
     } catch (error: any) {
       console.error('Error listing notifications:', error);
       return { 

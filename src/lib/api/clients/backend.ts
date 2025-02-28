@@ -171,10 +171,34 @@ async function refreshAccessToken(retryAttempt = 0): Promise<boolean> {
   }
 }
 
+// Add a transformer for notification data
+const processNotificationData = (data: any): any => {
+  // If it's not an object or null, return as is
+  if (!data || typeof data !== 'object') return data;
+  
+  // Process notification arrays (from list endpoint)
+  if (data.notifications && Array.isArray(data.notifications)) {
+    data.notifications = data.notifications.map((notification: any) => {
+      if (notification && typeof notification === 'object') {
+        // Ensure entity_type is at least an empty string
+        notification.entity_type = notification.entity_type || '';
+      }
+      return notification;
+    });
+  }
+  
+  // Process single notification object (from get endpoint)
+  if (data.id && data.title && data.entity_type === undefined) {
+    data.entity_type = '';
+  }
+  
+  return data;
+};
+
 export async function backendClient<T>({
   endpoint,
   method = 'GET',
-  body,
+  body = undefined,
   headers = {}
 }: RequestConfig): Promise<ApiResponse<T>> {
   let retryCount = 0;
@@ -263,7 +287,14 @@ export async function backendClient<T>({
         if (response.ok) {
           console.log('Request successful');
           console.groupEnd();
-          return { data };
+          
+          // Process notification data to ensure entity_type is always defined
+          const processedData = processNotificationData(data);
+          
+          return {
+            data: processedData,
+            status: response.status,
+          };
         }
 
         // Check if token expired or unauthorized
