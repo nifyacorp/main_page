@@ -3,7 +3,13 @@ import { ApiResponse } from '../types';
 interface RequestConfig {
   endpoint: string;
   method?: string;
-  body?: unknown;
+  body?: {
+    email?: string;
+    password?: string;
+    refreshToken?: string;
+    name?: string;
+    [key: string]: any;
+  };
   headers?: Record<string, string>;
 }
 
@@ -93,18 +99,35 @@ export async function authClient<T>({
         localStorage.setItem('refreshToken', data.refreshToken);
       }
       
+      // Set isAuthenticated flag consistently across all auth flows
+      localStorage.setItem('isAuthenticated', 'true');
+      
       try {
         // Parse user ID from token and store it
         const [, payload] = token.replace('Bearer ', '').split('.');
         if (payload) {
-          const decodedPayload = JSON.parse(atob(payload));
-          if (decodedPayload.sub) {
-            console.log('Extracted user ID from token:', decodedPayload.sub);
-            localStorage.setItem('userId', decodedPayload.sub);
+          try {
+            const decodedPayload = JSON.parse(atob(payload));
+            if (decodedPayload.sub) {
+              console.log('Extracted user ID from token:', decodedPayload.sub);
+              localStorage.setItem('userId', decodedPayload.sub);
+            } else {
+              console.warn('Token payload does not contain sub field:', decodedPayload);
+              // If we can't get a user ID, auth will fail later, but we set a placeholder
+              // This helps identify the issue in logs when API calls fail
+              localStorage.setItem('userId', 'invalid-token-no-sub');
+            }
+          } catch (parseError) {
+            console.error('Failed to parse token payload JSON:', parseError);
+            localStorage.setItem('userId', 'invalid-token-payload');
           }
+        } else {
+          console.warn('Could not extract payload from token - invalid format');
+          localStorage.setItem('userId', 'invalid-token-format');
         }
       } catch (err) {
         console.error('Failed to extract user ID from token:', err);
+        localStorage.setItem('userId', 'token-extraction-error');
       }
       
       console.groupEnd();

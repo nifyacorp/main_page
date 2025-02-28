@@ -41,6 +41,15 @@ function processQueue(success: boolean, error?: any): void {
   refreshQueue.length = 0;
 }
 
+// Add a utility function for consistent auth state cleanup
+function clearAuthState() {
+  console.log('Clearing authentication state');
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
+  localStorage.removeItem('userId');
+  localStorage.removeItem('isAuthenticated');
+}
+
 async function refreshAccessToken(retryAttempt = 0): Promise<boolean> {
   console.group('🔄 Token Refresh');
   console.log('Attempting to refresh access token');
@@ -50,6 +59,7 @@ async function refreshAccessToken(retryAttempt = 0): Promise<boolean> {
   if (!refreshToken) {
     console.error('No refresh token available');
     console.groupEnd();
+    clearAuthState(); // Clear auth state if refresh token is missing
     return false;
   }
 
@@ -89,9 +99,45 @@ async function refreshAccessToken(retryAttempt = 0): Promise<boolean> {
 
     if (data?.accessToken) {
       console.log('Token refresh successful');
-      localStorage.setItem('accessToken', data.accessToken);
+      
+      // Ensure token is in Bearer format
+      const token = data.accessToken.startsWith('Bearer ') ? 
+        data.accessToken : 
+        `Bearer ${data.accessToken}`;
+        
+      localStorage.setItem('accessToken', token);
+      
       if (data.refreshToken) {
         localStorage.setItem('refreshToken', data.refreshToken);
+      }
+      
+      // Set isAuthenticated flag to maintain consistency
+      localStorage.setItem('isAuthenticated', 'true');
+      
+      // Extract and store user ID from token if possible
+      try {
+        const [, payload] = token.replace('Bearer ', '').split('.');
+        if (payload) {
+          try {
+            const decodedPayload = JSON.parse(atob(payload));
+            if (decodedPayload.sub) {
+              console.log('Updated user ID from refreshed token:', decodedPayload.sub);
+              localStorage.setItem('userId', decodedPayload.sub);
+            } else {
+              console.warn('Refreshed token payload does not contain sub field');
+              localStorage.setItem('userId', 'refreshed-token-no-sub');
+            }
+          } catch (parseError) {
+            console.error('Failed to parse refreshed token payload:', parseError);
+            localStorage.setItem('userId', 'refreshed-token-parse-error');
+          }
+        } else {
+          console.warn('Could not extract payload from refreshed token - invalid format');
+          localStorage.setItem('userId', 'refreshed-token-invalid-format');
+        }
+      } catch (err) {
+        console.error('Failed to extract user ID from refreshed token:', err);
+        localStorage.setItem('userId', 'refreshed-token-extraction-error');
       }
       
       // Release mutex and notify queue of success
@@ -142,8 +188,11 @@ export async function backendClient<T>({
       throw new Error('Not authenticated');
     }
 
-    // Ensure token is in Bearer format
-    const bearerToken = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+    // Ensure token is correctly formatted for Authorization header
+    // The auth client should have already stored it with Bearer prefix
+    // but we'll ensure it has exactly one Bearer prefix
+    const cleanToken = token.replace(/^Bearer\s+/i, '');
+    const bearerToken = `Bearer ${cleanToken}`;
 
     const requestHeaders = {
       'Content-Type': 'application/json',
@@ -227,9 +276,13 @@ export async function backendClient<T>({
             continue;
           }
           
-          // If we can't refresh or have exceeded retries, redirect to login
+          // If we can't refresh or have exceeded retries, properly clean up auth state
           console.log('Unable to refresh token, redirecting to login');
-          localStorage.clear();
+          
+          // Clear all authentication state consistently
+          clearAuthState();
+          
+          // Redirect to auth page
           window.location.href = '/auth';
           return { error: 'Session expired' };
         }
