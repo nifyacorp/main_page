@@ -15,11 +15,8 @@ export interface Notification {
   createdAt: string;
   readAt?: string;
   
-  // Helper method to safely access entity type parts
-  getEntityTypeParts(): string[] {
-    if (!this.entity_type) return [];
-    return this.entity_type.split(':');
-  }
+  // Helper method signature (no implementation in interface)
+  getEntityTypeParts(): string[];
 }
 
 // Utility function to safely access entity type parts for any notification
@@ -28,6 +25,13 @@ export function getEntityTypeParts(notification: Notification | undefined | null
   if (!notification || !notification.entity_type) return [];
   return notification.entity_type.split(':');
 }
+
+// Implementation of the interface method
+// This is attached to the Notification prototype
+Notification.prototype.getEntityTypeParts = function(): string[] {
+  if (!this.entity_type) return [];
+  return this.entity_type.split(':');
+};
 
 export interface NotificationsResponse {
   notifications: Notification[];
