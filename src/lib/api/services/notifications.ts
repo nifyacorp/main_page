@@ -153,7 +153,19 @@ export const notificationService = {
    * Elimina una notificación
    */
   async deleteNotification(id: string): Promise<NotificationApiResponse<DeleteResult>> {
-    console.log('Deleting notification', { id });
+    console.log('Deleting notification', { 
+      id,
+      hasId: !!id,
+      idType: typeof id,
+      isValid: id !== undefined && id !== null && id !== 'undefined' && id !== 'null'
+    });
+    
+    if (!id || id === 'undefined' || id === 'null') {
+      console.error('Invalid notification ID provided to deleteNotification');
+      return { 
+        error: 'Invalid notification ID' 
+      };
+    }
     
     try {
       return await backendClient({

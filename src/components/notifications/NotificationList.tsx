@@ -129,6 +129,19 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
 
   const handleDeleteNotification = async (notification: Notification) => {
     try {
+      // Debug logging
+      console.log('Deleting notification:', {
+        notification,
+        id: notification?.id,
+        hasId: !!notification?.id,
+        idType: typeof notification?.id
+      });
+      
+      if (!notification?.id) {
+        console.error('Cannot delete notification with undefined ID');
+        return;
+      }
+      
       const success = await deleteNotification(notification.id);
       
       if (success) {
