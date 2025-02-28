@@ -2,7 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { format, isToday, isYesterday, isThisWeek, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { CheckCheck, Bell, ExternalLink, Trash, Trash2 } from 'lucide-react';
-import { Notification, notificationService, NotificationApiResponse } from '../../lib/api/services/notifications';
+import { 
+  Notification, 
+  notificationService, 
+  enhanceNotification, 
+  enhanceNotifications 
+} from '../../lib/api/services/notifications';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
 import { Button } from '../ui/button';
@@ -36,6 +41,7 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
     const currentPage = reset ? 1 : page;
     
     try {
+      console.log('Loading notifications page', currentPage);
       const response = await notificationService.list({
         page: currentPage,
         limit: 20,
@@ -44,11 +50,27 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
       
       if (response.error) {
         setError(response.error);
+        console.error('Error from notification service:', response.error);
         return;
       }
       
       if (!response.error && response.data) {
-        const newNotifications = reset ? response.data.notifications : [...notifications, ...response.data.notifications];
+        console.log(`Received ${response.data.notifications.length} notifications from API`);
+        
+        // Process the notifications and enhance them
+        const processedNotifications = enhanceNotifications(response.data.notifications);
+        console.log(`Processed ${processedNotifications.length} notifications`);
+        
+        if (processedNotifications.length > 0) {
+          console.log('First notification sample:', {
+            id: processedNotifications[0].id,
+            title: processedNotifications[0].title,
+            entity_type: processedNotifications[0].entity_type,
+            has_method: typeof processedNotifications[0].getEntityTypeParts === 'function'
+          });
+        }
+        
+        const newNotifications = reset ? processedNotifications : [...notifications, ...processedNotifications];
         setNotifications(newNotifications);
         groupNotificationsByDay(newNotifications);
         setHasMore(response.data.hasMore);
@@ -283,38 +305,52 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
       <ul className="divide-y">
         {notifications
           // Filter out notifications without valid IDs to prevent errors
-          .filter(notification => !!notification.id)
-          .map((notification) => (
-          <li 
-            key={notification.id} 
-            className={`p-4 hover:bg-gray-50 flex justify-between ${!notification.read ? 'bg-blue-50' : ''}`}
-          >
-            <div className="flex-grow">
-              <div 
-                className="cursor-pointer" 
-                onClick={() => !notification.read && handleMarkAsRead(notification)}
+          .filter(notification => {
+            const isValid = !!notification && !!notification.id;
+            if (!isValid) {
+              console.warn('Filtering out invalid notification:', notification);
+            }
+            return isValid;
+          })
+          .map((notification) => {
+            // Safety check - ensure notification has been enhanced with methods
+            if (typeof notification.getEntityTypeParts !== 'function') {
+              console.log('Enhancing notification in render:', notification.id);
+              notification = enhanceNotification(notification);
+            }
+            
+            return (
+              <li 
+                key={notification.id} 
+                className={`p-4 hover:bg-gray-50 flex justify-between ${!notification.read ? 'bg-blue-50' : ''}`}
               >
-                <h4 className={`font-medium ${!notification.read ? 'font-bold' : ''}`}>
-                  {notification.title}
-                </h4>
-                <p className="text-sm text-gray-600">{notification.content}</p>
-                <span className="text-xs text-gray-500">
-                  {notification.createdAt && format(parseISO(notification.createdAt), 'MMM d, yyyy h:mm a', { locale: es })}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-start ml-4">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => handleDeleteNotification(notification)}
-                disabled={!notification.id} // Disable the delete button if no valid ID
-              >
-                Delete
-              </Button>
-            </div>
-          </li>
-        ))}
+                <div className="flex-grow">
+                  <div 
+                    className="cursor-pointer" 
+                    onClick={() => !notification.read && handleMarkAsRead(notification)}
+                  >
+                    <h4 className={`font-medium ${!notification.read ? 'font-bold' : ''}`}>
+                      {notification.title}
+                    </h4>
+                    <p className="text-sm text-gray-600">{notification.content}</p>
+                    <span className="text-xs text-gray-500">
+                      {notification.createdAt && format(parseISO(notification.createdAt), 'MMM d, yyyy h:mm a', { locale: es })}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-start ml-4">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => handleDeleteNotification(notification)}
+                    disabled={!notification.id} // Disable the delete button if no valid ID
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </li>
+            );
+          })}
       </ul>
     </div>
   );

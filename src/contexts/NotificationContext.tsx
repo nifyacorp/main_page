@@ -1,5 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Notification, notificationService, NotificationApiResponse } from '../lib/api/services/notifications';
+import { 
+  Notification, 
+  notificationService, 
+  NotificationApiResponse,
+  enhanceNotifications 
+} from '../lib/api/services/notifications';
 
 interface NotificationContextType {
   unreadCount: number;

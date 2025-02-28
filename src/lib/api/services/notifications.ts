@@ -26,12 +26,31 @@ export function getEntityTypeParts(notification: Notification | undefined | null
   return notification.entity_type.split(':');
 }
 
-// Implementation of the interface method
-// This is attached to the Notification prototype
-Notification.prototype.getEntityTypeParts = function(): string[] {
-  if (!this.entity_type) return [];
-  return this.entity_type.split(':');
-};
+// Remove the prototype implementation as it doesn't work with plain JSON objects
+
+// New utility function to safely get entity_type as a string
+export function getEntityType(notification: Notification | null | undefined): string {
+  return notification?.entity_type || '';
+}
+
+// New function to enhance notification objects with methods
+export function enhanceNotification(notification: any): Notification {
+  if (!notification) return notification;
+  
+  // Add the getEntityTypeParts method implementation directly to the object
+  notification.getEntityTypeParts = function() {
+    if (!this.entity_type) return [];
+    return this.entity_type.split ? this.entity_type.split(':') : [];
+  };
+  
+  return notification as Notification;
+}
+
+// New helper to process an array of notifications
+export function enhanceNotifications(notifications: any[]): Notification[] {
+  if (!notifications) return [];
+  return notifications.filter(Boolean).map(enhanceNotification);
+}
 
 export interface NotificationsResponse {
   notifications: Notification[];
@@ -101,14 +120,22 @@ export const notificationService = {
       if (response.data?.notifications) {
         console.log(`Received ${response.data.notifications.length} notifications from API`);
         
+        // Log the first notification for debugging
+        if (response.data.notifications.length > 0) {
+          console.log('First notification sample:', JSON.stringify(response.data.notifications[0]));
+        }
+        
         // Filter out any notifications without valid IDs to prevent UI errors
-        const validNotifications = response.data.notifications.filter(notification => {
-          const isValid = !!notification && !!notification.id;
-          if (!isValid) {
-            console.warn('Found invalid notification in API response:', notification);
-          }
-          return isValid;
-        });
+        // AND enhance each notification with the getEntityTypeParts method
+        const validNotifications = response.data.notifications
+          .filter(notification => {
+            const isValid = !!notification && !!notification.id;
+            if (!isValid) {
+              console.warn('Found invalid notification in API response:', notification);
+            }
+            return isValid;
+          })
+          .map(notification => enhanceNotification(notification));
         
         if (validNotifications.length !== response.data.notifications.length) {
           console.warn(`Filtered out ${response.data.notifications.length - validNotifications.length} invalid notifications`);
@@ -134,10 +161,17 @@ export const notificationService = {
     console.log('Getting notification details', { id });
     
     try {
-      return await backendClient({
+      const response = await backendClient({
         endpoint: `/api/v1/notifications/${id}`,
         method: 'GET'
       });
+      
+      // Enhance the notification if it exists
+      if (response.data) {
+        response.data = enhanceNotification(response.data);
+      }
+      
+      return response;
     } catch (error: any) {
       console.error('Error getting notification:', error);
       return { 

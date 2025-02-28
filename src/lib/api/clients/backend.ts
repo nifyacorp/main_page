@@ -178,18 +178,27 @@ const processNotificationData = (data: any): any => {
   
   // Process notification arrays (from list endpoint)
   if (data.notifications && Array.isArray(data.notifications)) {
-    data.notifications = data.notifications.map((notification: any) => {
-      if (notification && typeof notification === 'object') {
-        // Ensure entity_type is at least an empty string
-        notification.entity_type = notification.entity_type || '';
-      }
-      return notification;
-    });
+    console.log(`Processing ${data.notifications.length} notifications from API response`);
+    data.notifications = data.notifications
+      .filter((notification: any) => notification && typeof notification === 'object')
+      .map((notification: any) => {
+        // Ensure entity_type is a string that can be split
+        if (notification.entity_type === undefined || notification.entity_type === null) {
+          notification.entity_type = '';
+        } else if (typeof notification.entity_type !== 'string') {
+          notification.entity_type = String(notification.entity_type);
+        }
+        return notification;
+      });
   }
   
   // Process single notification object (from get endpoint)
-  if (data.id && data.title && data.entity_type === undefined) {
-    data.entity_type = '';
+  if (data && typeof data === 'object' && data.id && data.title) {
+    if (data.entity_type === undefined || data.entity_type === null) {
+      data.entity_type = '';
+    } else if (typeof data.entity_type !== 'string') {
+      data.entity_type = String(data.entity_type);
+    }
   }
   
   return data;
