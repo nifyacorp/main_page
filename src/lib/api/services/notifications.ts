@@ -153,6 +153,8 @@ export const notificationService = {
    * Elimina una notificación
    */
   async deleteNotification(id: string): Promise<NotificationApiResponse<DeleteResult>> {
+    // Enhanced logging for debugging
+    console.group('🗑️ Delete Notification');
     console.log('Deleting notification', { 
       id,
       hasId: !!id,
@@ -160,20 +162,36 @@ export const notificationService = {
       isValid: id !== undefined && id !== null && id !== 'undefined' && id !== 'null'
     });
     
+    // Validate notification ID
     if (!id || id === 'undefined' || id === 'null') {
       console.error('Invalid notification ID provided to deleteNotification');
+      console.groupEnd();
       return { 
         error: 'Invalid notification ID' 
       };
     }
     
     try {
-      return await backendClient({
+      // Make DELETE request with empty body
+      const response = await backendClient<DeleteResult>({
         endpoint: `/api/v1/notifications/${id}`,
-        method: 'DELETE'
+        method: 'DELETE',
+        // Explicitly set empty body to avoid undefined body issues
+        body: {}
       });
+      
+      if (response.error) {
+        console.error('Error from backend when deleting notification:', response.error);
+        console.groupEnd();
+        return response;
+      }
+      
+      console.log('Successfully deleted notification:', response.data);
+      console.groupEnd();
+      return response;
     } catch (error: any) {
-      console.error('Error deleting notification:', error);
+      console.error('Exception when deleting notification:', error);
+      console.groupEnd();
       return { 
         error: error.message || 'Error al eliminar la notificación' 
       };
@@ -184,6 +202,7 @@ export const notificationService = {
    * Elimina todas las notificaciones
    */
   async deleteAllNotifications(subscriptionId = null): Promise<NotificationApiResponse<DeleteAllResult>> {
+    console.group('🗑️ Delete All Notifications');
     console.log('Deleting all notifications', { subscriptionId });
     
     let endpoint = `/api/v1/notifications/delete-all`;
@@ -192,12 +211,26 @@ export const notificationService = {
     }
     
     try {
-      return await backendClient({
+      // Make DELETE request with empty body
+      const response = await backendClient<DeleteAllResult>({
         endpoint,
-        method: 'DELETE'
+        method: 'DELETE',
+        // Explicitly set empty body to avoid undefined body issues
+        body: {}
       });
+      
+      if (response.error) {
+        console.error('Error from backend when deleting all notifications:', response.error);
+        console.groupEnd();
+        return response;
+      }
+      
+      console.log('Successfully deleted all notifications:', response.data);
+      console.groupEnd();
+      return response;
     } catch (error: any) {
-      console.error('Error deleting all notifications:', error);
+      console.error('Exception when deleting all notifications:', error);
+      console.groupEnd();
       return { 
         error: error.message || 'Error al eliminar todas las notificaciones' 
       };

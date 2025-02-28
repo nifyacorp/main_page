@@ -128,30 +128,48 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
   };
 
   const handleDeleteNotification = async (notification: Notification) => {
+    console.group('🗑️ NotificationList - Delete Notification');
     try {
-      // Debug logging
-      console.log('Deleting notification:', {
+      // Enhanced debug logging
+      console.log('Attempting to delete notification:', {
         notification,
         id: notification?.id,
         hasId: !!notification?.id,
-        idType: typeof notification?.id
+        idType: typeof notification?.id,
+        isValid: notification?.id !== undefined && notification?.id !== null
       });
       
+      // Validate notification ID
       if (!notification?.id) {
         console.error('Cannot delete notification with undefined ID');
+        console.groupEnd();
         return;
       }
       
+      // Attempt to delete the notification
       const success = await deleteNotification(notification.id);
       
       if (success) {
+        console.log('Successfully deleted notification, updating UI');
         // Remove the notification from the list
         const updatedNotifications = notifications.filter(n => n.id !== notification.id);
         setNotifications(updatedNotifications);
         groupNotificationsByDay(updatedNotifications);
+        
+        // Update total count
+        setTotalCount(prev => Math.max(0, prev - 1));
+        
+        // If the notification was unread, update unread count
+        if (!notification.read) {
+          setUnreadCount(prev => Math.max(0, prev - 1));
+        }
+      } else {
+        console.warn('Failed to delete notification, no changes made to UI');
       }
     } catch (err) {
-      console.error('Error deleting notification:', err);
+      console.error('Exception when deleting notification:', err);
+    } finally {
+      console.groupEnd();
     }
   };
 
