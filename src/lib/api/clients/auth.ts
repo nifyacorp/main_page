@@ -8,6 +8,7 @@ interface RequestConfig {
 }
 
 const AUTH_URL = import.meta.env.VITE_AUTH_URL;
+console.log('Auth URL from environment:', AUTH_URL);
 
 export async function authClient<T>({
   endpoint,

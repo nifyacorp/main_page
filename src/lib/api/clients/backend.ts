@@ -84,7 +84,10 @@ export async function backendClient<T>({
       Authorization: 'Bearer ***' // Mask token in logs
     });
 
-    const response = await fetch(`${BACKEND_URL}${endpoint}`, {
+    const fullUrl = `${BACKEND_URL}${endpoint}`;
+    console.log('Full request URL:', fullUrl);
+
+    const response = await fetch(fullUrl, {
       method,
       headers: requestHeaders,
       ...(body && { body: JSON.stringify(body) }),
