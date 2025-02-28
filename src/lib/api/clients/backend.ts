@@ -9,6 +9,7 @@ interface RequestConfig {
 }
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+console.log('Backend URL from environment:', BACKEND_URL);
 
 async function refreshAccessToken() {
   console.group('🔄 Token Refresh');
