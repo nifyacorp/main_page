@@ -118,11 +118,31 @@ export const notificationService = {
       
       // Add validation to ensure all notifications have valid IDs
       if (response.data?.notifications) {
+        console.group('🔍 Notification API Response Analysis');
         console.log(`Received ${response.data.notifications.length} notifications from API`);
         
-        // Log the first notification for debugging
+        // Log raw data structure of the first notification
         if (response.data.notifications.length > 0) {
-          console.log('First notification sample:', JSON.stringify(response.data.notifications[0]));
+          const firstNotification = response.data.notifications[0];
+          console.log('First notification sample:', JSON.stringify(firstNotification));
+          console.log('First notification keys:', Object.keys(firstNotification));
+          console.log('ID details:', {
+            id: firstNotification.id,
+            idValue: JSON.stringify(firstNotification.id),
+            idType: typeof firstNotification.id,
+            idLength: firstNotification.id ? firstNotification.id.length : 0,
+            hasId: !!firstNotification.id
+          });
+        }
+        
+        // Log all notifications with missing IDs
+        const invalidNotifications = response.data.notifications.filter(
+          notification => !notification || !notification.id
+        );
+        
+        if (invalidNotifications.length > 0) {
+          console.warn(`Found ${invalidNotifications.length} notifications with missing IDs`);
+          console.log('First invalid notification example:', invalidNotifications[0]);
         }
         
         // Filter out any notifications without valid IDs to prevent UI errors
@@ -139,7 +159,11 @@ export const notificationService = {
         
         if (validNotifications.length !== response.data.notifications.length) {
           console.warn(`Filtered out ${response.data.notifications.length - validNotifications.length} invalid notifications`);
+        } else {
+          console.log('All notifications have valid IDs ✓');
         }
+        
+        console.groupEnd();
         
         // Update the response with only valid notifications
         response.data.notifications = validNotifications;
