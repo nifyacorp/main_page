@@ -413,3 +413,54 @@ export async function backendClient<T>({
   
   return attemptRequest();
 }
+
+// Add HTTP method helpers as properties of an extended backendClient object
+export const backendClientWithMethods = {
+  async get<T>(endpoint: string, headers = {}): Promise<ApiResponse<T>> {
+    return backendClient<T>({
+      endpoint,
+      method: 'GET',
+      headers
+    });
+  },
+
+  async post<T>(endpoint: string, body?: any, headers = {}): Promise<ApiResponse<T>> {
+    return backendClient<T>({
+      endpoint,
+      method: 'POST',
+      body,
+      headers
+    });
+  },
+
+  async put<T>(endpoint: string, body?: any, headers = {}): Promise<ApiResponse<T>> {
+    return backendClient<T>({
+      endpoint,
+      method: 'PUT',
+      body,
+      headers
+    });
+  },
+
+  async patch<T>(endpoint: string, body?: any, headers = {}): Promise<ApiResponse<T>> {
+    return backendClient<T>({
+      endpoint,
+      method: 'PATCH',
+      body,
+      headers
+    });
+  },
+
+  async delete<T>(endpoint: string, body?: any, headers = {}): Promise<ApiResponse<T>> {
+    return backendClient<T>({
+      endpoint,
+      method: 'DELETE',
+      body,
+      headers
+    });
+  }
+};
+
+// Replace the exported function with an object that has both the function properties
+// and the HTTP method helpers
+Object.assign(backendClient, backendClientWithMethods);

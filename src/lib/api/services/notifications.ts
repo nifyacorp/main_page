@@ -162,8 +162,11 @@ export const notificationService = {
       if (options.unread !== undefined) params.append('unread', options.unread.toString());
       if (options.subscriptionId) params.append('subscriptionId', options.subscriptionId);
       
-      // Make API request
-      const response = await backendClient.get<NotificationsResponse>(`/notifications?${params.toString()}`);
+      // Make API request - using the function directly with correct endpoint path
+      const response = await backendClient({
+        endpoint: `/api/v1/notifications?${params.toString()}`,
+        method: 'GET'
+      });
       
       // Process and validate the response
       console.log('Raw API response received:', {
