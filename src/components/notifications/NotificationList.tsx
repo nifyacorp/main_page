@@ -210,28 +210,33 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
         return;
       }
       
+      // Optimistically update UI first
+      const updatedNotifications = notifications.filter(n => n.id !== notification.id);
+      setNotifications(updatedNotifications);
+      groupNotificationsByDay(updatedNotifications);
+      
+      // Update total count
+      setTotalCount(prev => Math.max(0, prev - 1));
+      
+      // If the notification was unread, update unread count
+      if (!notification.read) {
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
+      
       // Attempt to delete the notification
       const success = await deleteNotification(notification.id);
       
-      if (success) {
-        console.log('Successfully deleted notification, updating UI');
-        // Remove the notification from the list
-        const updatedNotifications = notifications.filter(n => n.id !== notification.id);
-        setNotifications(updatedNotifications);
-        groupNotificationsByDay(updatedNotifications);
-        
-        // Update total count
-        setTotalCount(prev => Math.max(0, prev - 1));
-        
-        // If the notification was unread, update unread count
-        if (!notification.read) {
-          setUnreadCount(prev => Math.max(0, prev - 1));
-        }
+      if (!success) {
+        console.log('Failed to delete notification, reverting UI changes');
+        // If deletion failed, revert UI changes
+        loadNotifications(true);
       } else {
-        console.warn('Failed to delete notification, no changes made to UI');
+        console.log('Successfully deleted notification');
       }
-    } catch (err) {
-      console.error('Exception when deleting notification:', err);
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      // Refresh notifications from server to ensure UI is in sync
+      loadNotifications(true);
     } finally {
       console.groupEnd();
     }

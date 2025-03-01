@@ -104,17 +104,25 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       
       if (response.data && response.data.success) {
         console.log('Successfully deleted notification:', response.data);
-        // Refresh the unread count after deletion
+        
+        // Update the notifications state immediately to remove the deleted notification
+        setNotifications(prevNotifications => prevNotifications.filter(n => n.id !== id));
+        
+        // Update total count
+        setTotalCount(prevCount => Math.max(0, prevCount - 1));
+        
+        // Also refresh the unread count
         refreshUnreadCount();
+        
         console.groupEnd();
         return true;
       }
       
-      console.warn('Deletion response did not indicate success:', response.data);
+      console.error('Unexpected response from deleteNotification:', response);
       console.groupEnd();
       return false;
     } catch (error) {
-      console.error('Exception when deleting notification:', error);
+      console.error('Error deleting notification:', error);
       console.groupEnd();
       return false;
     }

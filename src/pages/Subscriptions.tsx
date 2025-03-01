@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Plus, X, FileText, Building2, Brain, ChevronRight, Play } from 'lucide-react';
+import { Bell, Plus, X, FileText, Building2, Brain, ChevronRight, Play, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { subscriptions } from '../lib/api';
 import { useToast } from "../components/ui/use-toast";
@@ -33,6 +33,7 @@ const Subscriptions = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState<Record<string, boolean>>({});
+  const [processed, setProcessed] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
 
   useEffect(() => {
@@ -91,6 +92,7 @@ const Subscriptions = () => {
     
     try {
       setProcessing(prev => ({ ...prev, [id]: true }));
+      setProcessed(prev => ({ ...prev, [id]: false }));
       
       console.log('Requesting immediate processing for subscription:', id);
       const result = await subscriptions.processImmediately(id);
@@ -107,10 +109,14 @@ const Subscriptions = () => {
         // Show success notification
         console.log('Processing requested successfully:', result.data);
         toast({
-          variant: "success",
-          title: "Procesamiento iniciado",
-          description: "La suscripción se está procesando en segundo plano. Recibirás una notificación cuando se complete.",
+          variant: "default",
+          title: "Suscripción procesada",
+          description: "Se ha iniciado el procesamiento en segundo plano",
+          className: "bg-primary/10 border-primary text-primary",
         });
+        
+        // Update the processed state to show success indicator
+        setProcessed(prev => ({ ...prev, [id]: true }));
         
         // Set a timeout to update UI after a reasonable delay (5 seconds)
         setTimeout(() => {
@@ -130,7 +136,12 @@ const Subscriptions = () => {
       // Keep the processing indicator active for a short time to provide visual feedback
       setTimeout(() => {
         setProcessing(prev => ({ ...prev, [id]: false }));
-      }, 2000);
+        
+        // Reset the processed state after 5 seconds
+        setTimeout(() => {
+          setProcessed(prev => ({ ...prev, [id]: false }));
+        }, 5000);
+      }, 1000);
     }
   };
 
@@ -225,11 +236,34 @@ const Subscriptions = () => {
                         <button
                           onClick={(e) => handleProcessImmediately(e, subscription.id)}
                           disabled={processing[subscription.id]}
-                          className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700 hover:bg-green-200 transition-colors flex items-center gap-1"
+                          className={`px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1 transition-all ${
+                            processed[subscription.id]
+                              ? 'bg-green-100 text-green-800'
+                              : processing[subscription.id]
+                              ? 'bg-amber-100 text-amber-800'
+                              : 'bg-green-100 text-green-700 hover:bg-green-200'
+                          }`}
                           title="Procesar inmediatamente"
                         >
-                          <Play className="h-3 w-3" />
-                          {processing[subscription.id] ? 'Procesando...' : 'Procesar'}
+                          {processed[subscription.id] ? (
+                            <>
+                              <CheckCircle className="h-3 w-3" />
+                              Procesado
+                            </>
+                          ) : processing[subscription.id] ? (
+                            <>
+                              <svg className="animate-spin h-3 w-3 text-amber-800" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Procesando
+                            </>
+                          ) : (
+                            <>
+                              <Play className="h-3 w-3" />
+                              Procesar
+                            </>
+                          )}
                         </button>
                       )}
                       <button
