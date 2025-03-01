@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Bell, Plus, X, FileText, Building2, Brain, ChevronRight, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { subscriptions } from '../lib/api';
+import { useToast } from "../components/ui/use-toast";
 
 interface Subscription {
   id: string;
@@ -31,7 +32,8 @@ const Subscriptions = () => {
   const [userSubscriptions, setUserSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [processing, setProcessing] = useState<{ [key: string]: boolean }>({});
+  const [processing, setProcessing] = useState<Record<string, boolean>>({});
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchSubscriptions = async () => {
@@ -86,7 +88,6 @@ const Subscriptions = () => {
 
   const handleProcessImmediately = async (e: React.MouseEvent, id: string) => {
     e.preventDefault();
-    e.stopPropagation(); // Prevent navigation when clicking the process button
     
     try {
       setProcessing(prev => ({ ...prev, [id]: true }));
@@ -97,20 +98,39 @@ const Subscriptions = () => {
       if (result.error) {
         console.error('Processing error:', result.error);
         setError(result.error);
-        // Show error alert
-        alert(`Error al procesar la suscripción: ${result.error}`);
+        toast({
+          variant: "destructive",
+          title: "Error al procesar la suscripción",
+          description: result.error,
+        });
       } else {
         // Show success notification
         console.log('Processing requested successfully:', result.data);
-        alert('Suscripción enviada para procesamiento inmediato');
+        toast({
+          variant: "success",
+          title: "Procesamiento iniciado",
+          description: "La suscripción se está procesando en segundo plano. Recibirás una notificación cuando se complete.",
+        });
+        
+        // Set a timeout to update UI after a reasonable delay (5 seconds)
+        setTimeout(() => {
+          fetchSubscriptions();
+        }, 5000);
       }
     } catch (err) {
       console.error('Exception during processing:', err);
       const errorMsg = err instanceof Error ? err.message : 'Error al procesar la suscripción';
       setError(errorMsg);
-      alert(`Error: ${errorMsg}`);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: errorMsg,
+      });
     } finally {
-      setProcessing(prev => ({ ...prev, [id]: false }));
+      // Keep the processing indicator active for a short time to provide visual feedback
+      setTimeout(() => {
+        setProcessing(prev => ({ ...prev, [id]: false }));
+      }, 2000);
     }
   };
 
