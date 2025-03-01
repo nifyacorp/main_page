@@ -59,6 +59,14 @@ function normalizeNotification(data: any): Notification {
     };
   }
   
+  // Debug logging to see the raw notification data
+  console.log('Normalizing notification:', { 
+    id: data.id,
+    originalTitle: data.title,
+    hasTitle: !!data.title,
+    contentPreview: data.content ? data.content.substring(0, 30) + '...' : 'no content'
+  });
+  
   // Create a title from content if title is missing
   let title = data.title || '';
   if (!title && data.content) {
@@ -66,8 +74,10 @@ function normalizeNotification(data: any): Notification {
     title = data.content.length > 50 
       ? `${data.content.substring(0, 47)}...` 
       : data.content;
+    console.log('Generated title from content:', { id: data.id, generatedTitle: title });
   } else if (!title) {
     title = 'Untitled Notification';
+    console.log('Using fallback title:', { id: data.id, fallbackTitle: title });
   }
   
   // Ensure all required fields are present with fallbacks
@@ -95,12 +105,27 @@ function normalizeNotification(data: any): Notification {
     normalized.subscription_name = data.subscription_name;
   }
   
+  console.log('Normalized notification result:', { 
+    id: normalized.id, 
+    finalTitle: normalized.title,
+    titleLength: normalized.title?.length || 0
+  });
+  
   return normalized;
 }
 
 // Update enhanceNotification to use the normalized data
 export function enhanceNotification(notification: any): Notification {
   if (!notification) return notification;
+  
+  // Log the raw notification data before normalization
+  console.log('Enhancing notification:', { 
+    id: notification.id,
+    rawTitle: notification.title,
+    hasRawTitle: !!notification.title,
+    keys: notification ? Object.keys(notification) : [],
+    dataType: typeof notification
+  });
   
   // First normalize the notification structure
   const normalized = normalizeNotification(notification);
@@ -202,6 +227,16 @@ export const notificationService = {
         };
       }
       
+      // Debug the raw notification data from the backend
+      if (response.data.notifications.length > 0) {
+        console.log('First raw notification from backend:', {
+          sample: response.data.notifications[0],
+          hasTitle: !!response.data.notifications[0].title,
+          titleValue: response.data.notifications[0].title,
+          keys: Object.keys(response.data.notifications[0])
+        });
+      }
+      
       // Process and normalize each notification
       const processedNotifications = response.data.notifications
         .map(notification => {
@@ -221,7 +256,8 @@ export const notificationService = {
         firstNotification: processedNotifications.length > 0 ? {
           id: processedNotifications[0].id,
           hasId: !!processedNotifications[0].id,
-          entityType: processedNotifications[0].entity_type
+          entityType: processedNotifications[0].entity_type,
+          title: processedNotifications[0].title
         } : 'none'
       });
       

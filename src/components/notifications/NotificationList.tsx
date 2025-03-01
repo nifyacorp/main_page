@@ -253,7 +253,16 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
   };
 
   const getNotificationTitle = (notification: Notification): string => {
+    console.log('Processing notification title:', {
+      id: notification.id,
+      originalTitle: notification.title,
+      isUntitled: notification.title === 'Untitled Notification',
+      hasContent: !!notification.content,
+      contentPreview: notification.content ? notification.content.substring(0, 30) + '...' : 'none'
+    });
+
     if (notification.title && notification.title !== 'Untitled Notification') {
+      console.log(`Using original title for notification ${notification.id}`);
       return notification.title;
     }
     
@@ -262,9 +271,11 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
       const truncatedContent = notification.content.length > 50 
         ? `${notification.content.substring(0, 47)}...` 
         : notification.content;
+      console.log(`Using content as title for notification ${notification.id}: "${truncatedContent}"`);
       return truncatedContent;
     }
     
+    console.log(`Falling back to "Untitled Notification" for ${notification.id}`);
     return 'Untitled Notification';
   };
 
@@ -349,6 +360,12 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
               >
                 <div className="flex justify-between">
                   <div className="flex-grow cursor-pointer" onClick={() => handleShowNotificationDetails(notification)}>
+                    {/* Debug notification title */}
+                    {console.log('Rendering notification:', {
+                      id: notification.id,
+                      titleBeforeHelper: notification.title,
+                      titleAfterHelper: getNotificationTitle(notification)
+                    })}
                     <h4 className={`font-medium ${!notification.read ? 'font-bold' : ''}`}>
                       {getNotificationTitle(notification)}
                     </h4>
