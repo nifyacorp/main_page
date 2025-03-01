@@ -63,12 +63,32 @@ function normalizeNotification(data: any): Notification {
   console.log('Normalizing notification:', { 
     id: data.id,
     originalTitle: data.title,
+    possibleAlternateTitle: data.notification_title || data.message_title || data.subject,
     hasTitle: !!data.title,
     contentPreview: data.content ? data.content.substring(0, 30) + '...' : 'no content'
   });
   
-  // Create a title from content if title is missing
-  let title = data.title || '';
+  // Look for a title in multiple possible fields
+  let title = data.title || data.notification_title || data.message_title || data.subject || '';
+  
+  // Check if title might be in message field for some backend implementations
+  if (!title && data.message && typeof data.message === 'object' && data.message.title) {
+    title = data.message.title;
+    console.log('Found title in message object:', title);
+  }
+  
+  // Check if title might be in metadata
+  if (!title && data.metadata && typeof data.metadata === 'object') {
+    if (data.metadata.title) {
+      title = data.metadata.title;
+      console.log('Found title in metadata.title:', title);
+    } else if (data.metadata.subject) {
+      title = data.metadata.subject;
+      console.log('Found title in metadata.subject:', title);
+    }
+  }
+  
+  // Create a title from content if title is still missing
   if (!title && data.content) {
     // Use the first 50 characters of content as title
     title = data.content.length > 50 
@@ -86,8 +106,8 @@ function normalizeNotification(data: any): Notification {
     userId: data.userId || data.user_id || '',
     subscriptionId: data.subscriptionId || data.subscription_id || '',
     title,
-    content: data.content || '',
-    sourceUrl: data.sourceUrl || data.source_url || '',
+    content: data.content || data.message?.content || data.message?.body || data.message || '',
+    sourceUrl: data.sourceUrl || data.source_url || data.url || '',
     metadata: data.metadata || {},
     read: !!data.read,
     createdAt: data.createdAt || data.created_at || new Date().toISOString(),
@@ -229,12 +249,30 @@ export const notificationService = {
       
       // Debug the raw notification data from the backend
       if (response.data.notifications.length > 0) {
+        const firstNotification = response.data.notifications[0];
         console.log('First raw notification from backend:', {
-          sample: response.data.notifications[0],
-          hasTitle: !!response.data.notifications[0].title,
-          titleValue: response.data.notifications[0].title,
-          keys: Object.keys(response.data.notifications[0])
+          sample: firstNotification,
+          hasTitle: !!firstNotification.title,
+          titleValue: firstNotification.title,
+          titleType: typeof firstNotification.title,
+          titleLength: firstNotification.title?.length,
+          keys: Object.keys(firstNotification)
         });
+        
+        // Add this additional logging to extract the real title structure
+        if (firstNotification.title === undefined) {
+          console.warn('Title is undefined in notification', firstNotification);
+          // Check if title is in metadata or other fields
+          console.log('Possible title fields:', {
+            notification_title: firstNotification.notification_title,
+            message_title: firstNotification.message_title,
+            subject: firstNotification.subject,
+            message: firstNotification.message,
+            hasMessage: !!firstNotification.message,
+            hasMetadata: !!firstNotification.metadata,
+            metadataKeys: firstNotification.metadata ? Object.keys(firstNotification.metadata) : []
+          });
+        }
       }
       
       // Process and normalize each notification

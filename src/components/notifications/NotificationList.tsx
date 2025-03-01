@@ -56,8 +56,37 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
         return;
       }
       
-      if (!response.error && response.data) {
+      if (response.data && response.data.notifications && response.data.notifications.length > 0) {
         console.log(`Received ${response.data.notifications.length} notifications from API`);
+        
+        // Add detailed debugging for raw notifications
+        console.group('Raw Notification Structure Analysis');
+        try {
+          const firstRaw = response.data.notifications[0];
+          console.log('Raw notification structure example:', {
+            first: firstRaw,
+            keys: Object.keys(firstRaw),
+            hasDirectTitle: 'title' in firstRaw,
+            directTitleValue: firstRaw.title,
+            directTitleType: typeof firstRaw.title,
+            possibleAlternateTitles: {
+              notification_title: firstRaw.notification_title,
+              message_title: firstRaw.message_title,
+              subject: firstRaw.subject
+            },
+            hasMessage: 'message' in firstRaw,
+            messageType: typeof firstRaw.message,
+            messageStructure: firstRaw.message ? (typeof firstRaw.message === 'object' ? Object.keys(firstRaw.message) : 'not an object') : null,
+            hasMetadata: 'metadata' in firstRaw,
+            metadataKeys: firstRaw.metadata ? Object.keys(firstRaw.metadata) : []
+          });
+          
+          // Dump stringified version for complete analysis
+          console.log('Full raw notification JSON:', JSON.stringify(firstRaw, null, 2));
+        } catch (error) {
+          console.error('Error analyzing notification structure:', error);
+        }
+        console.groupEnd();
         
         // Process the notifications and enhance them
         const processedNotifications = enhanceNotifications(response.data.notifications);
@@ -258,15 +287,17 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
       originalTitle: notification.title,
       isUntitled: notification.title === 'Untitled Notification',
       hasContent: !!notification.content,
+      contentLength: notification.content?.length || 0,
       contentPreview: notification.content ? notification.content.substring(0, 30) + '...' : 'none'
     });
 
+    // Step 1: Check if we have a real title that's not the default "Untitled Notification"
     if (notification.title && notification.title !== 'Untitled Notification') {
-      console.log(`Using original title for notification ${notification.id}`);
+      console.log(`Using original title for notification ${notification.id}: "${notification.title}"`);
       return notification.title;
     }
     
-    // If no title or "Untitled Notification", use first part of content (limited to 50 chars)
+    // Step 2: If no title or default title, but we have content, use content as title
     if (notification.content) {
       const truncatedContent = notification.content.length > 50 
         ? `${notification.content.substring(0, 47)}...` 
@@ -275,6 +306,20 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
       return truncatedContent;
     }
     
+    // Step 3: Check if title might be in metadata
+    if (notification.metadata) {
+      const metadataTitle = notification.metadata.title || 
+                            notification.metadata.subject || 
+                            notification.metadata.heading ||
+                            notification.metadata.name;
+      
+      if (metadataTitle) {
+        console.log(`Found title in metadata for notification ${notification.id}: "${metadataTitle}"`);
+        return typeof metadataTitle === 'string' ? metadataTitle : String(metadataTitle);
+      }
+    }
+    
+    // Step 4: Last resort fallback
     console.log(`Falling back to "Untitled Notification" for ${notification.id}`);
     return 'Untitled Notification';
   };
@@ -359,7 +404,7 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
                 className={`p-4 hover:bg-gray-50 ${!notification.read ? 'bg-blue-50' : ''}`}
               >
                 <div className="flex justify-between">
-                  <div className="flex-grow cursor-pointer" onClick={() => handleShowNotificationDetails(notification)}>
+                  <div className="flex-grow">
                     {/* Debug notification title */}
                     {console.log('Rendering notification:', {
                       id: notification.id,
@@ -375,6 +420,16 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
                     </span>
                   </div>
                   <div className="flex items-start ml-4 space-x-2">
+                    {/* View details button */}
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      title="View details" 
+                      onClick={() => handleShowNotificationDetails(notification)}
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      View
+                    </Button>
                     {!notification.read && (
                       <Button 
                         variant="ghost" 
