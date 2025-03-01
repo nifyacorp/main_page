@@ -255,12 +255,49 @@ export async function backendClient<T>({
         },
         credentials: 'include'
       };
+
+      // Always add authentication headers when available
+      const accessToken = localStorage.getItem('accessToken');
+      const userId = localStorage.getItem('userId');
       
-      // Add body if provided
-      if (body) {
-        options.body = typeof body === 'string' ? body : JSON.stringify(body);
+      // Debug the auth headers
+      console.log('Auth headers:', { 
+        hasAccessToken: !!accessToken, 
+        hasUserId: !!userId,
+        tokenFormat: accessToken ? `${accessToken.substring(0, 10)}...` : 'none'
+      });
+
+      // Add the Authorization header if token exists
+      if (accessToken) {
+        // Make sure token is in Bearer format
+        const formattedToken = accessToken.startsWith('Bearer ') 
+          ? accessToken 
+          : `Bearer ${accessToken}`;
+        
+        (options.headers as Record<string, string>)['Authorization'] = formattedToken;
       }
       
+      // Add the x-user-id header if userId exists
+      if (userId) {
+        (options.headers as Record<string, string>)['x-user-id'] = userId;
+      }
+
+      // Add body if provided
+      if (body !== undefined) {
+        options.body = JSON.stringify(body);
+      }
+
+      console.log('Final request options:', { 
+        ...options, 
+        headers: {
+          ...Object.entries(options.headers as Record<string, string>)
+            .reduce((acc, [key, value]) => ({
+              ...acc,
+              [key]: key === 'Authorization' ? '***' : value
+            }), {})
+        }
+      });
+
       // Make the request
       const response = await fetch(`${BACKEND_URL}${endpoint}`, options);
       
