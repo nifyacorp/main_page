@@ -204,6 +204,32 @@ const processNotificationData = (data: any): any => {
   return data;
 };
 
+// Add this debug function to inspect responses
+function logResponseDebug(response: Response, text: string, data: any) {
+  console.group('🔍 API Response Debug');
+  console.log('Response status:', response.status);
+  console.log('Content-Type:', response.headers.get('Content-Type'));
+  console.log('Raw response text (first 200 chars):', text.substring(0, 200) + (text.length > 200 ? '...' : ''));
+  
+  try {
+    // Log the parsed data structure
+    console.log('Parsed data structure:', data);
+    
+    // If this is a notifications response, log more details
+    if (data && data.notifications) {
+      console.log('Notifications count:', data.notifications.length);
+      if (data.notifications.length > 0) {
+        console.log('First notification keys:', Object.keys(data.notifications[0]));
+        console.log('First notification sample:', data.notifications[0]);
+      }
+    }
+  } catch (err) {
+    console.error('Error analyzing response:', err);
+  }
+  
+  console.groupEnd();
+}
+
 export async function backendClient<T>({
   endpoint,
   method = 'GET',
@@ -212,144 +238,144 @@ export async function backendClient<T>({
 }: RequestConfig): Promise<ApiResponse<T>> {
   let retryCount = 0;
   const maxRetries = 1;
-
-  async function executeRequest(): Promise<{ response: Response; data: any }> {
-    const token = localStorage.getItem('accessToken');
-    const userId = localStorage.getItem('userId');
-    
-    if (!token || !userId) {
-      throw new Error('Not authenticated');
-    }
-
-    // Ensure token is correctly formatted for Authorization header
-    // The auth client should have already stored it with Bearer prefix
-    // but we'll ensure it has exactly one Bearer prefix
-    const cleanToken = token.replace(/^Bearer\s+/i, '');
-    const bearerToken = `Bearer ${cleanToken}`;
-
-    const requestHeaders = {
-      'Content-Type': 'application/json',
-      'Authorization': bearerToken,
-      'X-User-ID': userId,
-      'Accept': 'application/json, text/plain, */*',
-      ...headers,
-    };
-
-    console.log('Making request with headers:', {
-      ...requestHeaders,
-      Authorization: 'Bearer ***' // Mask token in logs
-    });
-
-    const fullUrl = `${BACKEND_URL}${endpoint}`;
-    console.log('Full request URL:', fullUrl);
-
-    const requestInit: RequestInit = {
-      method,
-      headers: requestHeaders,
-    };
-    
-    if (body) {
-      requestInit.body = JSON.stringify(body);
-    }
-
-    const response = await fetch(fullUrl, requestInit);
-
-    let data;
+  
+  // Debug logging for request
+  console.group(`🌐 API Request: ${method} ${endpoint}`);
+  console.log('Request details:', { method, endpoint, headers: { ...headers, Authorization: headers.Authorization ? '***' : undefined } });
+  if (body) console.log('Request body:', typeof body === 'string' ? body.substring(0, 100) + '...' : body);
+  
+  async function attemptRequest(): Promise<ApiResponse<T>> {
     try {
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        data = await response.json();
-      } else {
-        // Handle non-JSON responses
+      // Prepare request options
+      const options: RequestInit = {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers
+        },
+        credentials: 'include'
+      };
+      
+      // Add body if provided
+      if (body) {
+        options.body = typeof body === 'string' ? body : JSON.stringify(body);
+      }
+      
+      // Make the request
+      const response = await fetch(`${BACKEND_URL}${endpoint}`, options);
+      
+      // Debug response details
+      console.log('Response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries([...response.headers.entries()])
+      });
+      
+      // Handle different response types
+      const contentType = response.headers.get('content-type') || '';
+      let data: any = null;
+      
+      if (contentType.includes('application/json')) {
+        // Parse JSON response
         const text = await response.text();
-        console.log('Received non-JSON response:', text);
-        // Try to parse it as JSON anyway in case content-type is wrong
         try {
           data = JSON.parse(text);
-        } catch (e) {
-          // If it's not valid JSON, create a simple object
-          data = { message: text || 'No response body' };
+          console.log('Parsed JSON response:', {
+            dataType: typeof data,
+            isArray: Array.isArray(data),
+            keys: data && typeof data === 'object' ? Object.keys(data) : 'N/A'
+          });
+        } catch (parseError) {
+          console.error('Error parsing JSON response:', parseError);
+          console.log('Raw response text:', text.substring(0, 200) + '...');
+          throw new Error('Invalid JSON response from server');
+        }
+      } else {
+        // Handle non-JSON responses
+        console.warn(`Received non-JSON response: ${contentType}`);
+        const text = await response.text();
+        console.log('Raw response text:', text.substring(0, 200) + '...');
+        
+        // Try to parse as JSON anyway (some servers send JSON with wrong content type)
+        try {
+          data = JSON.parse(text);
+          console.log('Attempted JSON parse succeeded despite content type');
+        } catch (parseError) {
+          console.log('Could not parse as JSON, using text response');
+          data = { text };
         }
       }
-    } catch (error) {
-      console.error('Error parsing response:', error);
-      data = { 
-        error: 'Could not parse server response',
+      
+      // Special handling for notification responses
+      if (endpoint.includes('/notifications') && data && data.notifications) {
+        console.log('Processing notification response:', {
+          count: data.notifications.length,
+          sample: data.notifications.length > 0 ? 
+            JSON.stringify(data.notifications[0]).substring(0, 100) + '...' : 'none'
+        });
+        
+        // Check for malformed notifications (only containing entity_type)
+        const malformedNotifications = data.notifications.filter(
+          (n: any) => n && typeof n === 'object' && Object.keys(n).length === 1 && 'entity_type' in n
+        );
+        
+        if (malformedNotifications.length > 0) {
+          console.warn(`Found ${malformedNotifications.length} malformed notifications with only entity_type`);
+          console.log('Example malformed notification:', malformedNotifications[0]);
+          
+          // Filter out malformed notifications
+          data.notifications = data.notifications.filter(
+            (n: any) => !(n && typeof n === 'object' && Object.keys(n).length === 1 && 'entity_type' in n)
+          );
+          
+          console.log(`Filtered out ${malformedNotifications.length} malformed notifications`);
+        }
+      }
+      
+      // Construct the response object
+      const result: ApiResponse<T> = {
         status: response.status,
-        statusText: response.statusText
+        ok: response.ok,
+        data: data as T
       };
-    }
-
-    return { response, data };
-  }
-
-  console.group('🔄 Backend Service Request');
-  console.log(`Making ${method} request to ${endpoint}`);
-  
-  try {
-    while (retryCount <= maxRetries) {
-      console.log(`Attempt ${retryCount + 1} of ${maxRetries + 1}`);
-  
-      try {
-        const { response, data } = await executeRequest();
-  
-        if (response.ok) {
-          console.log('Request successful');
-          console.groupEnd();
-          
-          // Process notification data to ensure entity_type is always defined
-          const processedData = processNotificationData(data);
-          
-          return {
-            data: processedData,
-            status: response.status,
-          };
-        }
-
-        // Check if token expired or unauthorized
-        if (response.status === 401) {
-          console.log('Unauthorized request, attempting token refresh');
-          
-          if (retryCount < maxRetries && await refreshAccessToken()) {
-            console.log('Token refreshed, retrying request');
-            retryCount++;
-            continue;
-          }
-          
-          // If we can't refresh or have exceeded retries, properly clean up auth state
-          console.log('Unable to refresh token, redirecting to login');
-          
-          // Clear all authentication state consistently
-          clearAuthState();
-          
-          // Redirect to auth page
-          window.location.href = '/auth';
-          return { error: 'Session expired' };
-        }
-
-        // For 4xx and 5xx errors, include more details in the error
-        if (response.status >= 400) {
-          const errorMessage = data.error || data.message || `HTTP Error: ${response.status} ${response.statusText}`;
-          console.error('Request failed with status', response.status, errorMessage);
-          return { error: errorMessage };
-        }
-
-        // If we got here, it's an unexpected response
-        throw new Error(data.error || data.message || 'Request failed with unexpected response');
-      } catch (err) {
-        if (retryCount >= maxRetries) {
-          throw err;
-        }
-        retryCount++;
+      
+      // Add error information if response is not OK
+      if (!response.ok) {
+        result.error = data?.error || data?.message || response.statusText || 'Unknown error';
+        console.error('API error response:', result.error);
       }
+      
+      console.log('Final API response object:', {
+        status: result.status,
+        ok: result.ok,
+        error: result.error,
+        dataPresent: !!result.data
+      });
+      console.groupEnd();
+      return result;
+    } catch (error: any) {
+      // Handle network or other errors
+      console.error('API request failed:', error);
+      
+      // Retry logic for network errors
+      if (retryCount < maxRetries) {
+        retryCount++;
+        console.log(`Retrying request (${retryCount}/${maxRetries})...`);
+        return attemptRequest();
+      }
+      
+      // Construct error response
+      const errorResponse: ApiResponse<T> = {
+        status: 0,
+        ok: false,
+        error: error.message || 'Network error',
+        data: null as unknown as T
+      };
+      
+      console.groupEnd();
+      return errorResponse;
     }
-
-    throw new Error('Max retries exceeded');
-  } catch (error) {
-    console.error('Request error:', error);
-    console.groupEnd();
-    return { 
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
-    };
   }
+  
+  return attemptRequest();
 }

@@ -19,52 +19,70 @@ export interface Notification {
   getEntityTypeParts(): string[];
 }
 
-// Utility function to safely access entity type parts for any notification
-// This helps when working with notification objects directly
+// Helper function to extract entity type parts from a notification
 export function getEntityTypeParts(notification: Notification | undefined | null): string[] {
-  if (!notification || !notification.entity_type) return [];
-  return notification.entity_type.split(':');
+  if (!notification || !notification.entity_type) {
+    console.warn('Missing notification or entity_type for getEntityTypeParts', notification);
+    return [];
+  }
+  
+  try {
+    return notification.entity_type.split(':');
+  } catch (error) {
+    console.error('Error splitting entity_type', error, notification);
+    return [];
+  }
 }
-
-// Remove the prototype implementation as it doesn't work with plain JSON objects
 
 // New utility function to safely get entity_type as a string
 export function getEntityType(notification: Notification | null | undefined): string {
   return notification?.entity_type || '';
 }
 
-// New helper to normalize notification data structure from backend
-function normalizeNotification(rawNotification: any): any {
-  if (!rawNotification) return null;
-  
-  // If notification has only entity_type property, likely a serialization issue
-  if (Object.keys(rawNotification).length === 1 && 'entity_type' in rawNotification) {
-    console.warn('Received malformed notification with only entity_type:', rawNotification);
-    // This notification is incomplete - return null to be filtered out
-    return null;
+// Helper function to normalize notification data
+function normalizeNotification(data: any): Notification {
+  if (!data) {
+    console.error('Received null or undefined notification data');
+    // Create a minimal valid notification to prevent UI errors
+    return {
+      id: `generated-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      userId: '',
+      subscriptionId: '',
+      title: 'Error: Invalid notification',
+      content: 'This notification could not be properly loaded.',
+      sourceUrl: '',
+      metadata: {},
+      read: false,
+      createdAt: new Date().toISOString(),
+      entity_type: 'error:invalid',
+      getEntityTypeParts: function() { return ['error', 'invalid']; }
+    };
   }
   
-  // Create a normalized notification object using snake_case and camelCase properties
-  // to ensure we capture data regardless of naming convention
-  const normalized = {
-    // Essential properties - default to empty values if missing
-    id: rawNotification.id || '',
-    userId: rawNotification.userId || rawNotification.user_id || '',
-    subscriptionId: rawNotification.subscriptionId || rawNotification.subscription_id || '',
-    title: rawNotification.title || '',
-    content: rawNotification.content || '',
-    sourceUrl: rawNotification.sourceUrl || rawNotification.source_url || '',
-    read: !!rawNotification.read,
-    createdAt: rawNotification.createdAt || rawNotification.created_at || new Date().toISOString(),
+  // Ensure all required fields are present with fallbacks
+  const normalized: Notification = {
+    id: data.id || `generated-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    userId: data.userId || data.user_id || '',
+    subscriptionId: data.subscriptionId || data.subscription_id || '',
+    title: data.title || 'Untitled Notification',
+    content: data.content || '',
+    sourceUrl: data.sourceUrl || data.source_url || '',
+    metadata: data.metadata || {},
+    read: !!data.read,
+    createdAt: data.createdAt || data.created_at || new Date().toISOString(),
+    readAt: data.readAt || data.read_at,
+    entity_type: data.entity_type || '',
     
-    // Optional properties
-    readAt: rawNotification.readAt || rawNotification.read_at || null,
-    subscription_name: rawNotification.subscription_name || '',
-    entity_type: rawNotification.entity_type || '',
-    
-    // Metadata - default to empty object
-    metadata: rawNotification.metadata || {}
+    // Add the getEntityTypeParts method implementation directly to the object
+    getEntityTypeParts: function() {
+      return getEntityTypeParts(this);
+    }
   };
+  
+  // Optional fields
+  if (data.subscription_name) {
+    normalized.subscription_name = data.subscription_name;
+  }
   
   return normalized;
 }
@@ -128,99 +146,87 @@ export type NotificationApiResponse<T> = ApiResponse<T> | { error: any; data?: n
 
 export const notificationService = {
   /**
-   * Lista todas las notificaciones del usuario
+   * List notifications for the current user
+   * @param options Query parameters for filtering notifications
+   * @returns Promise with notifications response
    */
-  async list(options: NotificationOptions = {}): Promise<NotificationApiResponse<NotificationsResponse>> {
-    const {
-      page = 1,
-      limit = 10,
-      unread = false,
-      subscriptionId = null
-    } = options;
-    
-    console.log('Listing notifications', { page, limit, unread, subscriptionId });
-    
-    let endpoint = `/api/v1/notifications?page=${page}&limit=${limit}`;
-    
-    if (unread) {
-      endpoint += '&unread=true';
-    }
-    
-    if (subscriptionId) {
-      endpoint += `&subscriptionId=${subscriptionId}`;
-    }
+  async list(options: NotificationOptions = {}): Promise<ApiResponse<NotificationsResponse>> {
+    console.group('Notifications API - list');
+    console.log('Listing notifications with options:', options);
     
     try {
-      const response = await backendClient({
-        endpoint,
-        method: 'GET'
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (options.page) params.append('page', options.page.toString());
+      if (options.limit) params.append('limit', options.limit.toString());
+      if (options.unread !== undefined) params.append('unread', options.unread.toString());
+      if (options.subscriptionId) params.append('subscriptionId', options.subscriptionId);
+      
+      // Make API request
+      const response = await backendClient.get<NotificationsResponse>(`/notifications?${params.toString()}`);
+      
+      // Process and validate the response
+      console.log('Raw API response received:', {
+        status: response.status,
+        hasData: !!response.data,
+        notificationCount: response.data?.notifications?.length || 0
       });
       
-      // Add validation to ensure all notifications have valid IDs
-      if (response.data?.notifications) {
-        console.group('🔍 Notification API Response Analysis');
-        console.log(`Received ${response.data.notifications.length} notifications from API`);
-        
-        // Log raw response for debugging
-        console.log('Raw API response:', JSON.stringify(response.data));
-        
-        // Log raw data structure of the first notification
-        if (response.data.notifications.length > 0) {
-          const firstNotification = response.data.notifications[0];
-          console.log('First notification sample:', JSON.stringify(firstNotification));
-          console.log('First notification keys:', Object.keys(firstNotification));
-          console.log('ID details:', {
-            id: firstNotification.id,
-            idValue: JSON.stringify(firstNotification.id),
-            idType: typeof firstNotification.id,
-            idLength: firstNotification.id ? firstNotification.id.length : 0,
-            hasId: !!firstNotification.id
-          });
-        }
-        
-        // Process and normalize notifications
-        const processedNotifications = response.data.notifications
-          .map(notification => {
-            const normalized = normalizeNotification(notification);
-            if (!normalized) {
-              console.warn('Dropping invalid notification:', notification);
-              return null;
-            }
-            return normalized;
-          })
-          .filter(Boolean) // Remove null entries
-          .map(enhanceNotification);
-        
-        console.log('Processed notifications:', processedNotifications.length);
-        if (processedNotifications.length > 0) {
-          console.log('First processed notification:', JSON.stringify(processedNotifications[0]));
-          console.log('First processed notification keys:', Object.keys(processedNotifications[0]));
-        }
-        
-        // Log all notifications with missing IDs
-        const invalidNotifications = processedNotifications.filter(
-          notification => !notification || !notification.id
-        );
-        
-        if (invalidNotifications.length > 0) {
-          console.warn(`Found ${invalidNotifications.length} notifications with missing IDs`);
-          console.log('First invalid notification example:', invalidNotifications[0]);
-        } else {
-          console.log('All notifications have valid IDs ✓');
-        }
-        
-        console.groupEnd();
-        
-        // Update the response with only valid notifications
-        response.data.notifications = processedNotifications;
+      // Ensure we have a valid response with notifications array
+      if (!response.data || !Array.isArray(response.data.notifications)) {
+        console.error('Invalid response format - missing notifications array', response.data);
+        return {
+          ...response,
+          data: {
+            notifications: [],
+            total: 0,
+            unread: 0,
+            page: options.page || 1,
+            limit: options.limit || 10,
+            hasMore: false
+          }
+        };
       }
       
-      return response;
-    } catch (error: any) {
-      console.error('Error listing notifications:', error);
-      return { 
-        error: error.message || 'Error al obtener notificaciones' 
+      // Process and normalize each notification
+      const processedNotifications = response.data.notifications
+        .map(notification => {
+          try {
+            return normalizeNotification(notification);
+          } catch (error) {
+            console.error('Error normalizing notification:', error, notification);
+            return null;
+          }
+        })
+        .filter(Boolean) as Notification[];
+      
+      // Log notification processing results
+      console.log('Processed notifications:', {
+        originalCount: response.data.notifications.length,
+        processedCount: processedNotifications.length,
+        firstNotification: processedNotifications.length > 0 ? {
+          id: processedNotifications[0].id,
+          hasId: !!processedNotifications[0].id,
+          entityType: processedNotifications[0].entity_type
+        } : 'none'
+      });
+      
+      // Return processed response
+      const result = {
+        ...response,
+        data: {
+          ...response.data,
+          notifications: processedNotifications
+        }
       };
+      
+      console.log('Returning processed notifications response');
+      console.groupEnd();
+      return result;
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      console.groupEnd();
+      throw error;
     }
   },
 
