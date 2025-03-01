@@ -1,5 +1,13 @@
 import { ApiResponse } from '../types';
 import { authClient } from './auth';
+import { 
+  CONTENT_TYPE,
+  JSON_CONTENT_TYPE, 
+  getAuthHeaders,
+  formatBearerToken,
+  AUTH_HEADER,
+  USER_ID_HEADER
+} from '../../constants/headers';
 
 interface RequestConfig {
   endpoint: string;
@@ -250,7 +258,7 @@ export async function backendClient<T>({
       const options: RequestInit = {
         method,
         headers: {
-          'Content-Type': 'application/json',
+          [CONTENT_TYPE]: JSON_CONTENT_TYPE,
           ...headers
         },
         credentials: 'include'
@@ -267,20 +275,9 @@ export async function backendClient<T>({
         tokenFormat: accessToken ? `${accessToken.substring(0, 10)}...` : 'none'
       });
 
-      // Add the Authorization header if token exists
-      if (accessToken) {
-        // Make sure token is in Bearer format
-        const formattedToken = accessToken.startsWith('Bearer ') 
-          ? accessToken 
-          : `Bearer ${accessToken}`;
-        
-        (options.headers as Record<string, string>)['Authorization'] = formattedToken;
-      }
-      
-      // Add the x-user-id header if userId exists
-      if (userId) {
-        (options.headers as Record<string, string>)['x-user-id'] = userId;
-      }
+      // Add authentication headers using our utility function
+      const authHeaders = getAuthHeaders(accessToken, userId);
+      Object.assign(options.headers as Record<string, string>, authHeaders);
 
       // Add body if provided
       if (body !== undefined) {
@@ -293,7 +290,7 @@ export async function backendClient<T>({
           ...Object.entries(options.headers as Record<string, string>)
             .reduce((acc, [key, value]) => ({
               ...acc,
-              [key]: key === 'Authorization' ? '***' : value
+              [key]: key === AUTH_HEADER ? '***' : value
             }), {})
         }
       });
