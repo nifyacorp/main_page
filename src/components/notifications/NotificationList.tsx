@@ -40,12 +40,13 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
     setLoading(true);
     setError(null);
     
-    const currentPage = reset ? 1 : page;
+    // Determine which page to load
+    let pageToLoad = reset ? (reset === true ? 1 : page) : page;
     
     try {
-      console.log('Loading notifications page', currentPage);
+      console.log('Loading notifications page', pageToLoad);
       const response = await notificationService.list({
-        page: currentPage,
+        page: pageToLoad,
         limit: 20,
         unread: false
       });
@@ -101,6 +102,7 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
           });
         }
         
+        // If reset is true, replace notifications; otherwise append
         const newNotifications = reset ? processedNotifications : [...notifications, ...processedNotifications];
         setNotifications(newNotifications);
         groupNotificationsByDay(newNotifications);
@@ -108,10 +110,14 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
         setTotalCount(response.data.total);
         setUnreadCount(response.data.unread);
         
+        // Update the page state based on what we just loaded
+        setPage(pageToLoad); 
+      } else {
+        // No notifications found, keep existing or set empty
         if (reset) {
-          setPage(1);
-        } else {
-          setPage(currentPage + 1);
+          setNotifications([]);
+          setGroupedNotifications({});
+          setHasMore(false);
         }
       }
     } catch (err) {
@@ -457,6 +463,49 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
             );
           })}
       </ul>
+
+      {/* Pagination Controls */}
+      <div className="flex justify-between items-center mt-4 border-t pt-4">
+        <div>
+          <p className="text-sm text-gray-500">
+            Showing {notifications.length} of {totalCount} notifications
+          </p>
+        </div>
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => loadNotifications(true)}
+            disabled={page === 1 || loading}
+          >
+            First Page
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              if (page > 1) {
+                setPage(page - 1);
+                loadNotifications(true); // Reset but with updated page
+              }
+            }}
+            disabled={page === 1 || loading}
+          >
+            Previous
+          </Button>
+          <span className="px-2 py-1 text-sm">
+            Page {page}
+          </span>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={loadMoreNotifications}
+            disabled={!hasMore || loading}
+          >
+            Next
+          </Button>
+        </div>
+      </div>
 
       {/* Notification Detail Dialog */}
       <Dialog open={isNotificationDetailOpen} onOpenChange={setIsNotificationDetailOpen}>
