@@ -59,12 +59,23 @@ function normalizeNotification(data: any): Notification {
     };
   }
   
+  // Create a title from content if title is missing
+  let title = data.title || '';
+  if (!title && data.content) {
+    // Use the first 50 characters of content as title
+    title = data.content.length > 50 
+      ? `${data.content.substring(0, 47)}...` 
+      : data.content;
+  } else if (!title) {
+    title = 'Untitled Notification';
+  }
+  
   // Ensure all required fields are present with fallbacks
   const normalized: Notification = {
     id: data.id || `generated-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
     userId: data.userId || data.user_id || '',
     subscriptionId: data.subscriptionId || data.subscription_id || '',
-    title: data.title || 'Untitled Notification',
+    title,
     content: data.content || '',
     sourceUrl: data.sourceUrl || data.source_url || '',
     metadata: data.metadata || {},

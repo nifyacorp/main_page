@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { format, isToday, isYesterday, isThisWeek, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CheckCheck, Bell, ExternalLink, Trash, Trash2 } from 'lucide-react';
+import { CheckCircle, Bell, ExternalLink, Trash2, Eye } from 'lucide-react';
 import { 
   Notification, 
   notificationService, 
@@ -20,6 +20,8 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+  const [isNotificationDetailOpen, setIsNotificationDetailOpen] = useState(false);
   const { 
     markAsRead, 
     markAllAsRead, 
@@ -149,6 +151,11 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
     }
   };
 
+  const handleShowNotificationDetails = (notification: Notification) => {
+    setSelectedNotification(notification);
+    setIsNotificationDetailOpen(true);
+  };
+
   const handleDeleteNotification = async (notification: Notification) => {
     console.group('🗑️ NotificationList - Delete Notification');
     try {
@@ -245,6 +252,22 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
     }
   };
 
+  const getNotificationTitle = (notification: Notification): string => {
+    if (notification.title && notification.title !== 'Untitled Notification') {
+      return notification.title;
+    }
+    
+    // If no title or "Untitled Notification", use first part of content (limited to 50 chars)
+    if (notification.content) {
+      const truncatedContent = notification.content.length > 50 
+        ? `${notification.content.substring(0, 47)}...` 
+        : notification.content;
+      return truncatedContent;
+    }
+    
+    return 'Untitled Notification';
+  };
+
   if (loading) {
     return <div className="p-4 text-center">Loading notifications...</div>;
   }
@@ -322,36 +345,108 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
             return (
               <li 
                 key={notification.id} 
-                className={`p-4 hover:bg-gray-50 flex justify-between ${!notification.read ? 'bg-blue-50' : ''}`}
+                className={`p-4 hover:bg-gray-50 ${!notification.read ? 'bg-blue-50' : ''}`}
               >
-                <div className="flex-grow">
-                  <div 
-                    className="cursor-pointer" 
-                    onClick={() => !notification.read && handleMarkAsRead(notification)}
-                  >
+                <div className="flex justify-between">
+                  <div className="flex-grow cursor-pointer" onClick={() => handleShowNotificationDetails(notification)}>
                     <h4 className={`font-medium ${!notification.read ? 'font-bold' : ''}`}>
-                      {notification.title}
+                      {getNotificationTitle(notification)}
                     </h4>
-                    <p className="text-sm text-gray-600">{notification.content}</p>
+                    <p className="text-sm text-gray-600 line-clamp-2">{notification.content}</p>
                     <span className="text-xs text-gray-500">
                       {notification.createdAt && format(parseISO(notification.createdAt), 'MMM d, yyyy h:mm a', { locale: es })}
                     </span>
                   </div>
-                </div>
-                <div className="flex items-start ml-4">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => handleDeleteNotification(notification)}
-                    disabled={!notification.id} // Disable the delete button if no valid ID
-                  >
-                    Delete
-                  </Button>
+                  <div className="flex items-start ml-4 space-x-2">
+                    {!notification.read && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        title="Mark as read" 
+                        onClick={() => handleMarkAsRead(notification)}
+                      >
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        Read
+                      </Button>
+                    )}
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      title="Delete notification"
+                      onClick={() => handleDeleteNotification(notification)}
+                      disabled={!notification.id}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Delete
+                    </Button>
+                  </div>
                 </div>
               </li>
             );
           })}
       </ul>
+
+      {/* Notification Detail Dialog */}
+      <Dialog open={isNotificationDetailOpen} onOpenChange={setIsNotificationDetailOpen}>
+        <DialogContent>
+          {selectedNotification && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{getNotificationTitle(selectedNotification)}</DialogTitle>
+                <DialogDescription>
+                  {selectedNotification.createdAt && format(parseISO(selectedNotification.createdAt), 'MMMM d, yyyy h:mm a', { locale: es })}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
+                <p className="text-sm">{selectedNotification.content}</p>
+                {selectedNotification.sourceUrl && (
+                  <a 
+                    href={selectedNotification.sourceUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center text-blue-500 mt-4 text-sm"
+                  >
+                    <ExternalLink className="h-4 w-4 mr-1" />
+                    View source
+                  </a>
+                )}
+              </div>
+              <DialogFooter className="flex justify-between">
+                <div className="flex space-x-2">
+                  {!selectedNotification.read && (
+                    <Button 
+                      variant="secondary" 
+                      onClick={() => {
+                        handleMarkAsRead(selectedNotification);
+                        setIsNotificationDetailOpen(false);
+                      }}
+                    >
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      Mark as read
+                    </Button>
+                  )}
+                  <Button 
+                    variant="destructive" 
+                    onClick={() => {
+                      handleDeleteNotification(selectedNotification);
+                      setIsNotificationDetailOpen(false);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete
+                  </Button>
+                </div>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsNotificationDetailOpen(false)}
+                >
+                  Close
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }; 
