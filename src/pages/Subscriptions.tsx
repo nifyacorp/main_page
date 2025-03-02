@@ -89,6 +89,7 @@ const Subscriptions = () => {
 
   const handleProcessImmediately = async (e: React.MouseEvent, id: string) => {
     e.preventDefault();
+    e.stopPropagation(); // Stop propagation to prevent the click from bubbling up to the parent div
     
     try {
       setProcessing(prev => ({ ...prev, [id]: true }));
