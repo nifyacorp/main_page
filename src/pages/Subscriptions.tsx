@@ -14,6 +14,8 @@ interface Subscription {
   active: boolean;
   created_at: string;
   updated_at: string;
+  processingError?: string;
+  processingSuccess?: boolean;
 }
 
 const getIcon = (type: string) => {
@@ -100,25 +102,22 @@ const Subscriptions = () => {
       if (result.error) {
         console.error('Processing error:', result.error);
         setError(result.error);
-        toast({
-          variant: "destructive",
-          title: "Error al procesar la suscripción",
-          description: result.error,
-        });
+        setUserSubscriptions(prev => 
+          prev.map(sub => 
+            sub.id === id ? { ...sub, processingError: result.error, processingSuccess: false } : sub
+          )
+        );
       } else {
-        // Show success notification
         console.log('Processing requested successfully:', result.data);
-        toast({
-          variant: "default",
-          title: "Suscripción procesada",
-          description: "Se ha iniciado el procesamiento en segundo plano",
-          className: "bg-primary/10 border-primary text-primary",
-        });
         
-        // Update the processed state to show success indicator
         setProcessed(prev => ({ ...prev, [id]: true }));
         
-        // Set a timeout to update UI after a reasonable delay (5 seconds)
+        setUserSubscriptions(prev => 
+          prev.map(sub => 
+            sub.id === id ? { ...sub, processingSuccess: true, processingError: undefined } : sub
+          )
+        );
+        
         setTimeout(() => {
           fetchSubscriptions();
         }, 5000);
@@ -127,19 +126,22 @@ const Subscriptions = () => {
       console.error('Exception during processing:', err);
       const errorMsg = err instanceof Error ? err.message : 'Error al procesar la suscripción';
       setError(errorMsg);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: errorMsg,
-      });
+      setUserSubscriptions(prev => 
+        prev.map(sub => 
+          sub.id === id ? { ...sub, processingError: errorMsg, processingSuccess: false } : sub
+        )
+      );
     } finally {
-      // Keep the processing indicator active for a short time to provide visual feedback
       setTimeout(() => {
         setProcessing(prev => ({ ...prev, [id]: false }));
         
-        // Reset the processed state after 5 seconds
         setTimeout(() => {
           setProcessed(prev => ({ ...prev, [id]: false }));
+          setUserSubscriptions(prev => 
+            prev.map(sub => 
+              sub.id === id ? { ...sub, processingError: undefined, processingSuccess: false } : sub
+            )
+          );
         }, 5000);
       }, 1000);
     }
@@ -233,38 +235,51 @@ const Subscriptions = () => {
                         {subscription.active ? 'Activa' : 'Inactiva'}
                       </button>
                       {subscription.active && (
-                        <button
-                          onClick={(e) => handleProcessImmediately(e, subscription.id)}
-                          disabled={processing[subscription.id]}
-                          className={`px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1 transition-all ${
-                            processed[subscription.id]
-                              ? 'bg-green-100 text-green-800'
-                              : processing[subscription.id]
-                              ? 'bg-amber-100 text-amber-800'
-                              : 'bg-green-100 text-green-700 hover:bg-green-200'
-                          }`}
-                          title="Procesar inmediatamente"
-                        >
-                          {processed[subscription.id] ? (
-                            <>
-                              <CheckCircle className="h-3 w-3" />
-                              Procesado
-                            </>
-                          ) : processing[subscription.id] ? (
-                            <>
-                              <svg className="animate-spin h-3 w-3 text-amber-800" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                              </svg>
-                              Procesando
-                            </>
-                          ) : (
-                            <>
-                              <Play className="h-3 w-3" />
-                              Procesar
-                            </>
+                        <div className="flex flex-col items-end space-y-2">
+                          <button
+                            onClick={(e) => handleProcessImmediately(e, subscription.id)}
+                            disabled={processing[subscription.id]}
+                            className={`px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1 transition-all ${
+                              processed[subscription.id]
+                                ? 'bg-green-100 text-green-800'
+                                : processing[subscription.id]
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-green-100 text-green-700 hover:bg-green-200'
+                            }`}
+                            title="Procesar inmediatamente"
+                          >
+                            {processed[subscription.id] ? (
+                              <>
+                                <CheckCircle className="h-3 w-3" />
+                                Procesado
+                              </>
+                            ) : processing[subscription.id] ? (
+                              <>
+                                <svg className="animate-spin h-3 w-3 text-amber-800" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Procesando
+                              </>
+                            ) : (
+                              <>
+                                <Play className="h-3 w-3" />
+                                Procesar
+                              </>
+                            )}
+                          </button>
+                          {subscription.processingError && (
+                            <div className="text-sm text-destructive bg-destructive/10 px-3 py-1 rounded-md border border-destructive/20 shadow-sm">
+                              <span className="font-medium">Error:</span> {subscription.processingError}
+                            </div>
                           )}
-                        </button>
+                          {subscription.processingSuccess && (
+                            <div className="text-sm text-green-600 bg-green-50 px-3 py-1 rounded-md border border-green-200 shadow-sm flex items-center gap-1">
+                              <CheckCircle className="h-4 w-4 flex-shrink-0" />
+                              <span>Procesando en segundo plano...</span>
+                            </div>
+                          )}
+                        </div>
                       )}
                       <button
                         onClick={(e) => handleDeleteSubscription(e, subscription.id)}
