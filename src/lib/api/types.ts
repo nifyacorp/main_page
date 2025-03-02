@@ -5,6 +5,13 @@ export interface ApiResponse<T> {
   ok: boolean;
 }
 
+export interface NotificationSettings {
+  emailNotifications: boolean;
+  notificationEmail: string | null;
+  emailFrequency: 'daily';
+  instantNotifications: boolean;
+}
+
 export interface UserProfile {
   id: string;
   email: string;
@@ -13,13 +20,16 @@ export interface UserProfile {
   bio: string | null;
   theme: 'light' | 'dark' | 'system';
   language: 'es' | 'en' | 'ca';
-  emailNotifications: boolean;
-  notificationEmail: string | null;
+  notification_settings: NotificationSettings;
   lastLogin: string;
   emailVerified: boolean;
   subscriptionCount: number;
   notificationCount: number;
   lastNotification: string | null;
+  
+  // Deprecated fields - kept for backward compatibility
+  emailNotifications?: boolean;
+  notificationEmail?: string | null;
 }
 
 export interface Template {
