@@ -36,22 +36,22 @@ const Subscriptions = () => {
   const [processing, setProcessing] = useState<Record<string, boolean>>({});
   const [processed, setProcessed] = useState<Record<string, boolean>>({});
 
-  useEffect(() => {
-    const fetchSubscriptions = async () => {
-      try {
-        const { data, error } = await subscriptions.list();
-        if (error) throw new Error(error);
-        
-        if (data?.subscriptions) {
-          setUserSubscriptions(data.subscriptions);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load subscriptions');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchSubscriptions = async () => {
+    try {
+      const { data, error } = await subscriptions.list();
+      if (error) throw new Error(error);
 
+      if (data?.subscriptions) {
+        setUserSubscriptions(data.subscriptions);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load subscriptions');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchSubscriptions();
   }, []);
 
