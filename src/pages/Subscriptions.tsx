@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Bell, Plus, X, FileText, Building2, Brain, ChevronRight, Play, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { subscriptions } from '../lib/api';
-import { useToast } from "../components/ui/use-toast";
 
 interface Subscription {
   id: string;
@@ -36,7 +35,6 @@ const Subscriptions = () => {
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState<Record<string, boolean>>({});
   const [processed, setProcessed] = useState<Record<string, boolean>>({});
-  const { toast } = useToast();
 
   useEffect(() => {
     const fetchSubscriptions = async () => {
