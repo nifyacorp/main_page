@@ -1,7 +1,6 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import { Bell, Mail, Zap } from 'lucide-react';
 import type { UserProfile } from '../../lib/api/types';
-import { AuthContext } from '../../contexts/AuthContext';
 
 interface NotificationsSectionProps {
   profile: UserProfile | null;
@@ -18,8 +17,8 @@ export const NotificationsSection: React.FC<NotificationsSectionProps> = ({
   onFieldChange,
   onSave
 }) => {
-  const { user } = useContext(AuthContext);
-  const isTestUser = user?.email === 'nifyacorp@gmail.com';
+  // Hardcoded for testing
+  const isTestUser = profile?.email === 'nifyacorp@gmail.com';
 
   return (
     <div className="mb-8">
