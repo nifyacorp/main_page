@@ -13,6 +13,10 @@ import TemplateConfig from './pages/TemplateConfig';
 import Notifications from './pages/Notifications';
 import ProtectedRoute from './components/ProtectedRoute';
 import GoogleCallback from './components/GoogleCallback';
+import { Toaster } from '@/components/ui/toaster';
+import { ThemeProvider } from '@/lib/theme/theme-provider';
+import Header from './components/Header';
+import { AuthProvider } from './lib/auth/AuthContext';
 
 // Lazy-load the pages
 const LandingPage = lazy(() => import('./pages/Landing'));
@@ -78,107 +82,117 @@ export default function App() {
     console.log('App: Rendering routes');
     
     return (
-      <Suspense fallback={<LoadingPage />}>
-        <Routes>
-          <Route 
-            path="/" 
-            element={
-              <ErrorBoundary fallbackComponent={
-                <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
-                  <div className="max-w-md p-6 bg-white rounded-lg shadow-lg border border-red-200">
-                    <h1 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h1>
-                    <p className="mb-4">We encountered an error while loading the landing page.</p>
-                    <p className="text-sm text-gray-600 mb-6">Please try refreshing the page or contact support if the problem persists.</p>
-                    <button 
-                      onClick={() => window.location.reload()}
-                      className="bg-primary text-white py-2 px-4 rounded-md hover:bg-primary/90"
-                    >
-                      Refresh Page
-                    </button>
-                  </div>
-                </div>
-              }>
-                <LandingPage />
-              </ErrorBoundary>
-            }
-          />
-          <Route path="/auth" element={<Auth />} />
-          
-          {/* Protected routes */}
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/subscriptions" element={
-            <ProtectedRoute>
-              <Subscriptions />
-            </ProtectedRoute>
-          } />
-          <Route path="/notifications" element={
-            <ProtectedRoute>
-              <Notifications />
-            </ProtectedRoute>
-          } />
-          <Route path="/settings" element={
-            <ProtectedRoute>
-              <Settings />
-            </ProtectedRoute>
-          } />
-          <Route path="/auth/google/callback" element={<GoogleCallback />} />
-          <Route
-            path="/subscriptions/catalog"
-            element={
-              <ProtectedRoute>
-                <SubscriptionCatalog />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/subscriptions/new/:typeId"
-            element={
-              <ProtectedRoute>
-                <SubscriptionPrompt mode="create" />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/subscriptions/:subscriptionId/edit"
-            element={
-              <ProtectedRoute>
-                <SubscriptionPrompt mode="edit" />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/templates/:templateId/configure"
-            element={
-              <ProtectedRoute>
-                <TemplateConfig />
-              </ProtectedRoute>
-            }
-          />
-          
-          {/* 404 fallback - implement a simple inline component for now */}
-          <Route path="*" element={
-            <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center bg-background">
-              <div className="max-w-md">
-                <h1 className="text-6xl font-black mb-6">404</h1>
-                <h2 className="text-2xl font-bold mb-4">Página no encontrada</h2>
-                <p className="mb-8 text-muted-foreground">
-                  La página que estás buscando no existe o ha sido movida.
-                </p>
-                <a
-                  href="/"
-                  className="inline-block btn-neobrutalism-primary px-6 py-3 text-white font-medium"
-                >
-                  Volver al inicio
-                </a>
-              </div>
+      <ThemeProvider defaultTheme="system" storageKey="nifya-ui-theme">
+        <AuthProvider>
+          <Router>
+            <div className="min-h-screen bg-background text-foreground">
+              <Header />
+              <main>
+                <Routes>
+                  <Route 
+                    path="/" 
+                    element={
+                      <ErrorBoundary fallbackComponent={
+                        <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
+                          <div className="max-w-md p-6 bg-white rounded-lg shadow-lg border border-red-200">
+                            <h1 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h1>
+                            <p className="mb-4">We encountered an error while loading the landing page.</p>
+                            <p className="text-sm text-gray-600 mb-6">Please try refreshing the page or contact support if the problem persists.</p>
+                            <button 
+                              onClick={() => window.location.reload()}
+                              className="bg-primary text-white py-2 px-4 rounded-md hover:bg-primary/90"
+                            >
+                              Refresh Page
+                            </button>
+                          </div>
+                        </div>
+                      }>
+                        <LandingPage />
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route path="/auth" element={<Auth />} />
+                  
+                  {/* Protected routes */}
+                  <Route path="/dashboard" element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/subscriptions" element={
+                    <ProtectedRoute>
+                      <Subscriptions />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/notifications" element={
+                    <ProtectedRoute>
+                      <Notifications />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/settings" element={
+                    <ProtectedRoute>
+                      <Settings />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/auth/google/callback" element={<GoogleCallback />} />
+                  <Route
+                    path="/subscriptions/catalog"
+                    element={
+                      <ProtectedRoute>
+                        <SubscriptionCatalog />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/subscriptions/new/:typeId"
+                    element={
+                      <ProtectedRoute>
+                        <SubscriptionPrompt mode="create" />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/subscriptions/:subscriptionId/edit"
+                    element={
+                      <ProtectedRoute>
+                        <SubscriptionPrompt mode="edit" />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/templates/:templateId/configure"
+                    element={
+                      <ProtectedRoute>
+                        <TemplateConfig />
+                      </ProtectedRoute>
+                    }
+                  />
+                  
+                  {/* 404 fallback - implement a simple inline component for now */}
+                  <Route path="*" element={
+                    <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center bg-background">
+                      <div className="max-w-md">
+                        <h1 className="text-6xl font-black mb-6">404</h1>
+                        <h2 className="text-2xl font-bold mb-4">Página no encontrada</h2>
+                        <p className="mb-8 text-muted-foreground">
+                          La página que estás buscando no existe o ha sido movida.
+                        </p>
+                        <a
+                          href="/"
+                          className="inline-block btn-neobrutalism-primary px-6 py-3 text-white font-medium"
+                        >
+                          Volver al inicio
+                        </a>
+                      </div>
+                    </div>
+                  } />
+                </Routes>
+              </main>
+              <Toaster />
             </div>
-          } />
-        </Routes>
-      </Suspense>
+          </Router>
+        </AuthProvider>
+      </ThemeProvider>
     );
   } catch (error) {
     console.error('App: Fatal error in root component', error);
