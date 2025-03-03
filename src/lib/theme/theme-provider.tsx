@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react"
 
-type Theme = "light" | "dark" | "system"
+type Theme = "dark" | "light" | "system"
 
 type ThemeProviderProps = {
   children: React.ReactNode
@@ -42,11 +42,10 @@ export function ThemeProvider({
         : "light"
       
       root.classList.add(systemTheme)
-      root.style.colorScheme = systemTheme
-    } else {
-      root.classList.add(theme)
-      root.style.colorScheme = theme
+      return
     }
+
+    root.classList.add(theme)
   }, [theme])
 
   const value = {
