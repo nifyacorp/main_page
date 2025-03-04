@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "build:netlify": "vite build",
+    "build:netlify": "npx vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
