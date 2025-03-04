@@ -1,7 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { format, isToday, isYesterday, isThisWeek, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+<<<<<<< HEAD
 import { Notification, notificationService } from '../../lib/api/services/notifications';
+=======
+import { CheckCircle, Bell, ExternalLink, Trash2, Eye } from 'lucide-react';
+import { 
+  Notification, 
+  notificationService, 
+  enhanceNotification, 
+  enhanceNotifications 
+} from '../../lib/api/services/notifications';
+>>>>>>> 4fd3b08e6314ff559d4deb347ee8ec16103b1dc8
 import { useNotifications } from '../../contexts/NotificationContext';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
 import { Button } from '../ui/button';
@@ -14,6 +24,8 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+  const [isNotificationDetailOpen, setIsNotificationDetailOpen] = useState(false);
   const { 
     markAsRead: markNotificationAsRead, 
     markAllAsRead, 
@@ -32,32 +44,84 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
     setLoading(true);
     setError(null);
     
-    const currentPage = reset ? 1 : page;
+    // Determine which page to load
+    let pageToLoad = reset ? (reset === true ? 1 : page) : page;
     
     try {
+      console.log('Loading notifications page', pageToLoad);
       const response = await notificationService.list({
-        page: currentPage,
+        page: pageToLoad,
         limit: 20,
         unread: false
       });
       
       if (response.error) {
         setError(response.error);
+        console.error('Error from notification service:', response.error);
         return;
       }
       
-      if (!response.error && response.data) {
-        const newNotifications = reset ? response.data.notifications : [...notifications, ...response.data.notifications];
+      if (response.data && response.data.notifications && response.data.notifications.length > 0) {
+        console.log(`Received ${response.data.notifications.length} notifications from API`);
+        
+        // Add detailed debugging for raw notifications
+        console.group('Raw Notification Structure Analysis');
+        try {
+          const firstRaw = response.data.notifications[0];
+          console.log('Raw notification structure example:', {
+            first: firstRaw,
+            keys: Object.keys(firstRaw),
+            hasDirectTitle: 'title' in firstRaw,
+            directTitleValue: firstRaw.title,
+            directTitleType: typeof firstRaw.title,
+            possibleAlternateTitles: {
+              notification_title: firstRaw.notification_title,
+              message_title: firstRaw.message_title,
+              subject: firstRaw.subject
+            },
+            hasMessage: 'message' in firstRaw,
+            messageType: typeof firstRaw.message,
+            messageStructure: firstRaw.message ? (typeof firstRaw.message === 'object' ? Object.keys(firstRaw.message) : 'not an object') : null,
+            hasMetadata: 'metadata' in firstRaw,
+            metadataKeys: firstRaw.metadata ? Object.keys(firstRaw.metadata) : []
+          });
+          
+          // Dump stringified version for complete analysis
+          console.log('Full raw notification JSON:', JSON.stringify(firstRaw, null, 2));
+        } catch (error) {
+          console.error('Error analyzing notification structure:', error);
+        }
+        console.groupEnd();
+        
+        // Process the notifications and enhance them
+        const processedNotifications = enhanceNotifications(response.data.notifications);
+        console.log(`Processed ${processedNotifications.length} notifications`);
+        
+        if (processedNotifications.length > 0) {
+          console.log('First notification sample:', {
+            id: processedNotifications[0].id,
+            title: processedNotifications[0].title,
+            entity_type: processedNotifications[0].entity_type,
+            has_method: typeof processedNotifications[0].getEntityTypeParts === 'function'
+          });
+        }
+        
+        // If reset is true, replace notifications; otherwise append
+        const newNotifications = reset ? processedNotifications : [...notifications, ...processedNotifications];
         setNotifications(newNotifications);
         groupNotificationsByDay(newNotifications);
         setHasMore(response.data.hasMore);
         setTotalCount(response.data.total);
         setUnreadCount(response.data.unread);
         
+        // Update the page state based on what we just loaded
+        setPage(pageToLoad); 
+      } else {
+        // No notifications found, keep existing or set empty
         if (reset) {
-          setPage(1);
-        } else {
-          setPage(currentPage + 1);
+          setNotifications([]);
+          setGroupedNotifications({});
+          setHasMore(false);
         }
       }
     } catch (err) {
@@ -126,18 +190,59 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
     }
   };
 
+  const handleShowNotificationDetails = (notification: Notification) => {
+    setSelectedNotification(notification);
+    setIsNotificationDetailOpen(true);
+  };
+
   const handleDeleteNotification = async (notification: Notification) => {
+    console.group('🗑️ NotificationList - Delete Notification');
     try {
+      // Enhanced debug logging
+      console.log('Attempting to delete notification:', {
+        notification,
+        id: notification?.id,
+        hasId: !!notification?.id,
+        idType: typeof notification?.id,
+        isValid: notification?.id !== undefined && notification?.id !== null
+      });
+      
+      // Validate notification ID
+      if (!notification?.id) {
+        console.error('Cannot delete notification with undefined ID');
+        console.groupEnd();
+        return;
+      }
+      
+      // Optimistically update UI first
+      const updatedNotifications = notifications.filter(n => n.id !== notification.id);
+      setNotifications(updatedNotifications);
+      groupNotificationsByDay(updatedNotifications);
+      
+      // Update total count
+      setTotalCount(prev => Math.max(0, prev - 1));
+      
+      // If the notification was unread, update unread count
+      if (!notification.read) {
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
+      
+      // Attempt to delete the notification
       const success = await deleteNotification(notification.id);
       
-      if (success) {
-        // Remove the notification from the list
-        const updatedNotifications = notifications.filter(n => n.id !== notification.id);
-        setNotifications(updatedNotifications);
-        groupNotificationsByDay(updatedNotifications);
+      if (!success) {
+        console.log('Failed to delete notification, reverting UI changes');
+        // If deletion failed, revert UI changes
+        loadNotifications(true);
+      } else {
+        console.log('Successfully deleted notification');
       }
-    } catch (err) {
-      console.error('Error deleting notification:', err);
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      // Refresh notifications from server to ensure UI is in sync
+      loadNotifications(true);
+    } finally {
+      console.groupEnd();
     }
   };
 
@@ -189,6 +294,49 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
     if (hasMore && !loading) {
       loadNotifications();
     }
+  };
+
+  const getNotificationTitle = (notification: Notification): string => {
+    console.log('Processing notification title:', {
+      id: notification.id,
+      originalTitle: notification.title,
+      isUntitled: notification.title === 'Untitled Notification',
+      hasContent: !!notification.content,
+      contentLength: notification.content?.length || 0,
+      contentPreview: notification.content ? notification.content.substring(0, 30) + '...' : 'none'
+    });
+
+    // Step 1: Check if we have a real title that's not the default "Untitled Notification"
+    if (notification.title && notification.title !== 'Untitled Notification') {
+      console.log(`Using original title for notification ${notification.id}: "${notification.title}"`);
+      return notification.title;
+    }
+    
+    // Step 2: If no title or default title, but we have content, use content as title
+    if (notification.content) {
+      const truncatedContent = notification.content.length > 50 
+        ? `${notification.content.substring(0, 47)}...` 
+        : notification.content;
+      console.log(`Using content as title for notification ${notification.id}: "${truncatedContent}"`);
+      return truncatedContent;
+    }
+    
+    // Step 3: Check if title might be in metadata
+    if (notification.metadata) {
+      const metadataTitle = notification.metadata.title || 
+                            notification.metadata.subject || 
+                            notification.metadata.heading ||
+                            notification.metadata.name;
+      
+      if (metadataTitle) {
+        console.log(`Found title in metadata for notification ${notification.id}: "${metadataTitle}"`);
+        return typeof metadataTitle === 'string' ? metadataTitle : String(metadataTitle);
+      }
+    }
+    
+    // Step 4: Last resort fallback
+    console.log(`Falling back to "Untitled Notification" for ${notification.id}`);
+    return 'Untitled Notification';
   };
 
   if (loading) {
@@ -249,37 +397,186 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
       </div>
 
       <ul className="divide-y">
-        {notifications.map((notification) => (
-          <li 
-            key={notification.id} 
-            className={`p-4 hover:bg-gray-50 flex justify-between ${!notification.read ? 'bg-blue-50' : ''}`}
-          >
-            <div className="flex-grow">
-              <div 
-                className="cursor-pointer" 
-                onClick={() => !notification.read && handleMarkAsRead(notification)}
+        {notifications
+          // Filter out notifications without valid IDs to prevent errors
+          .filter(notification => {
+            const isValid = !!notification && !!notification.id;
+            if (!isValid) {
+              console.warn('Filtering out invalid notification:', notification);
+            }
+            return isValid;
+          })
+          .map((notification) => {
+            // Safety check - ensure notification has been enhanced with methods
+            if (typeof notification.getEntityTypeParts !== 'function') {
+              console.log('Enhancing notification in render:', notification.id);
+              notification = enhanceNotification(notification);
+            }
+            
+            return (
+              <li 
+                key={notification.id} 
+                className={`p-4 hover:bg-gray-50 ${!notification.read ? 'bg-blue-50' : ''}`}
               >
-                <h4 className={`font-medium ${!notification.read ? 'font-bold' : ''}`}>
-                  {notification.title}
-                </h4>
-                <p className="text-sm text-gray-600">{notification.content}</p>
-                <span className="text-xs text-gray-500">
-                  {notification.createdAt && format(parseISO(notification.createdAt), 'MMM d, yyyy h:mm a', { locale: es })}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-start ml-4">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => handleDeleteNotification(notification)}
-              >
-                Delete
-              </Button>
-            </div>
-          </li>
-        ))}
+                <div className="flex justify-between">
+                  <div className="flex-grow">
+                    {/* Debug notification title */}
+                    {console.log('Rendering notification:', {
+                      id: notification.id,
+                      titleBeforeHelper: notification.title,
+                      titleAfterHelper: getNotificationTitle(notification)
+                    })}
+                    <h4 className={`font-medium ${!notification.read ? 'font-bold' : ''}`}>
+                      {getNotificationTitle(notification)}
+                    </h4>
+                    <p className="text-sm text-gray-600 line-clamp-2">{notification.content}</p>
+                    <span className="text-xs text-gray-500">
+                      {notification.createdAt && format(parseISO(notification.createdAt), 'MMM d, yyyy h:mm a', { locale: es })}
+                    </span>
+                  </div>
+                  <div className="flex items-start ml-4 space-x-2">
+                    {/* View details button */}
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      title="View details" 
+                      onClick={() => handleShowNotificationDetails(notification)}
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      View
+                    </Button>
+                    {!notification.read && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        title="Mark as read" 
+                        onClick={() => handleMarkAsRead(notification)}
+                      >
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        Read
+                      </Button>
+                    )}
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      title="Delete notification"
+                      onClick={() => handleDeleteNotification(notification)}
+                      disabled={!notification.id}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
       </ul>
+
+      {/* Pagination Controls */}
+      <div className="flex justify-between items-center mt-4 border-t pt-4">
+        <div>
+          <p className="text-sm text-gray-500">
+            Showing {notifications.length} of {totalCount} notifications
+          </p>
+        </div>
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => loadNotifications(true)}
+            disabled={page === 1 || loading}
+          >
+            First Page
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              if (page > 1) {
+                setPage(page - 1);
+                loadNotifications(true); // Reset but with updated page
+              }
+            }}
+            disabled={page === 1 || loading}
+          >
+            Previous
+          </Button>
+          <span className="px-2 py-1 text-sm">
+            Page {page}
+          </span>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={loadMoreNotifications}
+            disabled={!hasMore || loading}
+          >
+            Next
+          </Button>
+        </div>
+      </div>
+
+      {/* Notification Detail Dialog */}
+      <Dialog open={isNotificationDetailOpen} onOpenChange={setIsNotificationDetailOpen}>
+        <DialogContent>
+          {selectedNotification && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{getNotificationTitle(selectedNotification)}</DialogTitle>
+                <DialogDescription>
+                  {selectedNotification.createdAt && format(parseISO(selectedNotification.createdAt), 'MMMM d, yyyy h:mm a', { locale: es })}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
+                <p className="text-sm">{selectedNotification.content}</p>
+                {selectedNotification.sourceUrl && (
+                  <a 
+                    href={selectedNotification.sourceUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center text-blue-500 mt-4 text-sm"
+                  >
+                    <ExternalLink className="h-4 w-4 mr-1" />
+                    View source
+                  </a>
+                )}
+              </div>
+              <DialogFooter className="flex justify-between">
+                <div className="flex space-x-2">
+                  {!selectedNotification.read && (
+                    <Button 
+                      variant="secondary" 
+                      onClick={() => {
+                        handleMarkAsRead(selectedNotification);
+                        setIsNotificationDetailOpen(false);
+                      }}
+                    >
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      Mark as read
+                    </Button>
+                  )}
+                  <Button 
+                    variant="destructive" 
+                    onClick={() => {
+                      handleDeleteNotification(selectedNotification);
+                      setIsNotificationDetailOpen(false);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete
+                  </Button>
+                </div>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsNotificationDetailOpen(false)}
+                >
+                  Close
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }; 

@@ -14,6 +14,156 @@ export interface Notification {
   read: boolean;
   createdAt: string;
   readAt?: string;
+  
+  // Helper method signature (no implementation in interface)
+  getEntityTypeParts(): string[];
+}
+
+// Helper function to extract entity type parts from a notification
+export function getEntityTypeParts(notification: Notification | undefined | null): string[] {
+  if (!notification || !notification.entity_type) {
+    console.warn('Missing notification or entity_type for getEntityTypeParts', notification);
+    return [];
+  }
+  
+  try {
+    return notification.entity_type.split(':');
+  } catch (error) {
+    console.error('Error splitting entity_type', error, notification);
+    return [];
+  }
+}
+
+// New utility function to safely get entity_type as a string
+export function getEntityType(notification: Notification | null | undefined): string {
+  return notification?.entity_type || '';
+}
+
+// Helper function to normalize notification data
+function normalizeNotification(data: any): Notification {
+  if (!data) {
+    console.error('Received null or undefined notification data');
+    // Create a minimal valid notification to prevent UI errors
+    return {
+      id: `generated-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      userId: '',
+      subscriptionId: '',
+      title: 'Error: Invalid notification',
+      content: 'This notification could not be properly loaded.',
+      sourceUrl: '',
+      metadata: {},
+      read: false,
+      createdAt: new Date().toISOString(),
+      entity_type: 'error:invalid',
+      getEntityTypeParts: function() { return ['error', 'invalid']; }
+    };
+  }
+  
+  // Debug logging to see the raw notification data
+  console.log('Normalizing notification:', { 
+    id: data.id,
+    originalTitle: data.title,
+    possibleAlternateTitle: data.notification_title || data.message_title || data.subject,
+    hasTitle: !!data.title,
+    contentPreview: data.content ? data.content.substring(0, 30) + '...' : 'no content'
+  });
+  
+  // Look for a title in multiple possible fields
+  let title = data.title || data.notification_title || data.message_title || data.subject || '';
+  
+  // Check if title might be in message field for some backend implementations
+  if (!title && data.message && typeof data.message === 'object' && data.message.title) {
+    title = data.message.title;
+    console.log('Found title in message object:', title);
+  }
+  
+  // Check if title might be in metadata
+  if (!title && data.metadata && typeof data.metadata === 'object') {
+    if (data.metadata.title) {
+      title = data.metadata.title;
+      console.log('Found title in metadata.title:', title);
+    } else if (data.metadata.subject) {
+      title = data.metadata.subject;
+      console.log('Found title in metadata.subject:', title);
+    }
+  }
+  
+  // Create a title from content if title is still missing
+  if (!title && data.content) {
+    // Use the first 50 characters of content as title
+    title = data.content.length > 50 
+      ? `${data.content.substring(0, 47)}...` 
+      : data.content;
+    console.log('Generated title from content:', { id: data.id, generatedTitle: title });
+  } else if (!title) {
+    title = 'Untitled Notification';
+    console.log('Using fallback title:', { id: data.id, fallbackTitle: title });
+  }
+  
+  // Ensure all required fields are present with fallbacks
+  const normalized: Notification = {
+    id: data.id || `generated-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    userId: data.userId || data.user_id || '',
+    subscriptionId: data.subscriptionId || data.subscription_id || '',
+    title,
+    content: data.content || data.message?.content || data.message?.body || data.message || '',
+    sourceUrl: data.sourceUrl || data.source_url || data.url || '',
+    metadata: data.metadata || {},
+    read: !!data.read,
+    createdAt: data.createdAt || data.created_at || new Date().toISOString(),
+    readAt: data.readAt || data.read_at,
+    entity_type: data.entity_type || '',
+    
+    // Add the getEntityTypeParts method implementation directly to the object
+    getEntityTypeParts: function() {
+      return getEntityTypeParts(this);
+    }
+  };
+  
+  // Optional fields
+  if (data.subscription_name) {
+    normalized.subscription_name = data.subscription_name;
+  }
+  
+  console.log('Normalized notification result:', { 
+    id: normalized.id, 
+    finalTitle: normalized.title,
+    titleLength: normalized.title?.length || 0
+  });
+  
+  return normalized;
+}
+
+// Update enhanceNotification to use the normalized data
+export function enhanceNotification(notification: any): Notification {
+  if (!notification) return notification;
+  
+  // Log the raw notification data before normalization
+  console.log('Enhancing notification:', { 
+    id: notification.id,
+    rawTitle: notification.title,
+    hasRawTitle: !!notification.title,
+    keys: notification ? Object.keys(notification) : [],
+    dataType: typeof notification
+  });
+  
+  // First normalize the notification structure
+  const normalized = normalizeNotification(notification);
+  if (!normalized) return notification;
+  
+  // Add the getEntityTypeParts method implementation directly to the object
+  normalized.getEntityTypeParts = function() {
+    if (!this.entity_type) return [];
+    return this.entity_type.split ? this.entity_type.split(':') : [];
+  };
+  
+  return normalized as Notification;
+}
+
+// New helper to process an array of notifications
+export function enhanceNotifications(notifications: any[]): Notification[] {
+  if (!notifications) return [];
+  return notifications.filter(Boolean).map(enhanceNotification);
 }
 
 export interface NotificationsResponse {
@@ -52,38 +202,119 @@ export type NotificationApiResponse<T> = ApiResponse<T> | { error: any; data?: n
 
 export const notificationService = {
   /**
-   * Lista todas las notificaciones del usuario
+   * List notifications for the current user
+   * @param options Query parameters for filtering notifications
+   * @returns Promise with notifications response
    */
-  async list(options: NotificationOptions = {}): Promise<NotificationApiResponse<NotificationsResponse>> {
-    const {
-      page = 1,
-      limit = 10,
-      unread = false,
-      subscriptionId = null
-    } = options;
-    
-    console.log('Listing notifications', { page, limit, unread, subscriptionId });
-    
-    let endpoint = `/api/v1/notifications?page=${page}&limit=${limit}`;
-    
-    if (unread) {
-      endpoint += '&unread=true';
-    }
-    
-    if (subscriptionId) {
-      endpoint += `&subscriptionId=${subscriptionId}`;
-    }
+  async list(options: NotificationOptions = {}): Promise<ApiResponse<NotificationsResponse>> {
+    console.group('Notifications API - list');
+    console.log('Listing notifications with options:', options);
     
     try {
-      return await backendClient({
-        endpoint,
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (options.page) params.append('page', options.page.toString());
+      if (options.limit) params.append('limit', options.limit.toString());
+      if (options.unread !== undefined) params.append('unread', options.unread.toString());
+      if (options.subscriptionId) params.append('subscriptionId', options.subscriptionId);
+      
+      // Make API request - using the function directly with correct endpoint path
+      const response = await backendClient({
+        endpoint: `/api/v1/notifications?${params.toString()}`,
         method: 'GET'
       });
-    } catch (error: any) {
-      console.error('Error listing notifications:', error);
-      return { 
-        error: error.message || 'Error al obtener notificaciones' 
+      
+      // Process and validate the response
+      console.log('Raw API response received:', {
+        status: response.status,
+        hasData: !!response.data,
+        notificationCount: response.data?.notifications?.length || 0
+      });
+      
+      // Ensure we have a valid response with notifications array
+      if (!response.data || !Array.isArray(response.data.notifications)) {
+        console.error('Invalid response format - missing notifications array', response.data);
+        return {
+          ...response,
+          data: {
+            notifications: [],
+            total: 0,
+            unread: 0,
+            page: options.page || 1,
+            limit: options.limit || 10,
+            hasMore: false
+          }
+        };
+      }
+      
+      // Debug the raw notification data from the backend
+      if (response.data.notifications.length > 0) {
+        const firstNotification = response.data.notifications[0];
+        console.log('First raw notification from backend:', {
+          sample: firstNotification,
+          hasTitle: !!firstNotification.title,
+          titleValue: firstNotification.title,
+          titleType: typeof firstNotification.title,
+          titleLength: firstNotification.title?.length,
+          keys: Object.keys(firstNotification)
+        });
+        
+        // Add this additional logging to extract the real title structure
+        if (firstNotification.title === undefined) {
+          console.warn('Title is undefined in notification', firstNotification);
+          // Check if title is in metadata or other fields
+          console.log('Possible title fields:', {
+            notification_title: firstNotification.notification_title,
+            message_title: firstNotification.message_title,
+            subject: firstNotification.subject,
+            message: firstNotification.message,
+            hasMessage: !!firstNotification.message,
+            hasMetadata: !!firstNotification.metadata,
+            metadataKeys: firstNotification.metadata ? Object.keys(firstNotification.metadata) : []
+          });
+        }
+      }
+      
+      // Process and normalize each notification
+      const processedNotifications = response.data.notifications
+        .map(notification => {
+          try {
+            return normalizeNotification(notification);
+          } catch (error) {
+            console.error('Error normalizing notification:', error, notification);
+            return null;
+          }
+        })
+        .filter(Boolean) as Notification[];
+      
+      // Log notification processing results
+      console.log('Processed notifications:', {
+        originalCount: response.data.notifications.length,
+        processedCount: processedNotifications.length,
+        firstNotification: processedNotifications.length > 0 ? {
+          id: processedNotifications[0].id,
+          hasId: !!processedNotifications[0].id,
+          entityType: processedNotifications[0].entity_type,
+          title: processedNotifications[0].title
+        } : 'none'
+      });
+      
+      // Return processed response
+      const result = {
+        ...response,
+        data: {
+          ...response.data,
+          notifications: processedNotifications
+        }
       };
+      
+      console.log('Returning processed notifications response');
+      console.groupEnd();
+      return result;
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      console.groupEnd();
+      throw error;
     }
   },
 
@@ -94,10 +325,17 @@ export const notificationService = {
     console.log('Getting notification details', { id });
     
     try {
-      return await backendClient({
+      const response = await backendClient({
         endpoint: `/api/v1/notifications/${id}`,
         method: 'GET'
       });
+      
+      // Enhance the notification if it exists
+      if (response.data) {
+        response.data = enhanceNotification(response.data);
+      }
+      
+      return response;
     } catch (error: any) {
       console.error('Error getting notification:', error);
       return { 
@@ -153,15 +391,45 @@ export const notificationService = {
    * Elimina una notificación
    */
   async deleteNotification(id: string): Promise<NotificationApiResponse<DeleteResult>> {
-    console.log('Deleting notification', { id });
+    // Enhanced logging for debugging
+    console.group('🗑️ Delete Notification');
+    console.log('Deleting notification', { 
+      id,
+      hasId: !!id,
+      idType: typeof id,
+      isValid: id !== undefined && id !== null && id !== 'undefined' && id !== 'null'
+    });
+    
+    // Validate notification ID
+    if (!id || id === 'undefined' || id === 'null') {
+      console.error('Invalid notification ID provided to deleteNotification');
+      console.groupEnd();
+      return { 
+        error: 'Invalid notification ID' 
+      };
+    }
     
     try {
-      return await backendClient({
+      // Make DELETE request with empty body
+      const response = await backendClient<DeleteResult>({
         endpoint: `/api/v1/notifications/${id}`,
-        method: 'DELETE'
+        method: 'DELETE',
+        // Explicitly set empty body to avoid undefined body issues
+        body: {}
       });
+      
+      if (response.error) {
+        console.error('Error from backend when deleting notification:', response.error);
+        console.groupEnd();
+        return response;
+      }
+      
+      console.log('Successfully deleted notification:', response.data);
+      console.groupEnd();
+      return response;
     } catch (error: any) {
-      console.error('Error deleting notification:', error);
+      console.error('Exception when deleting notification:', error);
+      console.groupEnd();
       return { 
         error: error.message || 'Error al eliminar la notificación' 
       };
@@ -172,6 +440,7 @@ export const notificationService = {
    * Elimina todas las notificaciones
    */
   async deleteAllNotifications(subscriptionId = null): Promise<NotificationApiResponse<DeleteAllResult>> {
+    console.group('🗑️ Delete All Notifications');
     console.log('Deleting all notifications', { subscriptionId });
     
     let endpoint = `/api/v1/notifications/delete-all`;
@@ -180,12 +449,26 @@ export const notificationService = {
     }
     
     try {
-      return await backendClient({
+      // Make DELETE request with empty body
+      const response = await backendClient<DeleteAllResult>({
         endpoint,
-        method: 'DELETE'
+        method: 'DELETE',
+        // Explicitly set empty body to avoid undefined body issues
+        body: {}
       });
+      
+      if (response.error) {
+        console.error('Error from backend when deleting all notifications:', response.error);
+        console.groupEnd();
+        return response;
+      }
+      
+      console.log('Successfully deleted all notifications:', response.data);
+      console.groupEnd();
+      return response;
     } catch (error: any) {
-      console.error('Error deleting all notifications:', error);
+      console.error('Exception when deleting all notifications:', error);
+      console.groupEnd();
       return { 
         error: error.message || 'Error al eliminar todas las notificaciones' 
       };

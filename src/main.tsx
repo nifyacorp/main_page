@@ -4,6 +4,13 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import App from './App.tsx';
 import './index.css';
 
+// Debug environment variables
+console.log('Environment variables:');
+console.log('VITE_AUTH_URL:', import.meta.env.VITE_AUTH_URL);
+console.log('VITE_BACKEND_URL:', import.meta.env.VITE_BACKEND_URL);
+console.log('VITE_SUBSCRIPTION_WORKER:', import.meta.env.VITE_SUBSCRIPTION_WORKER);
+console.log('VITE_ENV:', import.meta.env.VITE_ENV);
+
 // Set up global error handler
 window.addEventListener('error', (event) => {
   console.error('Global error caught:', {

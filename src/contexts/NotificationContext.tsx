@@ -1,5 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+<<<<<<< HEAD
 import { notificationService } from '../lib/api/services/notifications';
+=======
+import { 
+  Notification, 
+  notificationService, 
+  NotificationApiResponse,
+  enhanceNotifications 
+} from '../lib/api/services/notifications';
+>>>>>>> 4fd3b08e6314ff559d4deb347ee8ec16103b1dc8
 
 interface NotificationContextType {
   unreadCount: number;
@@ -73,33 +82,83 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   };
 
   const deleteNotification = async (id: string): Promise<boolean> => {
+    console.group('🗑️ NotificationContext - Delete Notification');
+    console.log('Attempting to delete notification', { 
+      id,
+      hasId: !!id,
+      idType: typeof id,
+      isValid: id !== undefined && id !== null && id !== 'undefined' && id !== 'null'
+    });
+    
+    // Validate notification ID
+    if (!id || id === 'undefined' || id === 'null') {
+      console.error('Invalid notification ID provided to deleteNotification');
+      console.groupEnd();
+      return false;
+    }
+    
     try {
       const response = await notificationService.deleteNotification(id);
       
-      if (!response.error && response.data) {
-        // Refresh the unread count after deletion
+      if (response.error) {
+        console.error('Error deleting notification:', response.error);
+        console.groupEnd();
+        return false;
+      }
+      
+      if (response.data && response.data.success) {
+        console.log('Successfully deleted notification:', response.data);
+        
+        // Update the notifications state immediately to remove the deleted notification
+        setNotifications(prevNotifications => prevNotifications.filter(n => n.id !== id));
+        
+        // Update total count
+        setTotalCount(prevCount => Math.max(0, prevCount - 1));
+        
+        // Also refresh the unread count
         refreshUnreadCount();
+        
+        console.groupEnd();
         return true;
       }
+      
+      console.error('Unexpected response from deleteNotification:', response);
+      console.groupEnd();
       return false;
     } catch (error) {
       console.error('Error deleting notification:', error);
+      console.groupEnd();
       return false;
     }
   };
 
   const deleteAllNotifications = async (): Promise<boolean> => {
+    console.group('🗑️ NotificationContext - Delete All Notifications');
+    console.log('Attempting to delete all notifications');
+    
     try {
       const response = await notificationService.deleteAllNotifications();
       
-      if (!response.error && response.data) {
+      if (response.error) {
+        console.error('Error deleting all notifications:', response.error);
+        console.groupEnd();
+        return false;
+      }
+      
+      if (response.data && response.data.success) {
+        console.log('Successfully deleted all notifications:', response.data);
         // Reset unread count to 0 since all notifications are gone
         setUnreadCount(0);
+        console.groupEnd();
         return true;
       }
+      
+      console.warn('Deletion response did not indicate success:', response.data);
+      console.groupEnd();
       return false;
     } catch (error) {
-      console.error('Error deleting all notifications:', error);
+      console.error('Exception when deleting all notifications:', error);
+      console.groupEnd();
       return false;
     }
   };

@@ -52,7 +52,7 @@ NIFYA es una plataforma moderna que utiliza inteligencia artificial para proporc
 - Eliminación de suscripciones
 - Plantillas predefinidas
 
-### ⚙️ Configuración y Preferencias
+### 🔧 Configuración y Preferencias
 - Tema claro/oscuro
 - Configuración de notificaciones por email
 - Selección de idioma (Español, English, Català)
@@ -97,6 +97,37 @@ NIFYA es una plataforma moderna que utiliza inteligencia artificial para proporc
 - Rate limiting
 - Caché de respuestas
 
+## 📂 Estructura del Proyecto
+
+```
+frontend/
+├── src/                        # Código fuente
+│   ├── components/             # Componentes reutilizables
+│   │   ├── ui/                 # Componentes de interfaz base
+│   │   ├── notifications/      # Componentes relacionados con notificaciones
+│   │   └── settings/           # Componentes de configuración
+│   ├── pages/                  # Páginas de la aplicación
+│   │   ├── Auth.tsx            # Página de autenticación
+│   │   ├── Dashboard.tsx       # Panel principal
+│   │   ├── Landing.tsx         # Página de inicio (no autenticada)
+│   │   ├── Notifications.tsx   # Página de notificaciones
+│   │   ├── Settings.tsx        # Página de configuración
+│   │   ├── Subscriptions.tsx   # Página de suscripciones
+│   │   └── ...                 # Otras páginas
+│   ├── contexts/               # Contextos de React
+│   ├── lib/                    # Utilidades y funciones auxiliares
+│   ├── App.tsx                 # Componente principal y enrutamiento
+│   ├── main.tsx                # Punto de entrada de la aplicación
+│   └── index.css               # Estilos globales
+├── public/                     # Archivos estáticos
+├── dist/                       # Directorio de compilación (generado)
+├── .env                        # Variables de entorno
+├── index.html                  # HTML principal
+├── package.json                # Dependencias y scripts
+├── tsconfig.json               # Configuración de TypeScript
+└── vite.config.ts              # Configuración de Vite
+```
+
 ## 🚀 Inicio Rápido
 
 ### Requisitos Previos
@@ -107,34 +138,90 @@ NIFYA es una plataforma moderna que utiliza inteligencia artificial para proporc
 ### Instalación
 
 1. Clona el repositorio:
-\`\`\`bash
+```bash
 git clone https://github.com/tu-usuario/nifya.git
-\`\`\`
+```
 
 2. Instala las dependencias:
-\`\`\`bash
+```bash
 cd nifya
 npm install
-\`\`\`
+```
 
 3. Configura las variables de entorno:
-Crea un archivo \`.env\` en la raíz del proyecto:
-\`\`\`env
+Crea un archivo `.env` en la raíz del proyecto:
+```env
 VITE_AUTH_URL=https://authentication-service.example.com
 VITE_BACKEND_URL=https://backend.example.com
-\`\`\`
+VITE_SUBSCRIPTION_WORKER=https://subscription-worker.example.com
+VITE_ENV=development
+VITE_ENABLE_LOGGING=true
+```
 
 4. Inicia el servidor de desarrollo:
-\`\`\`bash
+```bash
 npm run dev
-\`\`\`
+```
 
 ## 📦 Scripts Disponibles
 
-- \`npm run dev\` - Inicia el servidor de desarrollo
-- \`npm run build\` - Construye la aplicación para producción
-- \`npm run preview\` - Previsualiza la versión de producción
-- \`npm run lint\` - Ejecuta el linter
+- `npm run dev` - Inicia el servidor de desarrollo
+- `npm run build` - Construye la aplicación para producción
+- `npm run preview` - Previsualiza la versión de producción
+- `npm run lint` - Ejecuta el linter
+
+## 🔄 Integración con Microservicios
+
+La aplicación frontend se integra con varios microservicios del ecosistema NIFYA:
+
+### Servicio de Autenticación
+- Endpoint base: `VITE_AUTH_URL`
+- Gestiona:
+  - Registro de usuarios
+  - Inicio de sesión
+  - Autenticación OAuth con Google
+  - Gestión de tokens
+  - Recuperación de contraseñas
+
+### Backend API (Orchestration Service)
+- Endpoint base: `VITE_BACKEND_URL`
+- Proporciona:
+  - Gestión de suscripciones
+  - Consulta de notificaciones
+  - Configuración de perfil de usuario
+  - Plantillas de suscripción
+  - Estado de procesamiento
+
+### Subscription Worker
+- Endpoint base: `VITE_SUBSCRIPTION_WORKER`
+- Se utiliza para:
+  - Verificación del estado de las suscripciones
+  - Diagnósticos de procesamiento
+
+## 🔒 Autenticación y Seguridad
+
+### Flujo de Autenticación
+1. El usuario se autentica a través del servicio de autenticación
+2. Se recibe un JWT token y se almacena en localStorage
+3. Cada solicitud a la API incluye el token en la cabecera de autorización
+4. Los tokens caducados se refrescan automáticamente
+5. Las rutas protegidas redirigen a los usuarios no autenticados
+
+### Cabeceras de API
+```javascript
+const headers = {
+  'Authorization': `Bearer ${token}`,
+  'X-User-ID': userId,
+  'Content-Type': 'application/json'
+};
+```
+
+### Protección de Rutas
+El componente `ProtectedRoute` asegura que solo los usuarios autenticados puedan acceder a rutas como:
+- `/dashboard`
+- `/subscriptions`
+- `/notifications`
+- `/settings`
 
 ## 🎨 Personalización
 
@@ -162,65 +249,146 @@ La aplicación está completamente optimizada para diferentes tamaños de pantal
 - Navegación responsiva
 - Optimización de rendimiento
 
-## 🔧 Configuración Avanzada
+## 🚀 Despliegue
 
-### Endpoints de la API
-La aplicación se comunica con dos servicios principales:
-- Servicio de Autenticación: \`VITE_AUTH_URL\`
-- Servicio Backend: \`VITE_BACKEND_URL\`
+### Preparación para Producción
 
-### Rutas Protegidas
-Las siguientes rutas requieren autenticación:
-- \`/dashboard\`
-- \`/subscriptions\`
-- \`/settings\`
+1. Actualiza las variables de entorno para producción en `.env.production`:
+```
+VITE_AUTH_URL=https://authentication-service-production.example.com
+VITE_BACKEND_URL=https://backend-production.example.com
+VITE_SUBSCRIPTION_WORKER=https://subscription-worker-production.example.com
+VITE_ENV=production
+VITE_ENABLE_LOGGING=false
+```
 
-### Manejo de Sesión
-- Los tokens JWT se almacenan en localStorage
-- Refresh automático de tokens
-- Cierre de sesión en caso de token inválido
-- Persistencia de preferencias de usuario
+2. Construye la aplicación:
+```bash
+npm run build
+```
 
-## 📈 Monitorización y Logs
+3. Previsualiza la versión de producción:
+```bash
+npm run preview
+```
 
-### Logs del Cliente
-- Grupos de logs organizados por funcionalidad
-- Información detallada de errores
-- Tracking de eventos de usuario
-- Métricas de rendimiento
+### Despliegue en Netlify
 
-### Depuración
-- Modo de desarrollo con logs detallados
-- Herramientas de depuración de React
-- Validación de tipos TypeScript
-- ESLint para control de calidad
+1. Conecta tu repositorio a Netlify
+2. Configura las variables de entorno en la configuración del sitio
+3. Especifica el comando de construcción como `npm run build`
+4. Establece el directorio de publicación como `dist`
+5. Configura redirecciones para SPA:
 
-## 🤝 Contribuir
+Crea un archivo `_redirects` o `netlify.toml`:
+```
+/*  /index.html  200
+```
 
-1. Fork el proyecto
-2. Crea una rama para tu feature (\`git checkout -b feature/AmazingFeature\`)
-3. Commit tus cambios (\`git commit -m 'Add some AmazingFeature'\`)
-4. Push a la rama (\`git push origin feature/AmazingFeature\`)
-5. Abre un Pull Request
+### Optimizaciones de Producción
 
-### Guía de Contribución
-- Sigue el estilo de código existente
-- Añade tests para nuevas funcionalidades
-- Actualiza la documentación
-- Verifica que el linter pase
-- Asegúrate de que los tipos TypeScript sean correctos
+- Code-splitting para carga más rápida
+- Assets comprimidos y minificados
+- Caché de respuestas HTTP
+- Lazy-loading de componentes
+- Precarga de rutas frecuentes
 
-## 📄 Licencia
+## 📊 Analítica y Monitorización
 
-Este proyecto está bajo la Licencia MIT. Ver el archivo \`LICENSE\` para más detalles.
+### Logging del Cliente
+- Entorno de desarrollo: logs detallados en consola
+- Entorno de producción: logs críticos enviados al backend
+- Agrupación de errores para diagnóstico
+- Captura de excepciones no controladas
 
-## 📞 Contacto
+### Monitorización de Rendimiento
+- Métricas de tiempo de carga
+- Análisis de rendering
+- Seguimiento de interacciones de usuario
+- Diagnóstico de problemas de red
 
-- Website: [nifya.com](https://nifya.com)
-- Twitter: [@nifya](https://twitter.com/nifya)
-- GitHub: [@nifya](https://github.com/nifya)
+## 🐞 Depuración y Resolución de Problemas
 
-## 🙏 Agradecimientos
+### Problemas Comunes
+
+#### Problemas de Autenticación
+- Verifica que las URLs de los servicios sean correctas
+- Comprueba el almacenamiento local para tokens
+- Asegúrate de que el token no haya expirado
+- Revisa los logs del cliente para errores HTTP 401/403
+
+#### Problemas de Carga de Datos
+- Verifica la conexión de red
+- Asegúrate de que las APIs estén disponibles
+- Revisa las cabeceras de las solicitudes
+- Comprueba si hay limitaciones de rate-limiting
+
+#### Problemas de UI/UX
+- Prueba en diferentes navegadores
+- Verifica la compatibilidad con dispositivos móviles
+- Revisa las versiones de las dependencias
+- Comprueba si hay conflictos de CSS
+
+## 🧪 Testing
+
+### Testing Manual
+1. Verifica el flujo de autenticación
+2. Prueba la creación, edición y eliminación de suscripciones
+3. Comprueba la visualización y gestión de notificaciones
+4. Verifica la navegación y cambios de ruta
+5. Prueba con diferentes tamaños de pantalla
+
+### Testing Automatizado
+```bash
+# Ejecutar tests unitarios
+npm run test:unit
+
+# Ejecutar tests de integración
+npm run test:integration
+
+# Ejecutar todos los tests
+npm run test
+```
+
+## 🔄 Workflow de Desarrollo
+
+### Estándares de Código
+- Utiliza ESLint para el linting
+- Sigue las prácticas de TypeScript
+- Mantén los componentes pequeños y reutilizables
+- Documenta las funciones y componentes complejos
+- Utiliza nombres descriptivos para variables y funciones
+
+### Proceso de Contribución
+1. Crea una rama para tu funcionalidad (`feature/nueva-funcionalidad`)
+2. Desarrolla y prueba tu código
+3. Asegúrate de que pasa los linters y tests
+4. Crea un Pull Request con una descripción detallada
+5. Solicita revisión de código
+6. Implementa los cambios solicitados
+7. Fusiona con la rama principal tras la aprobación
+
+## 📋 Versiones y Actualizaciones
+
+### v1.0.0 (Marzo 2025)
+- Lanzamiento inicial
+- Funcionalidades básicas de notificaciones y suscripciones
+- Integración con servicios de backend
+- Soporte para autenticación JWT
+
+### v0.9.0 (Febrero 2025)
+- Versión beta con funcionalidades principales
+- Interfaz de usuario mejorada
+- Soporte para múltiples idiomas
+- Optimizaciones de rendimiento
+
+## 📧 Contacto y Soporte
+
+Para preguntas, sugerencias o problemas:
+- Email: soporte@nifya.com
+- GitHub: [Reportar un problema](https://github.com/tu-usuario/nifya/issues)
+
+## 🤝 Agradecimientos
 
 - [React](https://reactjs.org/)
 - [Vite](https://vitejs.dev/)
