@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ReactNode } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import Header from './Header';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Bell, Settings, Users, FileText, PlusCircle, Package, LogOut, Menu, X } from 'lucide-react';
+import { Home, Bell, Settings, Users, FileText, PlusCircle, Package, LogOut, Menu, X, ChevronLeft } from 'lucide-react';
 import { cn } from "../lib/utils";
 import { Button } from "./ui/button";
-import { ScrollArea } from "./ui/scroll-area";
 import { useAuth } from '../contexts/AuthContext';
 
 interface MainLayoutProps {
   hideNav?: boolean;
+  children?: ReactNode;
 }
 
-const MainLayout: React.FC<MainLayoutProps> = ({ hideNav = false }) => {
+const MainLayout: React.FC<MainLayoutProps> = ({ hideNav = false, children }) => {
   const handleDebugLogin = () => {
     localStorage.setItem('isAuthenticated', 'true');
     window.location.href = '/dashboard';
@@ -29,23 +29,28 @@ const MainLayout: React.FC<MainLayoutProps> = ({ hideNav = false }) => {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen w-full bg-white">
+    <div className="min-h-screen w-full bg-background">
       <Header />
       
       <main className="flex min-h-[calc(100vh-4rem)]">
         {isAuthenticated && !hideNav && (
           <>
             {/* Sidebar for desktop */}
-            <div className="hidden md:flex h-[calc(100vh-4rem)] w-[240px] flex-col fixed left-0 top-16 border-r bg-background">
-              <ScrollArea className="flex-1 py-2">
-                <nav className="grid gap-1 px-2">
+            <div className="hidden md:flex h-[calc(100vh-4rem)] w-[240px] flex-col fixed left-0 top-16 border-r bg-card">
+              <div className="p-3 flex items-center mb-2 border-b">
+                <img src="https://ik.imagekit.io/appraisily/NYFIA/logo.png" alt="NIFYA" className="h-6 w-6 mr-2" />
+                <span className="font-semibold">NIFYA Dashboard</span>
+              </div>
+              <div className="px-3 py-2">
+                <h2 className="mb-2 px-2 text-xs font-semibold tracking-tight text-muted-foreground">Overview</h2>
+                <nav className="space-y-1">
                   <Link
                     to="/dashboard"
                     className={cn(
-                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium",
+                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                       location.pathname === "/dashboard" 
                         ? "bg-accent text-accent-foreground" 
-                        : "hover:bg-accent hover:text-accent-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     )}
                   >
                     <Home className="h-4 w-4" />
@@ -54,22 +59,28 @@ const MainLayout: React.FC<MainLayoutProps> = ({ hideNav = false }) => {
                   <Link
                     to="/notifications"
                     className={cn(
-                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium",
+                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                       location.pathname === "/notifications" 
                         ? "bg-accent text-accent-foreground" 
-                        : "hover:bg-accent hover:text-accent-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     )}
                   >
                     <Bell className="h-4 w-4" />
                     Notifications
                   </Link>
+                </nav>
+              </div>
+              
+              <div className="px-3 py-2">
+                <h2 className="mb-2 px-2 text-xs font-semibold tracking-tight text-muted-foreground">Content Management</h2>
+                <nav className="space-y-1">
                   <Link
                     to="/subscriptions"
                     className={cn(
-                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium",
-                      location.pathname.includes("/subscriptions") 
+                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                      location.pathname.includes("/subscriptions") && location.pathname !== "/subscriptions/new"
                         ? "bg-accent text-accent-foreground" 
-                        : "hover:bg-accent hover:text-accent-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     )}
                   >
                     <Package className="h-4 w-4" />
@@ -78,11 +89,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ hideNav = false }) => {
                   <Link
                     to="/subscriptions/new"
                     className={cn(
-                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium",
+                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                       location.pathname === "/subscriptions/new" 
                         ? "bg-accent text-accent-foreground" 
-                        : "hover:bg-accent hover:text-accent-foreground",
-                      "ml-6"
+                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                      "ml-4"
                     )}
                   >
                     <PlusCircle className="h-4 w-4" />
@@ -91,22 +102,28 @@ const MainLayout: React.FC<MainLayoutProps> = ({ hideNav = false }) => {
                   <Link
                     to="/sources"
                     className={cn(
-                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium",
+                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                       location.pathname.includes("/sources") 
                         ? "bg-accent text-accent-foreground" 
-                        : "hover:bg-accent hover:text-accent-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     )}
                   >
                     <FileText className="h-4 w-4" />
                     Sources
                   </Link>
+                </nav>
+              </div>
+              
+              <div className="px-3 py-2">
+                <h2 className="mb-2 px-2 text-xs font-semibold tracking-tight text-muted-foreground">Administration</h2>
+                <nav className="space-y-1">
                   <Link
                     to="/contacts"
                     className={cn(
-                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium",
+                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                       location.pathname.includes("/contacts") 
                         ? "bg-accent text-accent-foreground" 
-                        : "hover:bg-accent hover:text-accent-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     )}
                   >
                     <Users className="h-4 w-4" />
@@ -115,20 +132,20 @@ const MainLayout: React.FC<MainLayoutProps> = ({ hideNav = false }) => {
                   <Link
                     to="/settings"
                     className={cn(
-                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium",
+                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                       location.pathname === "/settings" 
                         ? "bg-accent text-accent-foreground" 
-                        : "hover:bg-accent hover:text-accent-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     )}
                   >
                     <Settings className="h-4 w-4" />
                     Settings
                   </Link>
                 </nav>
-              </ScrollArea>
-              <div className="border-t p-2">
+              </div>
+              <div className="mt-auto border-t p-3">
                 <Button 
-                  variant="ghost" 
+                  variant="outline" 
                   className="w-full justify-start"
                   onClick={() => logout()}
                 >
@@ -153,17 +170,23 @@ const MainLayout: React.FC<MainLayoutProps> = ({ hideNav = false }) => {
             {/* Mobile Sidebar */}
             {isMobileMenuOpen && (
               <div className="md:hidden fixed inset-0 z-30 bg-black/60" onClick={() => setIsMobileMenuOpen(false)}>
-                <div className="bg-background h-full w-[240px]" onClick={e => e.stopPropagation()}>
-                  <ScrollArea className="h-full py-2">
-                    <nav className="grid gap-1 px-2">
+                <div className="bg-card h-full w-[280px]" onClick={e => e.stopPropagation()}>
+                  <div className="p-4 flex items-center border-b">
+                    <img src="https://ik.imagekit.io/appraisily/NYFIA/logo.png" alt="NIFYA" className="h-6 w-6 mr-2" />
+                    <span className="font-semibold">NIFYA Dashboard</span>
+                  </div>
+                  <div className="px-3 py-2">
+                    <h2 className="mb-2 px-2 text-xs font-semibold tracking-tight text-muted-foreground">Overview</h2>
+                    <nav className="space-y-1">
                       <Link
                         to="/dashboard"
                         className={cn(
-                          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium",
+                          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                           location.pathname === "/dashboard" 
                             ? "bg-accent text-accent-foreground" 
-                            : "hover:bg-accent hover:text-accent-foreground"
+                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                         )}
+                        onClick={() => setIsMobileMenuOpen(false)}
                       >
                         <Home className="h-4 w-4" />
                         Dashboard
@@ -171,23 +194,31 @@ const MainLayout: React.FC<MainLayoutProps> = ({ hideNav = false }) => {
                       <Link
                         to="/notifications"
                         className={cn(
-                          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium",
+                          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                           location.pathname === "/notifications" 
                             ? "bg-accent text-accent-foreground" 
-                            : "hover:bg-accent hover:text-accent-foreground"
+                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                         )}
+                        onClick={() => setIsMobileMenuOpen(false)}
                       >
                         <Bell className="h-4 w-4" />
                         Notifications
                       </Link>
+                    </nav>
+                  </div>
+                  
+                  <div className="px-3 py-2">
+                    <h2 className="mb-2 px-2 text-xs font-semibold tracking-tight text-muted-foreground">Content Management</h2>
+                    <nav className="space-y-1">
                       <Link
                         to="/subscriptions"
                         className={cn(
-                          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium",
-                          location.pathname.includes("/subscriptions") 
+                          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                          location.pathname.includes("/subscriptions") && location.pathname !== "/subscriptions/new"
                             ? "bg-accent text-accent-foreground" 
-                            : "hover:bg-accent hover:text-accent-foreground"
+                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                         )}
+                        onClick={() => setIsMobileMenuOpen(false)}
                       >
                         <Package className="h-4 w-4" />
                         Subscriptions
@@ -195,12 +226,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ hideNav = false }) => {
                       <Link
                         to="/subscriptions/new"
                         className={cn(
-                          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium",
+                          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                           location.pathname === "/subscriptions/new" 
                             ? "bg-accent text-accent-foreground" 
-                            : "hover:bg-accent hover:text-accent-foreground",
-                          "ml-6"
+                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                          "ml-4"
                         )}
+                        onClick={() => setIsMobileMenuOpen(false)}
                       >
                         <PlusCircle className="h-4 w-4" />
                         Add New
@@ -208,23 +240,31 @@ const MainLayout: React.FC<MainLayoutProps> = ({ hideNav = false }) => {
                       <Link
                         to="/sources"
                         className={cn(
-                          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium",
+                          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                           location.pathname.includes("/sources") 
                             ? "bg-accent text-accent-foreground" 
-                            : "hover:bg-accent hover:text-accent-foreground"
+                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                         )}
+                        onClick={() => setIsMobileMenuOpen(false)}
                       >
                         <FileText className="h-4 w-4" />
                         Sources
                       </Link>
+                    </nav>
+                  </div>
+                  
+                  <div className="px-3 py-2">
+                    <h2 className="mb-2 px-2 text-xs font-semibold tracking-tight text-muted-foreground">Administration</h2>
+                    <nav className="space-y-1">
                       <Link
                         to="/contacts"
                         className={cn(
-                          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium",
+                          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                           location.pathname.includes("/contacts") 
                             ? "bg-accent text-accent-foreground" 
-                            : "hover:bg-accent hover:text-accent-foreground"
+                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                         )}
+                        onClick={() => setIsMobileMenuOpen(false)}
                       >
                         <Users className="h-4 w-4" />
                         Contacts
@@ -232,27 +272,31 @@ const MainLayout: React.FC<MainLayoutProps> = ({ hideNav = false }) => {
                       <Link
                         to="/settings"
                         className={cn(
-                          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium",
+                          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                           location.pathname === "/settings" 
                             ? "bg-accent text-accent-foreground" 
-                            : "hover:bg-accent hover:text-accent-foreground"
+                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                         )}
+                        onClick={() => setIsMobileMenuOpen(false)}
                       >
                         <Settings className="h-4 w-4" />
                         Settings
                       </Link>
                     </nav>
-                    <div className="border-t p-2 mt-2">
-                      <Button 
-                        variant="ghost" 
-                        className="w-full justify-start"
-                        onClick={() => logout()}
-                      >
-                        <LogOut className="mr-2 h-4 w-4" />
-                        Log out
-                      </Button>
-                    </div>
-                  </ScrollArea>
+                  </div>
+                  <div className="mt-auto border-t p-4">
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                      onClick={() => {
+                        logout();
+                        setIsMobileMenuOpen(false);
+                      }}
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Log out
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
@@ -263,7 +307,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ hideNav = false }) => {
         )}
         
         <div className={`flex-1 ${isAuthenticated && !hideNav ? 'md:pl-0' : ''}`}>
-          <Outlet />
+          {children || <Outlet />}
         </div>
       </main>
     </div>

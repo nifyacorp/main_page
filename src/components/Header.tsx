@@ -1,18 +1,32 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Menu, X, Bell, User } from 'lucide-react';
+import { Menu, X, Bell, User, LogOut, Settings } from 'lucide-react';
+import { Button } from './ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 
 export default function Header() {
   const { isAuthenticated, user, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  const handleLogoClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (isAuthenticated) {
+      e.preventDefault();
+      navigate('/dashboard');
+    }
+  };
   
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center">
-          <Link to="/" className="mr-6 flex items-center space-x-2">
+          <Link 
+            to={isAuthenticated ? "/dashboard" : "/"} 
+            className="mr-6 flex items-center space-x-2"
+            onClick={handleLogoClick}
+          >
             <img src="https://ik.imagekit.io/appraisily/NYFIA/logo.png" alt="NIFYA" className="h-8 w-8" />
             <span className="font-bold text-xl">NIFYA</span>
           </Link>
@@ -31,24 +45,33 @@ export default function Header() {
         <div className="flex items-center gap-4">
           {isAuthenticated ? (
             <>
-              <Link to="/notifications" className="p-2 hover:bg-slate-100 rounded-full">
+              <Link to="/notifications" className="p-2 hover:bg-accent rounded-full">
                 <Bell className="h-5 w-5" />
               </Link>
               
-              <div className="relative">
-                <button 
-                  className="flex items-center space-x-1 rounded-full p-1 hover:bg-slate-100"
-                  onClick={() => logout()}
-                >
-                  <div className="h-8 w-8 bg-slate-300 rounded-full flex items-center justify-center">
-                    {user?.name?.charAt(0) || 'U'}
-                  </div>
-                </button>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-full h-9 w-9">
+                    <div className="h-8 w-8 bg-primary/10 text-primary rounded-full flex items-center justify-center">
+                      {user?.name?.charAt(0) || 'U'}
+                    </div>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => navigate('/settings')}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => logout()}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </>
           ) : (
             <div className="hidden md:flex items-center gap-4">
-              <Link to="/auth" state={{ isLogin: true }} className="text-sm font-medium px-4 py-2 hover:bg-slate-100 rounded-md">
+              <Link to="/auth" state={{ isLogin: true }} className="text-sm font-medium px-4 py-2 hover:bg-accent rounded-md">
                 Log in
               </Link>
               <Link to="/auth" state={{ isLogin: false }} className="text-sm font-medium px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90">
@@ -57,58 +80,35 @@ export default function Header() {
             </div>
           )}
           
-          {/* Mobile menu button */}
-          <button 
-            className="md:hidden p-2 hover:bg-slate-100 rounded-full"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? (
-              <X className="h-5 w-5" />
-            ) : (
-              <Menu className="h-5 w-5" />
-            )}
-          </button>
+          {/* Mobile menu button - only show for non-authenticated or on landing page */}
+          {(!isAuthenticated || location.pathname === '/') && (
+            <button 
+              className="md:hidden p-2 hover:bg-accent rounded-full"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
+            </button>
+          )}
         </div>
       </div>
       
-      {/* Mobile menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden p-4 bg-white border-t">
+      {/* Mobile menu - only for non-authenticated */}
+      {mobileMenuOpen && !isAuthenticated && (
+        <div className="md:hidden p-4 bg-background border-t">
           <div className="flex flex-col space-y-4">
             <Link to="/" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
               Home
             </Link>
-            {isAuthenticated ? (
-              <>
-                <Link to="/dashboard" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
-                  Dashboard
-                </Link>
-                <Link to="/subscriptions" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
-                  Subscriptions
-                </Link>
-                <Link to="/settings" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
-                  Settings
-                </Link>
-                <button 
-                  className="text-sm font-medium text-left"
-                  onClick={() => {
-                    logout();
-                    setMobileMenuOpen(false);
-                  }}
-                >
-                  Log out
-                </button>
-              </>
-            ) : (
-              <>
-                <Link to="/auth" state={{ isLogin: true }} className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
-                  Log in
-                </Link>
-                <Link to="/auth" state={{ isLogin: false }} className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
-                  Sign up
-                </Link>
-              </>
-            )}
+            <Link to="/auth" state={{ isLogin: true }} className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
+              Log in
+            </Link>
+            <Link to="/auth" state={{ isLogin: false }} className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
+              Sign up
+            </Link>
           </div>
         </div>
       )}
