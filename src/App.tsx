@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AlertTriangle, Bell, Newspaper, Home, Users, Archive, BookOpen, BellRing, Info, Compass, ClipboardCheck, PieChart, Lightbulb, Zap } from 'lucide-react';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -121,6 +121,11 @@ export default function App() {
                 <Route path="/subscriptions" element={
                   <ProtectedRoute>
                     <Subscriptions />
+                  </ProtectedRoute>
+                } />
+                <Route path="/subscriptions/new" element={
+                  <ProtectedRoute>
+                    <NewSubscription />
                   </ProtectedRoute>
                 } />
                 <Route path="/notifications" element={

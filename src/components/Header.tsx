@@ -13,17 +13,12 @@ export default function Header() {
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center">
           <Link to="/" className="mr-6 flex items-center space-x-2">
+            <img src="https://ik.imagekit.io/appraisily/NYFIA/logo.png" alt="NIFYA" className="h-8 w-8" />
             <span className="font-bold text-xl">NIFYA</span>
           </Link>
           
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-4">
-            <Link to="/features" className="text-sm font-medium hover:text-primary">
-              Features
-            </Link>
-            <Link to="/pricing" className="text-sm font-medium hover:text-primary">
-              Pricing
-            </Link>
             {isAuthenticated && (
               <Link to="/dashboard" className="text-sm font-medium hover:text-primary">
                 Dashboard
@@ -82,12 +77,6 @@ export default function Header() {
           <div className="flex flex-col space-y-4">
             <Link to="/" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
               Home
-            </Link>
-            <Link to="/features" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
-              Features
-            </Link>
-            <Link to="/pricing" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
-              Pricing
             </Link>
             {isAuthenticated ? (
               <>
