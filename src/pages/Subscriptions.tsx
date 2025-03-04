@@ -1,69 +1,9 @@
-import { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '@/lib/auth/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { 
-  PlusIcon, 
-  MoreHorizontalIcon, 
-  PencilIcon, 
-  TrashIcon, 
-  ShareIcon, 
-  BellIcon, 
-  EyeIcon, 
-  ClockIcon, 
-  FileTextIcon,
-  BuildingIcon,
-  FolderIcon,
-  ListFilterIcon
-} from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { Plus, Clock, FileText, MoreHorizontal, Bell, Edit, Trash } from 'lucide-react';
 
-// Sample data - would be fetched from API in real app
+// Sample data
 const subscriptionData = [
   { 
     id: 1, 
@@ -117,11 +57,8 @@ const subscriptionData = [
 
 export default function Subscriptions() {
   const { user } = useAuth();
-  const [selectedSubscription, setSelectedSubscription] = useState(null);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterSource, setFilterSource] = useState('all');
-  const [filterFrequency, setFilterFrequency] = useState('all');
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const [filterSource, setFilterSource] = React.useState('all');
 
   // Filter subscriptions based on search and filters
   const filteredSubscriptions = subscriptionData.filter(sub => {
@@ -131,411 +68,127 @@ export default function Subscriptions() {
       sub.keywords.some(k => k.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesSource = filterSource === 'all' || sub.source === filterSource;
-    const matchesFrequency = filterFrequency === 'all' || sub.frequency === filterFrequency;
     
-    return matchesSearch && matchesSource && matchesFrequency;
+    return matchesSearch && matchesSource;
   });
 
-  // Simulate delete functionality
-  const handleDelete = () => {
-    // In a real app, this would call an API to delete the subscription
-    console.log(`Deleting subscription with ID: ${selectedSubscription?.id}`);
-    setIsDeleteDialogOpen(false);
-    setSelectedSubscription(null);
-  };
-
   return (
-    <div className="container mx-auto px-4 py-6 max-w-7xl">
-      <div className="flex flex-col gap-2 mb-6">
-        <h1 className="text-3xl font-bold tracking-tight">Subscriptions</h1>
-        <p className="text-muted-foreground">
-          Manage your notification subscriptions from official publication sources.
-        </p>
+    <div className="container mx-auto px-4 py-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Subscriptions</h1>
+        <Link 
+          to="/subscriptions/new" 
+          className="px-3 py-1 bg-blue-500 text-white rounded-md flex items-center gap-1 text-sm"
+        >
+          <Plus size={16} />
+          New Subscription
+        </Link>
       </div>
 
-      <Tabs defaultValue="list" className="mb-8">
-        <div className="flex justify-between items-center mb-6">
-          <TabsList>
-            <TabsTrigger value="list">List View</TabsTrigger>
-            <TabsTrigger value="grid">Grid View</TabsTrigger>
-          </TabsList>
-          <Button asChild>
-            <Link to="/subscriptions/new">
-              <PlusIcon className="mr-2 h-4 w-4" />
-              New Subscription
-            </Link>
-          </Button>
-        </div>
+      {/* Simple search */}
+      <div className="mb-6">
+        <input
+          type="text"
+          placeholder="Search subscriptions..."
+          className="w-full p-2 border rounded-md"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
 
-        {/* Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div>
-            <Label htmlFor="search" className="text-sm text-muted-foreground mb-2 block">
-              Search
-            </Label>
-            <div className="relative">
-              <Input
-                id="search"
-                placeholder="Search by name, description or keywords..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+      {/* Source filter */}
+      <div className="mb-6 flex gap-2">
+        <button 
+          className={`px-3 py-1 rounded-md text-sm ${filterSource === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+          onClick={() => setFilterSource('all')}
+        >
+          All
+        </button>
+        <button 
+          className={`px-3 py-1 rounded-md text-sm ${filterSource === 'BOE' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+          onClick={() => setFilterSource('BOE')}
+        >
+          BOE
+        </button>
+        <button 
+          className={`px-3 py-1 rounded-md text-sm ${filterSource === 'DOGA' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+          onClick={() => setFilterSource('DOGA')}
+        >
+          DOGA
+        </button>
+      </div>
+
+      {/* Grid of subscriptions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredSubscriptions.map((subscription) => (
+          <div key={subscription.id} className="bg-white rounded-lg shadow p-4 border">
+            <div className="flex justify-between items-start">
+              <h3 className="font-semibold">{subscription.name}</h3>
+              <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                subscription.source === 'BOE' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+              }`}>
+                {subscription.source}
+              </span>
             </div>
-          </div>
-          <div>
-            <Label htmlFor="source-filter" className="text-sm text-muted-foreground mb-2 block">
-              Source
-            </Label>
-            <Select value={filterSource} onValueChange={setFilterSource}>
-              <SelectTrigger id="source-filter">
-                <SelectValue placeholder="Filter by source" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Sources</SelectItem>
-                <SelectItem value="BOE">BOE</SelectItem>
-                <SelectItem value="DOGA">DOGA</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="frequency-filter" className="text-sm text-muted-foreground mb-2 block">
-              Frequency
-            </Label>
-            <Select value={filterFrequency} onValueChange={setFilterFrequency}>
-              <SelectTrigger id="frequency-filter">
-                <SelectValue placeholder="Filter by frequency" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Frequencies</SelectItem>
-                <SelectItem value="Instant">Instant</SelectItem>
-                <SelectItem value="Daily">Daily</SelectItem>
-                <SelectItem value="Weekly">Weekly</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* List View */}
-        <TabsContent value="list">
-          <Card>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead>Frequency</TableHead>
-                  <TableHead>Keywords</TableHead>
-                  <TableHead>Last Update</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredSubscriptions.length > 0 ? (
-                  filteredSubscriptions.map((subscription) => (
-                    <TableRow key={subscription.id}>
-                      <TableCell className="font-medium">
-                        <Link to={`/subscriptions/${subscription.id}`} className="hover:underline">
-                          {subscription.name}
-                        </Link>
-                        <p className="text-xs text-muted-foreground mt-1">{subscription.description}</p>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={subscription.source === 'BOE' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-green-50 text-green-700 border-green-200'}>
-                          {subscription.source}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <ClockIcon className="h-3 w-3 text-muted-foreground" />
-                          <span>{subscription.frequency}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {subscription.keywords.slice(0, 2).map((keyword, idx) => (
-                            <Badge key={idx} variant="secondary" className="text-xs">
-                              {keyword}
-                            </Badge>
-                          ))}
-                          {subscription.keywords.length > 2 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{subscription.keywords.length - 2}
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>{subscription.lastNotification}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          Active
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontalIcon className="h-4 w-4" />
-                              <span className="sr-only">Open menu</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem asChild>
-                              <Link to={`/subscriptions/${subscription.id}`}>
-                                <EyeIcon className="h-4 w-4 mr-2" /> View
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link to={`/subscriptions/${subscription.id}/edit`}>
-                                <PencilIcon className="h-4 w-4 mr-2" /> Edit
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link to={`/notifications?subscription=${subscription.id}`}>
-                                <BellIcon className="h-4 w-4 mr-2" /> Notifications
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem asChild>
-                              <Link to={`/subscriptions/${subscription.id}/share`}>
-                                <ShareIcon className="h-4 w-4 mr-2" /> Share
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              className="text-destructive focus:text-destructive"
-                              onClick={() => {
-                                setSelectedSubscription(subscription);
-                                setIsDeleteDialogOpen(true);
-                              }}
-                            >
-                              <TrashIcon className="h-4 w-4 mr-2" /> Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center">
-                      No subscriptions found matching your filters.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </Card>
-        </TabsContent>
-
-        {/* Grid View */}
-        <TabsContent value="grid">
-          {filteredSubscriptions.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredSubscriptions.map((subscription) => (
-                <Card key={subscription.id} className="flex flex-col">
-                  <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-                    <div>
-                      <CardTitle className="text-xl font-bold">
-                        <Link to={`/subscriptions/${subscription.id}`} className="hover:underline">
-                          {subscription.name}
-                        </Link>
-                      </CardTitle>
-                      <CardDescription>{subscription.description}</CardDescription>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontalIcon className="h-4 w-4" />
-                          <span className="sr-only">Open menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem asChild>
-                          <Link to={`/subscriptions/${subscription.id}`}>
-                            <EyeIcon className="h-4 w-4 mr-2" /> View
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link to={`/subscriptions/${subscription.id}/edit`}>
-                            <PencilIcon className="h-4 w-4 mr-2" /> Edit
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link to={`/notifications?subscription=${subscription.id}`}>
-                            <BellIcon className="h-4 w-4 mr-2" /> Notifications
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem asChild>
-                          <Link to={`/subscriptions/${subscription.id}/share`}>
-                            <ShareIcon className="h-4 w-4 mr-2" /> Share
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => {
-                            setSelectedSubscription(subscription);
-                            setIsDeleteDialogOpen(true);
-                          }}
-                        >
-                          <TrashIcon className="h-4 w-4 mr-2" /> Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </CardHeader>
-                  <CardContent className="flex-1">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <Badge variant="outline" className={subscription.source === 'BOE' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-green-50 text-green-700 border-green-200'}>
-                          {subscription.source}
-                        </Badge>
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <ClockIcon className="h-3 w-3 mr-1" />
-                          {subscription.frequency}
-                        </div>
-                      </div>
-
-                      <div>
-                        <p className="text-sm font-medium">Keywords</p>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {subscription.keywords.map((keyword, idx) => (
-                            <Badge key={idx} variant="secondary" className="text-xs">
-                              {keyword}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="pt-2 border-t flex justify-between items-center">
-                        <div className="text-sm text-muted-foreground">
-                          Last update: {subscription.lastNotification}
-                        </div>
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          Active
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="flex justify-between border-t pt-4">
-                    <Button variant="outline" size="sm" asChild>
-                      <Link to={`/subscriptions/${subscription.id}/edit`}>
-                        <PencilIcon className="h-3 w-3 mr-1" /> Edit
-                      </Link>
-                    </Button>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link to={`/notifications?subscription=${subscription.id}`}>
-                        <BellIcon className="h-3 w-3 mr-1" /> Notifications ({subscription.notifications})
-                      </Link>
-                    </Button>
-                  </CardFooter>
-                </Card>
+            
+            <p className="text-gray-600 text-sm mt-2 mb-4">
+              {subscription.description}
+            </p>
+            
+            <div className="flex flex-wrap gap-1 mb-4">
+              {subscription.keywords.map((keyword, idx) => (
+                <span key={idx} className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded">
+                  {keyword}
+                </span>
               ))}
             </div>
-          ) : (
-            <div className="text-center py-12 px-4 border rounded-lg bg-muted/20">
-              <ListFilterIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-xl font-medium mb-2">No subscriptions found</p>
-              <p className="text-muted-foreground mb-6">
-                We couldn't find any subscriptions matching your filters.
-              </p>
-              <Button variant="outline" onClick={() => {
-                setSearchTerm('');
-                setFilterSource('all');
-                setFilterFrequency('all');
-              }}>
-                Clear filters
-              </Button>
+            
+            <div className="flex justify-between items-center text-sm text-gray-500">
+              <div className="flex items-center">
+                <Clock size={14} className="mr-1" />
+                {subscription.frequency}
+              </div>
+              <div className="flex items-center">
+                <Bell size={14} className="mr-1" />
+                {subscription.notifications}
+              </div>
             </div>
-          )}
-        </TabsContent>
-      </Tabs>
+            
+            <div className="border-t mt-4 pt-4 flex justify-between items-center">
+              <Link 
+                to={`/subscriptions/${subscription.id}`}
+                className="text-blue-500 hover:underline text-sm flex items-center"
+              >
+                <FileText size={14} className="mr-1" />
+                View Details
+              </Link>
+              
+              <div className="flex gap-2">
+                <button className="text-gray-500 hover:text-blue-500">
+                  <Edit size={16} />
+                </button>
+                <button className="text-gray-500 hover:text-red-500">
+                  <Trash size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
 
-      {/* Create Subscription CTA */}
-      <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-        <CardHeader>
-          <CardTitle>Need to monitor more official publications?</CardTitle>
-          <CardDescription>
-            Create a new subscription to track different topics or sources
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex gap-6 flex-col md:flex-row">
-          <div className="flex-1 space-y-2">
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-full bg-blue-100">
-                <FileTextIcon className="h-5 w-5 text-blue-600" />
-              </div>
-              <div className="font-medium">BOE Monitoring</div>
-            </div>
-            <p className="text-sm text-muted-foreground pl-9">
-              Track official state bulletins for legal updates, regulatory changes, and official announcements.
-            </p>
-          </div>
-          <div className="flex-1 space-y-2">
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-full bg-green-100">
-                <BuildingIcon className="h-5 w-5 text-green-600" />
-              </div>
-              <div className="font-medium">DOGA Monitoring</div>
-            </div>
-            <p className="text-sm text-muted-foreground pl-9">
-              Stay informed about regional publications, local regulations, and administrative decisions.
-            </p>
-          </div>
-          <div className="flex-1 space-y-2">
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-full bg-purple-100">
-                <FolderIcon className="h-5 w-5 text-purple-600" />
-              </div>
-              <div className="font-medium">Custom Categories</div>
-            </div>
-            <p className="text-sm text-muted-foreground pl-9">
-              Create categorized subscriptions based on specific topics, keywords, or areas of interest.
-            </p>
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button asChild className="w-full sm:w-auto">
-            <Link to="/subscriptions/new">
-              <PlusIcon className="mr-2 h-4 w-4" />
-              Create New Subscription
-            </Link>
-          </Button>
-        </CardFooter>
-      </Card>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Subscription</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this subscription? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="p-4 border rounded-md bg-muted/20 my-4">
-            <p className="font-medium">{selectedSubscription?.name}</p>
-            <p className="text-sm text-muted-foreground">{selectedSubscription?.description}</p>
-          </div>
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setIsDeleteDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleDelete}
-            >
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {filteredSubscriptions.length === 0 && (
+        <div className="text-center py-8 bg-white rounded-lg shadow">
+          <Bell size={40} className="mx-auto mb-4 text-gray-400" />
+          <h3 className="text-lg font-medium mb-1">No subscriptions found</h3>
+          <p className="text-gray-500 mb-4">Try adjusting your search or filters</p>
+          <button 
+            onClick={() => {setSearchTerm(''); setFilterSource('all');}}
+            className="px-4 py-2 bg-gray-200 rounded-md text-sm"
+          >
+            Clear filters
+          </button>
+        </div>
+      )}
     </div>
   );
 }

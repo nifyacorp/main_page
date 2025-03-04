@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, BrowserRouter as Router } from 'react-router-dom';
 import { AlertTriangle, Bell, Newspaper, Home, Users, Archive, BookOpen, BellRing, Info, Compass, ClipboardCheck, PieChart, Lightbulb, Zap } from 'lucide-react';
 import ErrorBoundary from './components/ErrorBoundary';
 import LoadingPage from './components/LoadingPage';
@@ -16,7 +16,7 @@ import GoogleCallback from './components/GoogleCallback';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/lib/theme/theme-provider';
 import Header from './components/Header';
-import { AuthProvider } from './lib/auth/AuthContext';
+import { AuthProvider } from './contexts/AuthContext';
 
 // Lazy-load the pages
 const LandingPage = lazy(() => import('./pages/Landing'));

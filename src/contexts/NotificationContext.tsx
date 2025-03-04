@@ -1,14 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-<<<<<<< HEAD
-import { notificationService } from '../lib/api/services/notifications';
-=======
 import { 
   Notification, 
   notificationService, 
   NotificationApiResponse,
   enhanceNotifications 
 } from '../lib/api/services/notifications';
->>>>>>> 4fd3b08e6314ff559d4deb347ee8ec16103b1dc8
 
 interface NotificationContextType {
   unreadCount: number;
@@ -29,6 +25,8 @@ interface NotificationProviderProps {
 export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children }) => {
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [totalCount, setTotalCount] = useState<number>(0);
 
   const refreshUnreadCount = async () => {
     setLoading(true);
