@@ -11,6 +11,7 @@ import SubscriptionCatalog from './pages/SubscriptionCatalog';
 import SubscriptionPrompt from './pages/SubscriptionPrompt';
 import TemplateConfig from './pages/TemplateConfig';
 import Notifications from './pages/Notifications';
+import NewSubscription from './pages/NewSubscription';
 import ProtectedRoute from './components/ProtectedRoute';
 import GoogleCallback from './components/GoogleCallback';
 import { Toaster } from '@/components/ui/toaster';
