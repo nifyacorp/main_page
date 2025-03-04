@@ -1,6 +1,6 @@
 [build]
   publish = "dist"
-  command = "CI='' npm run build:netlify"
+  command = "npm install && CI='' npm run build:netlify"
   ignore_warnings = true
 
 [build.environment]
