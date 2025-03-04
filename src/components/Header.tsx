@@ -53,10 +53,10 @@ export default function Header() {
             </>
           ) : (
             <div className="hidden md:flex items-center gap-4">
-              <Link to="/login" className="text-sm font-medium px-4 py-2 hover:bg-slate-100 rounded-md">
+              <Link to="/auth" state={{ isLogin: true }} className="text-sm font-medium px-4 py-2 hover:bg-slate-100 rounded-md">
                 Log in
               </Link>
-              <Link to="/signup" className="text-sm font-medium px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90">
+              <Link to="/auth" state={{ isLogin: false }} className="text-sm font-medium px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90">
                 Sign up
               </Link>
             </div>
@@ -112,10 +112,10 @@ export default function Header() {
               </>
             ) : (
               <>
-                <Link to="/login" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
+                <Link to="/auth" state={{ isLogin: true }} className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
                   Log in
                 </Link>
-                <Link to="/signup" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
+                <Link to="/auth" state={{ isLogin: false }} className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
                   Sign up
                 </Link>
               </>

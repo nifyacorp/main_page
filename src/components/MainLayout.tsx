@@ -4,7 +4,11 @@ import SplashCursor from './SplashCursor';
 import { Bell, Github, Twitter } from 'lucide-react';
 import { features, steps, testimonials } from '../App';
 
-const MainLayout: React.FC = () => {
+interface MainLayoutProps {
+  hideNav?: boolean;
+}
+
+const MainLayout: React.FC<MainLayoutProps> = ({ hideNav = false }) => {
   const handleDebugLogin = () => {
     localStorage.setItem('isAuthenticated', 'true');
     window.location.href = '/dashboard';
@@ -21,34 +25,37 @@ const MainLayout: React.FC = () => {
         <Bell className="h-6 w-6" />
       </button>
 
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b bg-background/80 backdrop-blur-sm">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img src="https://ik.imagekit.io/appraisily/NYFIA/logo.png" alt="NIFYA" className="h-8 w-8" />
-              <span className="text-lg font-semibold text-foreground">NIFYA</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <Link
-                to="/auth"
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-                state={{ isLogin: true }}
-              >
-                Iniciar sesión
-              </Link>
-              <div className="btn-neobrutalism">
+      {/* Only render the navigation bar if hideNav is false */}
+      {!hideNav && (
+        <nav className="fixed top-0 left-0 right-0 z-50 border-b bg-background/80 backdrop-blur-sm">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="flex h-16 items-center justify-between">
+              <div className="flex items-center gap-3">
+                <img src="https://ik.imagekit.io/appraisily/NYFIA/logo.png" alt="NIFYA" className="h-8 w-8" />
+                <span className="text-lg font-semibold text-foreground">NIFYA</span>
+              </div>
+              <div className="flex items-center gap-4">
                 <Link
                   to="/auth"
-                  state={{ isLogin: false }}
-                  className="block px-4 py-2 text-sm font-medium text-primary hover:text-primary-foreground hover:bg-primary transition-colors"
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  state={{ isLogin: true }}
                 >
-                  Crear cuenta
+                  Iniciar sesión
                 </Link>
+                <div className="btn-neobrutalism">
+                  <Link
+                    to="/auth"
+                    state={{ isLogin: false }}
+                    className="block px-4 py-2 text-sm font-medium text-primary hover:text-primary-foreground hover:bg-primary transition-colors"
+                  >
+                    Crear cuenta
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </nav>
+        </nav>
+      )}
 
       <header className="relative overflow-hidden pt-32 pb-48 bg-background cursor-pointer" id="hero-section">
         <SplashCursor 

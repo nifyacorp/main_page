@@ -7,7 +7,7 @@ const Landing: React.FC = () => {
   
   return (
     <ErrorBoundary section="Landing page">
-      <MainLayout />
+      <MainLayout hideNav={true} />
     </ErrorBoundary>
   );
 };
