@@ -230,3 +230,46 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo \`LICENSE\` para más d
 ---
 
 Desarrollado con ❤️ por el equipo de NIFYA
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+```
+
+## Building for Production
+
+For local production builds:
+```bash
+npm run build
+```
+
+For Netlify deployment:
+```bash
+npm run build:netlify
+```
+
+## Netlify Deployment Notes
+
+If you encounter build issues on Netlify:
+
+1. The project is configured to use the `build:netlify` script which bypasses certain checks
+2. Environment variables are set in the `netlify.toml` file
+3. All redirects are configured to point to index.html for SPA routing
+
+## Common Issues
+
+- **ESLint Errors**: The build may show linting errors but should still complete if using the Netlify build command
+- **TypeScript Errors**: Make sure to address any TypeScript errors before deploying
+- **Environment Variables**: If your app requires specific environment variables, add them to the `[build.environment]` section in `netlify.toml`
+
+## Project Structure
+
+- `src/components` - Reusable components
+- `src/contexts` - React contexts for state management
+- `src/lib` - Utility functions and API services
+- `src/pages` - Page components

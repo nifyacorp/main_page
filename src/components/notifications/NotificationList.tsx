@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { format, isToday, isYesterday, isThisWeek, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CheckCheck, Bell, ExternalLink, Trash, Trash2 } from 'lucide-react';
-import { Notification, notificationService, NotificationApiResponse } from '../../lib/api/services/notifications';
+import { Notification, notificationService } from '../../lib/api/services/notifications';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
 import { Button } from '../ui/button';
@@ -16,7 +15,7 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
   const [loading, setLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { 
-    markAsRead, 
+    markAsRead: markNotificationAsRead, 
     markAllAsRead, 
     refreshUnreadCount,
     deleteNotification,
