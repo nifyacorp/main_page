@@ -1,4 +1,3 @@
-"use client";
 import React from 'react';
 
 interface SplashCursorProps {
@@ -14,12 +13,7 @@ interface SplashCursorProps {
 }
 
 const SplashCursor: React.FC<SplashCursorProps> = (props) => {
-  console.log('Using simplified SplashCursor component without WebGL');
-  
-  // Get the containerId if provided, default to "hero-section"
-  const containerId = props.containerId || "hero-section";
-  
-  // Create a simple gradient background instead of using WebGL
+  // Use a simple gradient background instead of WebGL for better compatibility
   return (
     <div 
       className="absolute inset-0 z-0 pointer-events-none"

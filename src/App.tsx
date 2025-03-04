@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Routes, Route, Navigate, BrowserRouter as Router } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { AlertTriangle, Bell, Newspaper, Home, Users, Archive, BookOpen, BellRing, Info, Compass, ClipboardCheck, PieChart, Lightbulb, Zap } from 'lucide-react';
 import ErrorBoundary from './components/ErrorBoundary';
 import LoadingPage from './components/LoadingPage';
@@ -84,132 +84,116 @@ export default function App() {
     return (
       <ThemeProvider defaultTheme="system" storageKey="nifya-ui-theme">
         <AuthProvider>
-          <Router>
-            <div className="min-h-screen bg-background text-foreground">
-              <Header />
-              <main>
-                <Routes>
-                  <Route 
-                    path="/" 
-                    element={
-                      <ErrorBoundary fallbackComponent={
-                        <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
-                          <div className="max-w-md p-6 bg-white rounded-lg shadow-lg border border-red-200">
-                            <h1 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h1>
-                            <p className="mb-4">We encountered an error while loading the landing page.</p>
-                            <p className="text-sm text-gray-600 mb-6">Please try refreshing the page or contact support if the problem persists.</p>
-                            <button 
-                              onClick={() => window.location.reload()}
-                              className="bg-primary text-white py-2 px-4 rounded-md hover:bg-primary/90"
-                            >
-                              Refresh Page
-                            </button>
-                          </div>
+          <div className="min-h-screen bg-background text-foreground">
+            <Header />
+            <main>
+              <Routes>
+                <Route 
+                  path="/" 
+                  element={
+                    <ErrorBoundary fallbackComponent={
+                      <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
+                        <div className="max-w-md p-6 bg-white rounded-lg shadow-lg border border-red-200">
+                          <h1 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h1>
+                          <p className="mb-4">We encountered an error while loading the landing page.</p>
+                          <p className="text-sm text-gray-600 mb-6">Please try refreshing the page or contact support if the problem persists.</p>
+                          <button 
+                            onClick={() => window.location.reload()}
+                            className="bg-primary text-white py-2 px-4 rounded-md hover:bg-primary/90"
+                          >
+                            Refresh Page
+                          </button>
                         </div>
-                      }>
-                        <LandingPage />
-                      </ErrorBoundary>
-                    }
-                  />
-                  <Route path="/auth" element={<Auth />} />
-                  
-                  {/* Protected routes */}
-                  <Route path="/dashboard" element={
-                    <ProtectedRoute>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/subscriptions" element={
-                    <ProtectedRoute>
-                      <Subscriptions />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/notifications" element={
-                    <ProtectedRoute>
-                      <Notifications />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/settings" element={
-                    <ProtectedRoute>
-                      <Settings />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/auth/google/callback" element={<GoogleCallback />} />
-                  <Route
-                    path="/subscriptions/catalog"
-                    element={
-                      <ProtectedRoute>
-                        <SubscriptionCatalog />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/subscriptions/new/:typeId"
-                    element={
-                      <ProtectedRoute>
-                        <SubscriptionPrompt mode="create" />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/subscriptions/:subscriptionId/edit"
-                    element={
-                      <ProtectedRoute>
-                        <SubscriptionPrompt mode="edit" />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/templates/:templateId/configure"
-                    element={
-                      <ProtectedRoute>
-                        <TemplateConfig />
-                      </ProtectedRoute>
-                    }
-                  />
-                  
-                  {/* 404 fallback - implement a simple inline component for now */}
-                  <Route path="*" element={
-                    <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center bg-background">
-                      <div className="max-w-md">
-                        <h1 className="text-6xl font-black mb-6">404</h1>
-                        <h2 className="text-2xl font-bold mb-4">Página no encontrada</h2>
-                        <p className="mb-8 text-muted-foreground">
-                          La página que estás buscando no existe o ha sido movida.
-                        </p>
-                        <a
-                          href="/"
-                          className="inline-block btn-neobrutalism-primary px-6 py-3 text-white font-medium"
-                        >
-                          Volver al inicio
-                        </a>
                       </div>
+                    }>
+                      <LandingPage />
+                    </ErrorBoundary>
+                  }
+                />
+                <Route path="/auth" element={<Auth />} />
+                
+                {/* Protected routes */}
+                <Route path="/dashboard" element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/subscriptions" element={
+                  <ProtectedRoute>
+                    <Subscriptions />
+                  </ProtectedRoute>
+                } />
+                <Route path="/notifications" element={
+                  <ProtectedRoute>
+                    <Notifications />
+                  </ProtectedRoute>
+                } />
+                <Route path="/settings" element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                } />
+                <Route path="/auth/google/callback" element={<GoogleCallback />} />
+                <Route
+                  path="/subscriptions/catalog"
+                  element={
+                    <ProtectedRoute>
+                      <SubscriptionCatalog />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/subscriptions/new/:typeId"
+                  element={
+                    <ProtectedRoute>
+                      <SubscriptionPrompt mode="create" />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/subscriptions/:subscriptionId/edit"
+                  element={
+                    <ProtectedRoute>
+                      <SubscriptionPrompt mode="edit" />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/templates/:templateId/configure"
+                  element={
+                    <ProtectedRoute>
+                      <TemplateConfig />
+                    </ProtectedRoute>
+                  }
+                />
+                
+                {/* 404 fallback - implement a simple inline component for now */}
+                <Route path="*" element={
+                  <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center bg-background">
+                    <div className="max-w-md">
+                      <h1 className="text-6xl font-black mb-6">404</h1>
+                      <h2 className="text-2xl font-bold mb-4">Página no encontrada</h2>
+                      <p className="mb-8 text-muted-foreground">
+                        La página que estás buscando no existe o ha sido movida.
+                      </p>
+                      <a
+                        href="/"
+                        className="inline-block btn-neobrutalism-primary px-6 py-3 text-white font-medium"
+                      >
+                        Volver al inicio
+                      </a>
                     </div>
-                  } />
-                </Routes>
-              </main>
-              <Toaster />
-            </div>
-          </Router>
+                  </div>
+                } />
+              </Routes>
+            </main>
+            <Toaster />
+          </div>
         </AuthProvider>
       </ThemeProvider>
     );
   } catch (error) {
-    console.error('App: Fatal error in root component', error);
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
-        <div className="max-w-md p-6 bg-white rounded-lg shadow-lg border border-red-200">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Application Error</h1>
-          <p className="mb-4">We encountered a critical error in the application.</p>
-          <p className="text-sm text-gray-600 mb-6">Please try refreshing the page or contact support if the problem persists.</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="bg-primary text-white py-2 px-4 rounded-md hover:bg-primary/90"
-          >
-            Refresh Page
-          </button>
-        </div>
-      </div>
-    );
+    console.error('Error in App component:', error);
+    return <div>Something went wrong. Please try refreshing the page.</div>;
   }
 }
