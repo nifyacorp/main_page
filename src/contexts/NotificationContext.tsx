@@ -1,10 +1,12 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { 
   Notification, 
   notificationService, 
   NotificationApiResponse,
-  enhanceNotifications 
+  enhanceNotifications, 
+  enhanceNotification 
 } from '../lib/api/services/notifications';
+import socketClient from '../lib/api/websocket';
 
 interface NotificationContextType {
   unreadCount: number;
@@ -161,16 +163,45 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     }
   };
 
+  // Handler for real-time notifications
+  const handleRealtimeNotification = useCallback((notification: Notification) => {
+    console.log('Received real-time notification:', notification);
+    
+    // Update unread count when a new notification is received
+    setUnreadCount(prevCount => prevCount + 1);
+    
+    // You could also update the notifications array if it's displayed
+    // setNotifications(prev => [enhanceNotification(notification), ...prev]);
+  }, []);
+  
+  // Initialize WebSocket connection and listeners
   useEffect(() => {
+    // First get the initial unread count
     refreshUnreadCount();
     
-    // Poll for new notifications every 3 minutes
-    const interval = setInterval(refreshUnreadCount, 3 * 60 * 1000);
+    // Initialize WebSocket connection
+    socketClient.connect();
     
-    return () => {
-      clearInterval(interval);
+    // Set up notification listener
+    socketClient.on('notification', handleRealtimeNotification);
+    
+    // Reconnect websocket on auth token change
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'accessToken' && e.newValue) {
+        console.log('Access token changed, reconnecting WebSocket');
+        socketClient.connect(e.newValue);
+      }
     };
-  }, []);
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Cleanup
+    return () => {
+      socketClient.off('notification', handleRealtimeNotification);
+      socketClient.disconnect();
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [handleRealtimeNotification]);
 
   return (
     <NotificationContext.Provider
@@ -197,4 +228,4 @@ export const useNotifications = (): NotificationContextType => {
   }
   
   return context;
-}; 
+};
