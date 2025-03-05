@@ -124,29 +124,29 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <NotificationProvider>
       <div className="flex h-screen bg-background">
-        {/* Left Sidebar */}
-        <nav className="w-64 border-r-4 border-black bg-card flex flex-col shadow-[4px_0_0_0_rgba(0,0,0,1)]">
+        {/* Left Sidebar - New York variant */}
+        <nav className="w-64 border-r border-border bg-card flex flex-col">
           {/* Logo Section */}
-          <div className="p-6 border-b-4 border-black">
+          <div className="p-6 border-b border-border">
             <Link 
               to="/dashboard" 
               className="flex items-center gap-3 hover:opacity-80 transition-opacity"
             >
-              <img src="https://ik.imagekit.io/appraisily/NYFIA/logo.png" alt="NIFYA" className="h-10 w-10 border-2 border-black rounded-full shadow-[2px_2px_0_0_rgba(0,0,0,1)]" />
+              <img src="https://ik.imagekit.io/appraisily/NYFIA/logo.png" alt="NIFYA" className="h-10 w-10 rounded-md" />
               <div>
-                <h1 className="text-xl font-bold text-foreground">NIFYA</h1>
+                <h1 className="text-xl font-semibold text-foreground">NIFYA</h1>
                 <p className="text-xs text-muted-foreground">Notificaciones Inteligentes</p>
               </div>
             </Link>
           </div>
 
           {/* User Section */}
-          <div className="p-6 border-b-4 border-black">
+          <div className="p-6 border-b border-border">
             {loading ? (
               <div className="animate-pulse">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-full bg-primary/10 border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)]">
-                    <User className="h-6 w-6 text-primary/50" />
+                  <div className="p-2 rounded-full bg-secondary">
+                    <User className="h-6 w-6 text-secondary-foreground" />
                   </div>
                   <div className="space-y-2">
                     <div className="h-4 w-24 bg-muted rounded" />
@@ -156,7 +156,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               </div>
             ) : user ? (
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-full bg-primary/10 border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)]">
+                <div className="p-2 rounded-full bg-secondary">
                   {profile?.avatar ? (
                     <img 
                       src={profile.avatar} 
@@ -164,7 +164,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                       className="h-6 w-6 rounded-full"
                     />
                   ) : (
-                    <User className="h-6 w-6 text-primary" />
+                    <User className="h-6 w-6 text-secondary-foreground" />
                   )}
                 </div>
                 <div>
@@ -178,20 +178,20 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                 </div>
               </div>
             ) : error ? (
-              <div className="text-sm text-destructive p-2 border-2 border-destructive rounded-md shadow-[2px_2px_0_0_rgba(220,38,38,0.3)]">
+              <div className="text-sm text-destructive p-3 bg-destructive/10 rounded-md">
                 {error}
               </div>
             ) : null}
           </div>
 
           {/* Menu Section */}
-          <div className="p-6 flex-1">
-            <div className="space-y-2">
+          <div className="p-4 flex-1">
+            <div className="space-y-1">
               {menuItems.map((item) => (
                 <Link
                   key={item.label}
                   to={item.href}
-                  className="flex items-center gap-3 px-3 py-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted border-2 border-transparent hover:border-black hover:shadow-[3px_3px_0_0_rgba(0,0,0,1)] transition-all"
+                  className="flex items-center gap-3 px-3 py-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
                 >
                   {item.noIcon ? (
                     <item.icon />
@@ -205,10 +205,10 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           </div>
 
           {/* Logout Section */}
-          <div className="p-6 border-t-4 border-black mt-auto">
+          <div className="p-4 border-t border-border mt-auto">
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-3 px-3 py-2 w-full rounded-md text-muted-foreground border-2 border-transparent hover:border-destructive hover:text-destructive hover:shadow-[3px_3px_0_0_rgba(220,38,38,0.3)] transition-all"
+                className="flex items-center gap-3 px-3 py-2 w-full rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
               >
                 <LogOut className="h-5 w-5" />
                 <span className="font-medium">Cerrar sesión</span>

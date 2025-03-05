@@ -103,18 +103,36 @@ class NotificationService {
   }
 
   /**
-   * Get notification count summary
+   * Get notification count summary and stats
    */
   async getNotificationCount(): Promise<{
     total: number;
     unread: number;
+    change: number;
+    isIncrease: boolean;
     byType: Record<string, number>;
   }> {
     try {
-      const response = await apiClient.get('/notifications/count');
+      const response = await apiClient.get('/notifications/stats');
       return response.data;
     } catch (error) {
-      console.error('Error fetching notification count:', error);
+      console.error('Error fetching notification stats:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get notification activity data
+   */
+  async getNotificationActivity(): Promise<{
+    activityByDay: Array<{ day: string; count: number }>;
+    sources: Array<{ name: string; count: number; color: string }>;
+  }> {
+    try {
+      const response = await apiClient.get('/notifications/activity');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching notification activity:', error);
       throw error;
     }
   }
@@ -133,4 +151,4 @@ class NotificationService {
   }
 }
 
-export default new NotificationService(); 
+export default new NotificationService();

@@ -23,11 +23,15 @@ import {
   PlusCircle 
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotifications } from '../hooks/use-notifications';
+import { useSubscriptions } from '../hooks/use-subscriptions';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { ScrollArea } from "../components/ui/scroll-area";
 import { Separator } from "../components/ui/separator";
+import notificationService from '../services/api/notification-service';
+import subscriptionService from '../services/api/subscription-service';
 
 // Define types for our data structures
 interface DayActivity {
@@ -36,13 +40,12 @@ interface DayActivity {
 }
 
 interface NotificationItem {
-  id: number;
+  id: string;
   title: string;
-  description: string;
-  time: string;
-  date: string;
-  isNew: boolean;
+  message: string;
+  isRead: boolean;
   source: string;
+  createdAt: string;
 }
 
 interface EventItem {
@@ -58,7 +61,7 @@ interface SourceData {
   color: string;
 }
 
-interface MockStatsType {
+interface StatsType {
   notifications: {
     total: number;
     unread: number;
@@ -76,113 +79,143 @@ interface MockStatsType {
   upcomingEvents: EventItem[];
 }
 
-// Mock data for charts and stats
-const mockStats: MockStatsType = {
+// Default empty state
+const defaultStats: StatsType = {
   notifications: {
-    total: 247,
-    unread: 13,
-    change: 12,
-    isIncrease: true
+    total: 0,
+    unread: 0,
+    change: 0,
+    isIncrease: false
   },
   subscriptions: {
-    total: 7,
-    active: 5,
-    pending: 2
+    total: 0,
+    active: 0,
+    pending: 0
   },
-  sources: [
-    { name: 'BOE', count: 36, color: '#ff5722' },
-    { name: 'Idealista', count: 27, color: '#4caf50' },
-    { name: 'Diarios', count: 18, color: '#2196f3' },
-    { name: 'Social Media', count: 9, color: '#9c27b0' }
-  ],
-  activityByDay: [
-    { day: 'Mon', count: 12 },
-    { day: 'Tue', count: 8 },
-    { day: 'Wed', count: 15 },
-    { day: 'Thu', count: 9 },
-    { day: 'Fri', count: 18 },
-    { day: 'Sat', count: 6 },
-    { day: 'Sun', count: 4 }
-  ],
-  recentNotifications: [
-    {
-      id: 1,
-      title: 'Nuevo inmueble disponible',
-      description: 'Se ha encontrado un inmueble que coincide con tus criterios',
-      time: '10:23',
-      date: 'Hoy',
-      isNew: true,
-      source: 'Idealista'
-    },
-    {
-      id: 2,
-      title: 'Publicación en BOE',
-      description: 'Nueva publicación relacionada con tus suscripciones',
-      time: '09:15',
-      date: 'Hoy',
-      isNew: true,
-      source: 'BOE'
-    },
-    {
-      id: 3,
-      title: 'Actualización de precio',
-      description: 'Un inmueble en seguimiento ha bajado su precio un 5%',
-      time: '18:42',
-      date: 'Ayer',
-      isNew: false,
-      source: 'Fotocasa'
-    },
-    {
-      id: 4,
-      title: 'Recordatorio de evento',
-      description: 'Tienes una visita programada mañana a las 17:00',
-      time: '12:00',
-      date: 'Ayer',
-      isNew: false,
-      source: 'Calendario'
-    }
-  ],
-  upcomingEvents: [
-    {
-      id: 1,
-      title: 'Visita inmueble Calle Gran Vía',
-      description: 'Visita con el agente inmobiliario',
-      date: 'Mañana, 17:00'
-    },
-    {
-      id: 2,
-      title: 'Publicación BOE trimestral',
-      description: 'Publicación programada de interés',
-      date: '23 Marzo, 08:00'
-    },
-    {
-      id: 3,
-      title: 'Renovación suscripción',
-      description: 'Vencimiento de periodo de prueba',
-      date: '30 Marzo, 00:00'
-    }
-  ]
+  sources: [],
+  activityByDay: [],
+  recentNotifications: [],
+  upcomingEvents: []
 };
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
-  const [stats, setStats] = useState<MockStatsType>(mockStats);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [lastUpdate, setLastUpdate] = React.useState('Hace 5 minutos');
+  const [stats, setStats] = useState<StatsType>(defaultStats);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [lastUpdate, setLastUpdate] = React.useState('Actualizando...');
   const [isRefreshing, setIsRefreshing] = React.useState(false);
-
-  const refreshData = (): void => {
-    setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      // In a real app, we would fetch from API and update state
-    }, 1500);
-  };
+  
+  // Get notifications data using the hook
+  const { 
+    notifications: notificationsData, 
+    notificationCount,
+    refetchNotifications,
+    isLoading: isLoadingNotifications 
+  } = useNotifications({ limit: 4 });
+  
+  // Get subscription data using the hook
+  const { 
+    stats: subscriptionStats, 
+    isLoadingStats 
+  } = useSubscriptions();
 
   useEffect(() => {
-    // Initial data fetch would happen here
+    // Load dashboard data on mount
+    fetchDashboardData();
   }, []);
+
+  useEffect(() => {
+    // Update stats whenever subscription or notification data changes
+    updateStats();
+  }, [notificationsData, notificationCount, subscriptionStats]);
+
+  const fetchDashboardData = async () => {
+    setIsLoading(true);
+    
+    try {
+      // Get recent notifications
+      await refetchNotifications();
+      
+      // Get activity data
+      const activityData = await notificationService.getNotificationActivity();
+      
+      // Update last update time
+      setLastUpdate(new Date().toLocaleTimeString());
+      
+      // Process and update data
+      updateStats(activityData);
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateStats = (activityData?: any) => {
+    if (!notificationCount || !subscriptionStats) return;
+    
+    // Format notifications for display
+    const recentNotifications = notificationsData.map(n => ({
+      id: n.id,
+      title: n.title,
+      message: n.message,
+      isRead: n.isRead,
+      source: n.source,
+      createdAt: n.createdAt
+    }));
+    
+    // Format activity data
+    const activityByDay = activityData?.activityByDay || [];
+    const sources = activityData?.sources || [];
+    
+    // Placeholder for upcoming events (these would come from a calendar API in a real app)
+    const upcomingEvents = [
+      {
+        id: 1,
+        title: 'Visita inmueble Calle Gran Vía',
+        description: 'Visita con el agente inmobiliario',
+        date: 'Mañana, 17:00'
+      },
+      {
+        id: 2,
+        title: 'Publicación BOE trimestral',
+        description: 'Publicación programada de interés',
+        date: '23 Marzo, 08:00'
+      },
+      {
+        id: 3,
+        title: 'Renovación suscripción',
+        description: 'Vencimiento de periodo de prueba',
+        date: '30 Marzo, 00:00'
+      }
+    ];
+    
+    // Update stats state
+    setStats({
+      notifications: {
+        total: notificationCount?.total || 0,
+        unread: notificationCount?.unread || 0,
+        change: notificationCount?.change || 0,
+        isIncrease: notificationCount?.isIncrease || false
+      },
+      subscriptions: {
+        total: subscriptionStats?.total || 0,
+        active: subscriptionStats?.active || 0,
+        pending: subscriptionStats?.pending || 0
+      },
+      sources,
+      activityByDay,
+      recentNotifications,
+      upcomingEvents
+    });
+  };
+
+  const refreshData = (): void => {
+    setIsRefreshing(true);
+    fetchDashboardData().finally(() => {
+      setIsRefreshing(false);
+    });
+  };
 
   const BarChart: React.FC<{ data: DayActivity[] }> = ({ data }) => (
     <div className="flex h-[120px] items-end justify-between gap-1">
@@ -262,8 +295,10 @@ const Dashboard: React.FC = () => {
             </div>
           </CardContent>
           <CardFooter className="pt-2">
-            <Button size="sm" variant="outline" className="w-full">
-              Ver todas <ChevronRight className="h-4 w-4 ml-1" />
+            <Button size="sm" variant="outline" className="w-full" asChild>
+              <Link to="/notifications">
+                Ver todas <ChevronRight className="h-4 w-4 ml-1" />
+              </Link>
             </Button>
           </CardFooter>
         </Card>
@@ -295,8 +330,10 @@ const Dashboard: React.FC = () => {
             </div>
           </CardContent>
           <CardFooter className="pt-2">
-            <Button size="sm" variant="outline" className="w-full">
-              Administrar <ChevronRight className="h-4 w-4 ml-1" />
+            <Button size="sm" variant="outline" className="w-full" asChild>
+              <Link to="/subscriptions">
+                Administrar <ChevronRight className="h-4 w-4 ml-1" />
+              </Link>
             </Button>
           </CardFooter>
         </Card>
@@ -311,25 +348,30 @@ const Dashboard: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-3">
-              <Button variant="outline" className="flex items-center justify-start h-auto py-3">
-                <PlusCircle className="h-4 w-4 mr-2" />
-                <div className="text-left">
-                  <div className="text-sm font-medium">Nueva suscripción</div>
-                  <div className="text-xs text-muted-foreground">Añadir nueva fuente</div>
-                </div>
+              <Button variant="outline" className="flex items-center justify-start h-auto py-3" asChild>
+                <Link to="/subscriptions/new">
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  <div className="text-left">
+                    <div className="text-sm font-medium">Nueva suscripción</div>
+                    <div className="text-xs text-muted-foreground">Añadir nueva fuente</div>
+                  </div>
+                </Link>
               </Button>
-              <Button variant="outline" className="flex items-center justify-start h-auto py-3">
-                <Calendar className="h-4 w-4 mr-2" />
-                <div className="text-left">
-                  <div className="text-sm font-medium">Programar</div>
-                  <div className="text-xs text-muted-foreground">Nueva notificación</div>
-                </div>
+              <Button variant="outline" className="flex items-center justify-start h-auto py-3" asChild>
+                <Link to="/settings/notifications">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  <div className="text-left">
+                    <div className="text-sm font-medium">Configurar</div>
+                    <div className="text-xs text-muted-foreground">Preferencias</div>
+                  </div>
+                </Link>
               </Button>
             </div>
           </CardContent>
           <CardFooter className="pt-2">
-            <Button size="sm" variant="outline" className="w-full">
-              Más acciones <ChevronRight className="h-4 w-4 ml-1" />
+            <Button size="sm" variant="outline" className="w-full" onClick={refreshData} disabled={isRefreshing}>
+              {isRefreshing ? 'Actualizando...' : 'Actualizar datos'} 
+              <RefreshCw className={`h-4 w-4 ml-1 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
           </CardFooter>
         </Card>
@@ -346,34 +388,47 @@ const Dashboard: React.FC = () => {
           <CardContent className="p-0">
             <ScrollArea className="h-[300px] px-6">
               <div className="space-y-4 pt-2">
-                {stats.recentNotifications.map((notification) => (
-                  <div key={notification.id} className="flex flex-col space-y-1 border-b pb-3">
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-center">
-                        <h4 className="text-sm font-semibold">{notification.title}</h4>
-                        {notification.isNew && (
-                          <Badge className="ml-2 bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
-                            Nuevo
-                          </Badge>
-                        )}
+                {stats.recentNotifications.length > 0 ? (
+                  stats.recentNotifications.map((notification) => (
+                    <div key={notification.id} className="flex flex-col space-y-1 border-b pb-3">
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center">
+                          <h4 className="text-sm font-semibold">{notification.title}</h4>
+                          {!notification.isRead && (
+                            <Badge className="ml-2 bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
+                              Nuevo
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(notification.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </div>
                       </div>
-                      <div className="text-xs text-muted-foreground">{notification.time}</div>
+                      <p className="text-xs text-muted-foreground">{notification.message}</p>
+                      <div className="flex justify-between items-center mt-1">
+                        <Badge variant="outline" className="text-xs font-normal">
+                          {notification.source}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(notification.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">{notification.description}</p>
-                    <div className="flex justify-between items-center mt-1">
-                      <Badge variant="outline" className="text-xs font-normal">
-                        {notification.source}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">{notification.date}</span>
-                    </div>
+                  ))
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-[200px] text-center">
+                    <Bell className="h-8 w-8 text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">No tienes notificaciones recientes</p>
                   </div>
-                ))}
+                )}
               </div>
             </ScrollArea>
           </CardContent>
           <CardFooter className="pt-2">
-            <Button size="sm" variant="outline" className="w-full">
-              Ver todas <ChevronRight className="h-4 w-4 ml-1" />
+            <Button size="sm" variant="outline" className="w-full" asChild>
+              <Link to="/notifications">
+                Ver todas <ChevronRight className="h-4 w-4 ml-1" />
+              </Link>
             </Button>
           </CardFooter>
         </Card>
@@ -385,7 +440,14 @@ const Dashboard: React.FC = () => {
             <CardDescription>Notificaciones por día</CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
-            <BarChart data={stats.activityByDay} />
+            {stats.activityByDay.length > 0 ? (
+              <BarChart data={stats.activityByDay} />
+            ) : (
+              <div className="flex flex-col items-center justify-center h-[120px] text-center">
+                <BarChart3 className="h-8 w-8 text-muted-foreground mb-2" />
+                <p className="text-sm text-muted-foreground">No hay datos de actividad disponibles</p>
+              </div>
+            )}
           </CardContent>
           <Separator />
           <CardHeader className="pb-0">
@@ -393,7 +455,14 @@ const Dashboard: React.FC = () => {
             <CardDescription>Distribución por origen</CardDescription>
           </CardHeader>
           <CardContent className="pt-2">
-            <PieChart data={stats.sources} />
+            {stats.sources.length > 0 ? (
+              <PieChart data={stats.sources} />
+            ) : (
+              <div className="flex flex-col items-center justify-center h-[120px] text-center">
+                <PieChartIcon className="h-8 w-8 text-muted-foreground mb-2" />
+                <p className="text-sm text-muted-foreground">No hay datos de fuentes disponibles</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -426,10 +495,10 @@ const Dashboard: React.FC = () => {
               </div>
             </ScrollArea>
           </CardContent>
-          <CardFooter className="pt-2">
-            <Button size="sm" variant="outline" className="w-full">
-              Ver calendario <ChevronRight className="h-4 w-4 ml-1" />
-            </Button>
+          <CardFooter className="pt-2 text-center text-xs text-muted-foreground">
+            <div className="w-full">
+              <span>Última actualización: {lastUpdate}</span>
+            </div>
           </CardFooter>
         </Card>
       </div>
