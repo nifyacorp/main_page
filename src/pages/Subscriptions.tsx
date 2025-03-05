@@ -1,12 +1,257 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Plus, Clock, FileText, Play, Edit, Trash, Bell, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { Plus, Clock, FileText, MoreHorizontal, Bell, Edit, Trash } from 'lucide-react';
+import { useSubscriptions } from '../hooks/use-subscriptions';
+import { useToast } from '../components/ui/use-toast';
 
-// Sample data
-const subscriptionData = [
+// UI components
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { Separator } from '../components/ui/separator';
+
+export default function Subscriptions() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterSource, setFilterSource] = useState('all');
+  const [processingIds, setProcessingIds] = useState<Record<string, boolean>>({});
+  const [completedIds, setCompletedIds] = useState<Record<string, boolean>>({});
+  
+  // Use the subscriptions hook
+  const { 
+    subscriptions, 
+    isLoadingSubscriptions,
+    processSubscription
+  } = useSubscriptions();
+
+  // Use the real data or sample data if not loaded yet
+  const subscriptionsData = isLoadingSubscriptions 
+    ? [] 
+    : subscriptions.length > 0 
+      ? subscriptions 
+      : sampleSubscriptionData;
+
+  // Filter subscriptions based on search and filters
+  const filteredSubscriptions = subscriptionsData.filter(sub => {
+    const matchesSearch = 
+      sub.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (sub.description && sub.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (sub.keywords && Array.isArray(sub.keywords) && sub.keywords.some(k => 
+        typeof k === 'string' && k.toLowerCase().includes(searchTerm.toLowerCase())
+      ));
+    
+    const matchesSource = filterSource === 'all' || 
+      (sub.source && sub.source.toLowerCase() === filterSource.toLowerCase());
+    
+    return matchesSearch && matchesSource;
+  });
+
+  // Handle processing a subscription
+  const handleProcess = async (id: string) => {
+    // Set processing state
+    setProcessingIds(prev => ({ ...prev, [id]: true }));
+    setCompletedIds(prev => ({ ...prev, [id]: false }));
+    
+    try {
+      // Call the process mutation
+      await processSubscription.mutateAsync(id);
+      
+      // Set completed state
+      setProcessingIds(prev => ({ ...prev, [id]: false }));
+      setCompletedIds(prev => ({ ...prev, [id]: true }));
+      
+      // Show success toast
+      toast({
+        title: "Processing started",
+        description: "Your subscription is being processed in the background.",
+        variant: "default",
+      });
+      
+      // Reset completed state after 3 seconds
+      setTimeout(() => {
+        setCompletedIds(prev => ({ ...prev, [id]: false }));
+      }, 3000);
+    } catch (error) {
+      // Reset processing state and show error
+      setProcessingIds(prev => ({ ...prev, [id]: false }));
+      
+      toast({
+        title: "Processing failed",
+        description: error instanceof Error ? error.message : "An error occurred while processing the subscription",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <div className="container max-w-7xl mx-auto p-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Subscripciones</h1>
+          <p className="text-muted-foreground">Gestiona tus fuentes de datos y alertas</p>
+        </div>
+        <Button asChild>
+          <Link to="/subscriptions/new" className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            <span>Nueva Subscripción</span>
+          </Link>
+        </Button>
+      </div>
+
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="md:col-span-3">
+          <Input
+            type="search"
+            placeholder="Buscar subscripciones..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full"
+          />
+        </div>
+        
+        <div className="flex gap-2">
+          <Button 
+            variant={filterSource === 'all' ? "default" : "outline"}
+            onClick={() => setFilterSource('all')}
+            className="flex-1"
+            size="sm"
+          >
+            Todas
+          </Button>
+          <Button 
+            variant={filterSource === 'BOE' ? "default" : "outline"}
+            onClick={() => setFilterSource('BOE')}
+            className="flex-1"
+            size="sm"
+          >
+            BOE
+          </Button>
+          <Button 
+            variant={filterSource === 'DOGA' ? "default" : "outline"}
+            onClick={() => setFilterSource('DOGA')}
+            className="flex-1"
+            size="sm"
+          >
+            DOGA
+          </Button>
+        </div>
+      </div>
+
+      {isLoadingSubscriptions ? (
+        <div className="flex justify-center items-center p-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <span className="ml-2 text-muted-foreground">Cargando subscripciones...</span>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredSubscriptions.map((subscription) => (
+            <Card key={subscription.id} className="overflow-hidden">
+              <CardHeader className="pb-3">
+                <div className="flex justify-between items-start">
+                  <CardTitle className="text-lg font-semibold">{subscription.name}</CardTitle>
+                  <Badge variant={subscription.source === 'BOE' ? "default" : "secondary"}>
+                    {subscription.source}
+                  </Badge>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="pb-3">
+                <p className="text-sm text-muted-foreground mb-4">
+                  {subscription.description || "No description provided"}
+                </p>
+                
+                <div className="flex flex-wrap gap-1 mb-4">
+                  {subscription.keywords && Array.isArray(subscription.keywords) && subscription.keywords.map((keyword, idx) => (
+                    <Badge key={idx} variant="outline" className="text-xs">
+                      {keyword}
+                    </Badge>
+                  ))}
+                </div>
+                
+                <div className="flex justify-between items-center text-sm text-muted-foreground">
+                  <div className="flex items-center">
+                    <Clock className="h-4 w-4 mr-1" />
+                    {subscription.frequency || "Immediate"}
+                  </div>
+                  <div className="flex items-center">
+                    <Bell className="h-4 w-4 mr-1" />
+                    {subscription.notifications || "0"}
+                  </div>
+                </div>
+              </CardContent>
+              
+              <Separator />
+              
+              <CardFooter className="pt-3 flex justify-between items-center">
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to={`/subscriptions/${subscription.id}`} className="flex items-center">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Ver Detalles
+                  </Link>
+                </Button>
+                
+                <div className="flex gap-2">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => handleProcess(subscription.id.toString())}
+                    disabled={processingIds[subscription.id] || completedIds[subscription.id]}
+                    className={completedIds[subscription.id] ? "text-green-500" : ""}
+                    title={
+                      processingIds[subscription.id] ? "Procesando..." : 
+                      completedIds[subscription.id] ? "Procesado!" : 
+                      "Procesar suscripción"
+                    }
+                  >
+                    {processingIds[subscription.id] ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : completedIds[subscription.id] ? (
+                      <div className="text-xs font-medium">✓</div>
+                    ) : (
+                      <Play className="h-4 w-4" />
+                    )}
+                  </Button>
+                  
+                  <Button variant="ghost" size="icon" asChild>
+                    <Link to={`/subscriptions/${subscription.id}/edit`}>
+                      <Edit className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                  
+                  <Button variant="ghost" size="icon" className="text-destructive/70 hover:text-destructive">
+                    <Trash className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {!isLoadingSubscriptions && filteredSubscriptions.length === 0 && (
+        <div className="text-center py-12 bg-card rounded-lg border">
+          <Bell className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <h3 className="text-lg font-medium mb-1">No se encontraron subscripciones</h3>
+          <p className="text-muted-foreground mb-4">Prueba a ajustar tu búsqueda o filtros</p>
+          <Button 
+            variant="outline" 
+            onClick={() => {setSearchTerm(''); setFilterSource('all');}}
+          >
+            Limpiar filtros
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Sample data (used when backend data is not available)
+const sampleSubscriptionData = [
   { 
-    id: 1, 
+    id: "1", 
     name: "BOE Legal Updates", 
     description: "Updates on legal regulations published in BOE",
     source: "BOE", 
@@ -15,10 +260,10 @@ const subscriptionData = [
     lastNotification: "2 hours ago", 
     status: "active", 
     notifications: 24,
-    created: "10/02/2024"
+    createdAt: "2023-12-10"
   },
   { 
-    id: 2, 
+    id: "2", 
     name: "DOGA Regulatory Changes", 
     description: "Changes to regional regulations in Galicia",
     source: "DOGA", 
@@ -27,10 +272,10 @@ const subscriptionData = [
     lastNotification: "1 day ago", 
     status: "active", 
     notifications: 16,
-    created: "15/01/2024"
+    createdAt: "2023-12-15"
   },
   { 
-    id: 3, 
+    id: "3", 
     name: "Tax Law Updates", 
     description: "Updates on tax legislation and regulations",
     source: "BOE", 
@@ -39,10 +284,10 @@ const subscriptionData = [
     lastNotification: "3 days ago", 
     status: "active", 
     notifications: 8,
-    created: "05/12/2023"
+    createdAt: "2023-12-05"
   },
   { 
-    id: 4, 
+    id: "4", 
     name: "Environmental Regulations", 
     description: "Environmental policy updates and regulations",
     source: "DOGA", 
@@ -51,144 +296,6 @@ const subscriptionData = [
     lastNotification: "1 week ago", 
     status: "active", 
     notifications: 5,
-    created: "22/11/2023"
+    createdAt: "2023-11-22"
   },
 ];
-
-export default function Subscriptions() {
-  const { user } = useAuth();
-  const [searchTerm, setSearchTerm] = React.useState('');
-  const [filterSource, setFilterSource] = React.useState('all');
-
-  // Filter subscriptions based on search and filters
-  const filteredSubscriptions = subscriptionData.filter(sub => {
-    const matchesSearch = 
-      sub.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      sub.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sub.keywords.some(k => k.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const matchesSource = filterSource === 'all' || sub.source === filterSource;
-    
-    return matchesSearch && matchesSource;
-  });
-
-  return (
-    <div className="container mx-auto px-4 py-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Subscriptions</h1>
-        <Link 
-          to="/subscriptions/new" 
-          className="px-3 py-1 bg-blue-500 text-white rounded-md flex items-center gap-1 text-sm"
-        >
-          <Plus size={16} />
-          New Subscription
-        </Link>
-      </div>
-
-      {/* Simple search */}
-      <div className="mb-6">
-        <input
-          type="text"
-          placeholder="Search subscriptions..."
-          className="w-full p-2 border rounded-md"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
-
-      {/* Source filter */}
-      <div className="mb-6 flex gap-2">
-        <button 
-          className={`px-3 py-1 rounded-md text-sm ${filterSource === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-          onClick={() => setFilterSource('all')}
-        >
-          All
-        </button>
-        <button 
-          className={`px-3 py-1 rounded-md text-sm ${filterSource === 'BOE' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-          onClick={() => setFilterSource('BOE')}
-        >
-          BOE
-        </button>
-        <button 
-          className={`px-3 py-1 rounded-md text-sm ${filterSource === 'DOGA' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-          onClick={() => setFilterSource('DOGA')}
-        >
-          DOGA
-        </button>
-      </div>
-
-      {/* Grid of subscriptions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredSubscriptions.map((subscription) => (
-          <div key={subscription.id} className="bg-white rounded-lg shadow p-4 border">
-            <div className="flex justify-between items-start">
-              <h3 className="font-semibold">{subscription.name}</h3>
-              <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                subscription.source === 'BOE' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
-              }`}>
-                {subscription.source}
-              </span>
-            </div>
-            
-            <p className="text-gray-600 text-sm mt-2 mb-4">
-              {subscription.description}
-            </p>
-            
-            <div className="flex flex-wrap gap-1 mb-4">
-              {subscription.keywords.map((keyword, idx) => (
-                <span key={idx} className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded">
-                  {keyword}
-                </span>
-              ))}
-            </div>
-            
-            <div className="flex justify-between items-center text-sm text-gray-500">
-              <div className="flex items-center">
-                <Clock size={14} className="mr-1" />
-                {subscription.frequency}
-              </div>
-              <div className="flex items-center">
-                <Bell size={14} className="mr-1" />
-                {subscription.notifications}
-              </div>
-            </div>
-            
-            <div className="border-t mt-4 pt-4 flex justify-between items-center">
-              <Link 
-                to={`/subscriptions/${subscription.id}`}
-                className="text-blue-500 hover:underline text-sm flex items-center"
-              >
-                <FileText size={14} className="mr-1" />
-                View Details
-              </Link>
-              
-              <div className="flex gap-2">
-                <button className="text-gray-500 hover:text-blue-500">
-                  <Edit size={16} />
-                </button>
-                <button className="text-gray-500 hover:text-red-500">
-                  <Trash size={16} />
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {filteredSubscriptions.length === 0 && (
-        <div className="text-center py-8 bg-white rounded-lg shadow">
-          <Bell size={40} className="mx-auto mb-4 text-gray-400" />
-          <h3 className="text-lg font-medium mb-1">No subscriptions found</h3>
-          <p className="text-gray-500 mb-4">Try adjusting your search or filters</p>
-          <button 
-            onClick={() => {setSearchTerm(''); setFilterSource('all');}}
-            className="px-4 py-2 bg-gray-200 rounded-md text-sm"
-          >
-            Clear filters
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}

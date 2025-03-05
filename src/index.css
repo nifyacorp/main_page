@@ -5,80 +5,64 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --foreground: 224 71.4% 4.1%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
+    --card-foreground: 224 71.4% 4.1%;
+ 
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 71.4% 4.1%;
+ 
+    --primary: 220.9 39.3% 11%;
+    --primary-foreground: 210 20% 98%;
+ 
+    --secondary: 220 14.3% 95.9%;
+    --secondary-foreground: 220.9 39.3% 11%;
+ 
+    --muted: 220 14.3% 95.9%;
+    --muted-foreground: 220 8.9% 46.1%;
+ 
+    --accent: 220 14.3% 95.9%;
+    --accent-foreground: 220.9 39.3% 11%;
+ 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 210 20% 98%;
 
-    --ring: 215 20.2% 65.1%;
-
-    --radius: 0.75rem;
-
-    /* Neobrutalism variables */
-    --neo-shadow-offset: 4px;
-    --neo-shadow-color: rgba(0, 0, 0, 1);
-    --neo-border-width: 2px;
-    --neo-border-color: black;
-    --neo-border-radius: 0.5rem;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 224 71.4% 4.1%;
+ 
+    --radius: 0.5rem;
   }
-
+ 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
+    --background: 224 71.4% 4.1%;
+    --foreground: 210 20% 98%;
+ 
+    --card: 224 71.4% 4.1%;
+    --card-foreground: 210 20% 98%;
+ 
+    --popover: 224 71.4% 4.1%;
+    --popover-foreground: 210 20% 98%;
+ 
+    --primary: 210 20% 98%;
+    --primary-foreground: 220.9 39.3% 11%;
+ 
+    --secondary: 215 27.9% 16.9%;
+    --secondary-foreground: 210 20% 98%;
+ 
+    --muted: 215 27.9% 16.9%;
+    --muted-foreground: 217.9 10.6% 64.9%;
+ 
+    --accent: 215 27.9% 16.9%;
+    --accent-foreground: 210 20% 98%;
+ 
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 85.7% 97.3%;
-
-    --ring: 217.2 32.6% 17.5%;
-
-    /* Neobrutalism variables in dark mode */
-    --neo-shadow-offset: 4px;
-    --neo-shadow-color: rgba(255, 255, 255, 0.7);
-    --neo-border-width: 2px;
-    --neo-border-color: white;
-    --neo-border-radius: 0.5rem;
+    --destructive-foreground: 210 20% 98%;
+ 
+    --border: 215 27.9% 16.9%;
+    --input: 215 27.9% 16.9%;
+    --ring: 216 12.2% 83.9%;
   }
 }
 
@@ -89,79 +73,4 @@
   body {
     @apply bg-background text-foreground;
   }
-}
-
-/* Neobrutalism utility classes - only for buttons and elements that need the style */
-.btn-neobrutalism {
-  @apply relative border-2 border-black rounded-md bg-white 
-    shadow-[var(--neo-shadow-offset)_var(--neo-shadow-offset)_0_0_var(--neo-shadow-color)]
-    transition-all duration-150 ease-in-out
-    hover:translate-x-[2px] hover:translate-y-[2px] 
-    hover:shadow-[2px_2px_0_0_var(--neo-shadow-color)];
-}
-
-.btn-neobrutalism-primary {
-  @apply relative border-2 border-black rounded-md bg-primary 
-    shadow-[var(--neo-shadow-offset)_var(--neo-shadow-offset)_0_0_var(--neo-shadow-color)]
-    transition-all duration-150 ease-in-out
-    hover:translate-x-[2px] hover:translate-y-[2px] 
-    hover:shadow-[2px_2px_0_0_var(--neo-shadow-color)];
-}
-
-.card-neobrutalism {
-  @apply border-2 border-black rounded-md bg-card
-    shadow-[var(--neo-shadow-offset)_var(--neo-shadow-offset)_0_0_var(--neo-shadow-color)]
-    transition-all duration-300 ease-in-out hover:shadow-[5px_5px_0_0_var(--neo-shadow-color)];
-}
-
-.input-neobrutalism {
-  @apply border-2 border-black rounded-md px-4 py-2
-    shadow-[var(--neo-shadow-offset)_var(--neo-shadow-offset)_0_0_var(--neo-shadow-color)]
-    focus:shadow-[2px_2px_0_0_var(--neo-shadow-color)]
-    focus:translate-x-[2px] focus:translate-y-[2px] 
-    focus:outline-none;
-}
-
-.tab-neobrutalism {
-  @apply relative border-2 border-black rounded-t-md
-    bg-white px-4 py-2 font-medium
-    shadow-[var(--neo-shadow-offset)_var(--neo-shadow-offset)_0_0_var(--neo-shadow-color)]
-    transition-all duration-150 ease-in-out
-    hover:translate-x-[2px] hover:translate-y-[2px] 
-    hover:shadow-[2px_2px_0_0_var(--neo-shadow-color)];
-}
-
-.tab-neobrutalism.active {
-  @apply bg-primary text-primary-foreground translate-x-[2px] translate-y-[2px] 
-    shadow-[2px_2px_0_0_var(--neo-shadow-color)];
-}
-
-.badge-neobrutalism {
-  @apply border-2 border-black rounded-full px-2 py-1 text-xs font-medium
-    shadow-[2px_2px_0_0_var(--neo-shadow-color)];
-}
-
-/* Only apply neobrutalism to nav links that have the neo class */
-.nav-link-neobrutalism {
-  @apply relative border-2 border-black rounded-md px-4 py-2
-    shadow-[var(--neo-shadow-offset)_var(--neo-shadow-offset)_0_0_var(--neo-shadow-color)]
-    transition-all duration-150 ease-in-out
-    hover:translate-x-[2px] hover:translate-y-[2px] 
-    hover:shadow-[2px_2px_0_0_var(--neo-shadow-color)];
-}
-
-/* Animation utilities */
-.rotate-hover {
-  @apply transition-transform duration-200 hover:rotate-2;
-}
-
-.skew-hover {
-  @apply transition-transform duration-200 hover:skew-x-2;
-}
-
-/* Keep normal shadcn styles for navigation and other UI elements not marked explicitly for neobrutalism */
-
-/* Background for the hero section - simplified version */
-#hero-section {
-  background: linear-gradient(135deg, rgba(131,58,180,0.1) 0%, rgba(29,75,253,0.1) 50%, rgba(252,176,69,0.1) 100%);
 }
