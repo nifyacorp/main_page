@@ -1,19 +1,36 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
 // https://vitejs.dev/config/
-export default defineConfig({
-  plugins: [react()],
-  server: {
-    historyApiFallback: true
-  },
-  optimizeDeps: {
-    exclude: ['lucide-react'],
-  },
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src')
+export default defineConfig(({ mode }) => {
+  // Load env file based on `mode` in the current directory.
+  // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
+  const env = loadEnv(mode, process.cwd(), '');
+  
+  return {
+    plugins: [react()],
+    server: {
+      historyApiFallback: true
+    },
+    optimizeDeps: {
+      exclude: ['lucide-react'],
+    },
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src')
+      }
+    },
+    define: {
+      // Provide fallback values for required environment variables
+      'process.env.VITE_AUTH_URL': JSON.stringify(env.VITE_AUTH_URL || 'http://localhost:4000'),
+      'process.env.VITE_BACKEND_URL': JSON.stringify(env.VITE_BACKEND_URL || 'http://localhost:3000'),
+      'process.env.VITE_SUBSCRIPTION_WORKER': JSON.stringify(env.VITE_SUBSCRIPTION_WORKER || 'http://localhost:5000'),
+      'process.env.VITE_ENABLE_LOGGING': JSON.stringify(env.VITE_ENABLE_LOGGING || 'false'),
+      'process.env.VITE_ENV': JSON.stringify(env.VITE_ENV || 'development'),
+      'process.env.NODE_ENV': JSON.stringify(env.NODE_ENV || 'production'),
+      'process.env.VITE_APP_ENV': JSON.stringify(env.VITE_APP_ENV || 'production'),
+      'process.env.VITE_USE_NETLIFY_REDIRECTS': JSON.stringify(env.VITE_USE_NETLIFY_REDIRECTS || 'true')
     }
-  }
+  };
 });

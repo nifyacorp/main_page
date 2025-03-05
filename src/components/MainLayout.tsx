@@ -30,7 +30,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ hideNav = false, children }) =>
 
   return (
     <div className="min-h-screen w-full bg-background">
-      <Header />
+      {/* Removed duplicate Header since it's already in App.tsx */}
       
       <main className="flex min-h-[calc(100vh-4rem)]">
         {isAuthenticated && !hideNav && (
@@ -314,4 +314,4 @@ const MainLayout: React.FC<MainLayoutProps> = ({ hideNav = false, children }) =>
   );
 };
 
-export default MainLayout; 
+export default MainLayout;
