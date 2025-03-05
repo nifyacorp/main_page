@@ -13,9 +13,11 @@ interface RequestConfig {
   headers?: Record<string, string>;
 }
 
-// Ensure we have a valid auth URL, fallback to environment or hardcoded value
-const AUTH_URL = import.meta.env.VITE_AUTH_URL || 'https://authentication-service-415554190254.us-central1.run.app';
-console.log('Auth URL being used:', AUTH_URL);
+// Use the relative URL for redirects through Netlify, or fall back to direct URL if specified
+const AUTH_URL = import.meta.env.VITE_USE_NETLIFY_REDIRECTS === 'true'
+  ? ''  // Empty string for using Netlify redirects (relative URLs)
+  : (import.meta.env.VITE_AUTH_URL || 'https://authentication-service-415554190254.us-central1.run.app');
+console.log('Auth URL being used:', AUTH_URL || '(Using Netlify redirects)');
 
 export async function authClient<T>({
   endpoint,
