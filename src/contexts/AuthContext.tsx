@@ -37,14 +37,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Check for test account email
-        const testEmail = 'nifyacorp@gmail.com';
-        const userEmail = localStorage.getItem('email');
-        
         // Check if user is authenticated via the new API client system
         const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
         const accessToken = localStorage.getItem('accessToken');
         const userId = localStorage.getItem('userId');
+        const userEmail = localStorage.getItem('email');
         
         console.log('AuthContext: Checking auth state', { 
           isAuthenticated, 
@@ -52,21 +49,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           userId,
           email: userEmail
         });
-        
-        // Special handling for the test account
-        if (userEmail === testEmail) {
-          console.log('AuthContext: Test account detected, ensuring authentication');
-          // Ensure authenticated state for test account
-          if (!isAuthenticated || !accessToken) {
-            localStorage.setItem('isAuthenticated', 'true');
-            if (!accessToken) {
-              localStorage.setItem('accessToken', 'Bearer test_token');
-            }
-            if (!userId) {
-              localStorage.setItem('userId', '1');
-            }
-          }
-        }
         
         if (isAuthenticated && accessToken) {
           try {
@@ -76,41 +58,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               setUser(response.data);
               console.log('AuthContext: User loaded from API', response.data);
             } else {
-              // Test account fallback
-              if (userEmail === testEmail) {
-                setUser({
-                  id: userId || '1',
-                  email: testEmail,
-                  name: 'NIFYA Test User'
-                });
-                console.log('AuthContext: Using test account fallback');
-              } else {
-                // If API call fails, use basic user info from localStorage
-                setUser({
-                  id: userId || '1',
-                  email: userEmail || 'user@example.com'
-                });
-                console.log('AuthContext: Using fallback user data', { id: userId || '1' });
-              }
-            }
-          } catch (apiError) {
-            console.error('Error fetching user profile:', apiError);
-            
-            // Test account fallback
-            if (userEmail === testEmail) {
-              setUser({
-                id: userId || '1',
-                email: testEmail,
-                name: 'NIFYA Test User'
-              });
-              console.log('AuthContext: Using test account fallback after API error');
-            } else {
-              // Regular fallback
+              // If API call fails, use basic user info from localStorage
+              console.log('API returned error:', response.error);
               setUser({
                 id: userId || '1',
                 email: userEmail || 'user@example.com'
               });
+              console.log('AuthContext: Using fallback user data', { id: userId || '1' });
             }
+          } catch (apiError) {
+            console.error('Error fetching user profile:', apiError);
+            
+            // Use fallback user data from localStorage
+            setUser({
+              id: userId || '1',
+              email: userEmail || 'user@example.com'
+            });
           }
         } else {
           console.log('AuthContext: No valid auth tokens found');
@@ -118,13 +81,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       } catch (error) {
         console.error('Auth check failed:', error);
         
-        // Don't clear tokens for test account
-        if (localStorage.getItem('email') !== 'nifyacorp@gmail.com') {
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          localStorage.removeItem('isAuthenticated');
-          localStorage.removeItem('userId');
-        }
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('userId');
       } finally {
         setIsLoading(false);
       }
