@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { user as userService } from '../lib/api';
 
 type User = {
   id: string;
@@ -36,17 +37,50 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const token = localStorage.getItem('token');
-        if (token) {
-          // Mock user data for now
-          setUser({
-            id: '1',
-            email: 'user@example.com'
-          });
+        // Check if user is authenticated via the new API client system
+        const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+        const accessToken = localStorage.getItem('accessToken');
+        const userId = localStorage.getItem('userId');
+        
+        console.log('AuthContext: Checking auth state', { 
+          isAuthenticated, 
+          hasAccessToken: !!accessToken,
+          userId
+        });
+        
+        if (isAuthenticated && accessToken) {
+          try {
+            // Try to get user profile from API
+            const response = await userService.getProfile();
+            if (response.data && !response.error) {
+              setUser(response.data);
+              console.log('AuthContext: User loaded from API', response.data);
+            } else {
+              // If API call fails, use basic user info from localStorage
+              setUser({
+                id: userId || '1',
+                email: 'user@example.com'
+              });
+              console.log('AuthContext: Using fallback user data', { id: userId || '1' });
+            }
+          } catch (apiError) {
+            console.error('Error fetching user profile:', apiError);
+            // Fallback to basic user info
+            setUser({
+              id: userId || '1',
+              email: 'user@example.com'
+            });
+          }
+        } else {
+          console.log('AuthContext: No valid auth tokens found');
         }
       } catch (error) {
         console.error('Auth check failed:', error);
-        localStorage.removeItem('token');
+        // Clear tokens on error
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('userId');
       } finally {
         setIsLoading(false);
       }
@@ -57,10 +91,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   
   const login = async (token: string) => {
     try {
-      localStorage.setItem('token', token);
+      // This function is for backward compatibility
+      // New logins should go through the API client which sets localStorage
+      localStorage.setItem('accessToken', token);
       localStorage.setItem('isAuthenticated', 'true');
       
-      // Mock user data for now
+      // Mock user data for now, this will be replaced by API call in useEffect
       setUser({
         id: '1',
         email: 'user@example.com'
@@ -72,8 +108,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
   
   const logout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('userId');
     setUser(null);
   };
   
