@@ -25,151 +25,142 @@ export function useSubscriptions(params?: SubscriptionListParams) {
     isError: isErrorSubscriptions,
     error: errorSubscriptions,
     refetch,
-  } = useQuery(
-    ['subscriptions', filter],
-    () => subscriptionService.getSubscriptions(filter),
-    {
-      keepPreviousData: true,
-      staleTime: 30000, // 30 seconds
-    }
-  );
+  } = useQuery({
+    queryKey: ['subscriptions', filter],
+    queryFn: () => subscriptionService.getSubscriptions(filter),
+    staleTime: 30000, // 30 seconds
+  });
 
   // Fetch subscription stats
   const {
     data: stats,
     isLoading: isLoadingStats,
     isError: isErrorStats,
-  } = useQuery('subscriptionStats', () => subscriptionService.getSubscriptionStats(), {
+  } = useQuery({
+    queryKey: ['subscriptionStats'],
+    queryFn: () => subscriptionService.getSubscriptionStats(),
     staleTime: 60000, // 1 minute
   });
 
   // Fetch single subscription
   const fetchSubscription = (id: string) => {
-    return useQuery(['subscription', id], () => subscriptionService.getSubscription(id), {
+    return useQuery({
+      queryKey: ['subscription', id],
+      queryFn: () => subscriptionService.getSubscription(id),
       enabled: !!id,
       staleTime: 30000, // 30 seconds
     });
   };
 
   // Create subscription mutation
-  const createSubscription = useMutation(
-    (data: SubscriptionFormData) => subscriptionService.createSubscription(data),
-    {
-      onSuccess: () => {
-        toast({
-          title: 'Subscription created',
-          description: 'Your subscription has been created successfully.',
-          variant: 'default',
-        });
-        queryClient.invalidateQueries('subscriptions');
-        queryClient.invalidateQueries('subscriptionStats');
-        navigate('/subscriptions');
-      },
-      onError: (error: any) => {
-        toast({
-          title: 'Error',
-          description: error.message || 'Failed to create subscription',
-          variant: 'destructive',
-        });
-      },
-    }
-  );
+  const createSubscription = useMutation({
+    mutationFn: (data: SubscriptionFormData) => subscriptionService.createSubscription(data),
+    onSuccess: () => {
+      toast({
+        title: 'Subscription created',
+        description: 'Your subscription has been created successfully.',
+        variant: 'default',
+      });
+      queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['subscriptionStats'] });
+      navigate('/subscriptions');
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to create subscription',
+        variant: 'destructive',
+      });
+    },
+  });
 
   // Update subscription mutation
-  const updateSubscription = useMutation(
-    ({ id, data }: { id: string; data: SubscriptionFormData }) =>
+  const updateSubscription = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: SubscriptionFormData }) =>
       subscriptionService.updateSubscription(id, data),
-    {
-      onSuccess: () => {
-        toast({
-          title: 'Subscription updated',
-          description: 'Your subscription has been updated successfully.',
-          variant: 'default',
-        });
-        queryClient.invalidateQueries('subscriptions');
-        queryClient.invalidateQueries('subscriptionStats');
-        navigate('/subscriptions');
-      },
-      onError: (error: any) => {
-        toast({
-          title: 'Error',
-          description: error.message || 'Failed to update subscription',
-          variant: 'destructive',
-        });
-      },
-    }
-  );
+    onSuccess: () => {
+      toast({
+        title: 'Subscription updated',
+        description: 'Your subscription has been updated successfully.',
+        variant: 'default',
+      });
+      queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['subscriptionStats'] });
+      navigate('/subscriptions');
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update subscription',
+        variant: 'destructive',
+      });
+    },
+  });
 
   // Delete subscription mutation
-  const deleteSubscription = useMutation(
-    (id: string) => subscriptionService.deleteSubscription(id),
-    {
-      onSuccess: () => {
-        toast({
-          title: 'Subscription deleted',
-          description: 'Your subscription has been deleted successfully.',
-          variant: 'default',
-        });
-        queryClient.invalidateQueries('subscriptions');
-        queryClient.invalidateQueries('subscriptionStats');
-      },
-      onError: (error: any) => {
-        toast({
-          title: 'Error',
-          description: error.message || 'Failed to delete subscription',
-          variant: 'destructive',
-        });
-      },
-    }
-  );
+  const deleteSubscription = useMutation({
+    mutationFn: (id: string) => subscriptionService.deleteSubscription(id),
+    onSuccess: () => {
+      toast({
+        title: 'Subscription deleted',
+        description: 'Your subscription has been deleted successfully.',
+        variant: 'default',
+      });
+      queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['subscriptionStats'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete subscription',
+        variant: 'destructive',
+      });
+    },
+  });
 
   // Process subscription mutation
-  const processSubscription = useMutation(
-    (id: string) => subscriptionService.processSubscription(id),
-    {
-      onSuccess: (data) => {
-        toast({
-          title: 'Processing started',
-          description: data.message || 'Your subscription is being processed.',
-          variant: 'default',
-        });
-        // Don't invalidate queries here since processing is async
-      },
-      onError: (error: any) => {
-        toast({
-          title: 'Error',
-          description: error.message || 'Failed to process subscription',
-          variant: 'destructive',
-        });
-      },
-    }
-  );
+  const processSubscription = useMutation({
+    mutationFn: (id: string) => subscriptionService.processSubscription(id),
+    onSuccess: (data) => {
+      toast({
+        title: 'Processing started',
+        description: data.message || 'Your subscription is being processed.',
+        variant: 'default',
+      });
+      // Don't invalidate queries here since processing is async
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to process subscription',
+        variant: 'destructive',
+      });
+    },
+  });
 
   // Toggle subscription status mutation
-  const toggleSubscriptionStatus = useMutation(
-    ({ id, isActive }: { id: string; isActive: boolean }) =>
+  const toggleSubscriptionStatus = useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       subscriptionService.toggleSubscriptionStatus(id, isActive),
-    {
-      onSuccess: (_, variables) => {
-        toast({
-          title: variables.isActive ? 'Subscription activated' : 'Subscription deactivated',
-          description: variables.isActive
-            ? 'Your subscription is now active.'
-            : 'Your subscription has been deactivated.',
-          variant: 'default',
-        });
-        queryClient.invalidateQueries('subscriptions');
-        queryClient.invalidateQueries('subscriptionStats');
-      },
-      onError: (error: any) => {
-        toast({
-          title: 'Error',
-          description: error.message || 'Failed to update subscription status',
-          variant: 'destructive',
-        });
-      },
-    }
-  );
+    onSuccess: (_, variables) => {
+      toast({
+        title: variables.isActive ? 'Subscription activated' : 'Subscription deactivated',
+        description: variables.isActive
+          ? 'Your subscription is now active.'
+          : 'Your subscription has been deactivated.',
+        variant: 'default',
+      });
+      queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['subscriptionStats'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update subscription status',
+        variant: 'destructive',
+      });
+    },
+  });
 
   return {
     // Queries

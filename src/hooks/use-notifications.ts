@@ -22,89 +22,82 @@ export function useNotifications(params?: NotificationListParams) {
     isError,
     error,
     refetch,
-  } = useQuery(
-    ['notifications', filter],
-    () => notificationService.getNotifications(filter),
-    {
-      keepPreviousData: true,
-      staleTime: 30000, // 30 seconds
-      refetchInterval: 60000, // Poll every minute for new notifications
-    }
-  );
+  } = useQuery({
+    queryKey: ['notifications', filter],
+    queryFn: () => notificationService.getNotifications(filter),
+    staleTime: 30000, // 30 seconds
+    refetchInterval: 60000, // Poll every minute for new notifications
+  });
 
   // Get notification count
   const {
     data: notificationCount,
     isLoading: isLoadingCount,
     refetch: refetchCount,
-  } = useQuery('notificationCount', () => notificationService.getNotificationCount(), {
+  } = useQuery({
+    queryKey: ['notificationCount'],
+    queryFn: () => notificationService.getNotificationCount(),
     staleTime: 30000, // 30 seconds
     refetchInterval: 60000, // Poll every minute
   });
 
   // Mark as read mutation
-  const markAsRead = useMutation(
-    (id: string) => notificationService.markAsRead(id),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries('notifications');
-        queryClient.invalidateQueries('notificationCount');
-      },
-      onError: (error: any) => {
-        toast({
-          title: 'Error',
-          description: error.message || 'Failed to mark notification as read',
-          variant: 'destructive',
-        });
-      },
-    }
-  );
+  const markAsRead = useMutation({
+    mutationFn: (id: string) => notificationService.markAsRead(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notificationCount'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to mark notification as read',
+        variant: 'destructive',
+      });
+    },
+  });
 
   // Mark all as read mutation
-  const markAllAsRead = useMutation(
-    () => notificationService.markAllAsRead(),
-    {
-      onSuccess: () => {
-        toast({
-          title: 'Success',
-          description: 'All notifications marked as read',
-          variant: 'default',
-        });
-        queryClient.invalidateQueries('notifications');
-        queryClient.invalidateQueries('notificationCount');
-      },
-      onError: (error: any) => {
-        toast({
-          title: 'Error',
-          description: error.message || 'Failed to mark all notifications as read',
-          variant: 'destructive',
-        });
-      },
-    }
-  );
+  const markAllAsRead = useMutation({
+    mutationFn: () => notificationService.markAllAsRead(),
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'All notifications marked as read',
+        variant: 'default',
+      });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notificationCount'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to mark all notifications as read',
+        variant: 'destructive',
+      });
+    },
+  });
 
   // Delete notification mutation
-  const deleteNotification = useMutation(
-    (id: string) => notificationService.deleteNotification(id),
-    {
-      onSuccess: () => {
-        toast({
-          title: 'Success',
-          description: 'Notification deleted successfully',
-          variant: 'default',
-        });
-        queryClient.invalidateQueries('notifications');
-        queryClient.invalidateQueries('notificationCount');
-      },
-      onError: (error: any) => {
-        toast({
-          title: 'Error',
-          description: error.message || 'Failed to delete notification',
-          variant: 'destructive',
-        });
-      },
-    }
-  );
+  const deleteNotification = useMutation({
+    mutationFn: (id: string) => notificationService.deleteNotification(id),
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Notification deleted successfully',
+        variant: 'default',
+      });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notificationCount'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete notification',
+        variant: 'destructive',
+      });
+    },
+  });
 
   return {
     // Queries
