@@ -17,14 +17,14 @@
   to = "https://authentication-service-415554190254.us-central1.run.app/api/auth/:splat"
   status = 200
   force = true
-  headers = {Access-Control-Allow-Origin = "*", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, PATCH, OPTIONS", Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type, Accept, Authorization", X-From = "Netlify"}
+  headers = {Access-Control-Allow-Origin = "*", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, PATCH, OPTIONS", Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-user-id", X-From = "Netlify"}
 
 [[redirects]]
   from = "/api/v1/*"
   to = "https://backend-415554190254.us-central1.run.app/api/v1/:splat"
   status = 200
   force = true
-  headers = {Access-Control-Allow-Origin = "*", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, PATCH, OPTIONS", Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type, Accept, Authorization", X-From = "Netlify"}
+  headers = {Access-Control-Allow-Origin = "*", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, PATCH, OPTIONS", Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-user-id", X-From = "Netlify"}
 
 # Handle OPTIONS preflight requests for CORS
 [[redirects]]
@@ -33,7 +33,7 @@
   status = 200
   force = true
   methods = ["OPTIONS"]
-  headers = {Access-Control-Allow-Origin = "*", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, PATCH, OPTIONS", Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type, Accept, Authorization", X-From = "Netlify"}
+  headers = {Access-Control-Allow-Origin = "*", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, PATCH, OPTIONS", Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-user-id", X-From = "Netlify"}
 
 # SPA redirect - MUST be last
 [[redirects]]
