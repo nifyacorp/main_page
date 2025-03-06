@@ -45,7 +45,25 @@ class NotificationService {
    */
   async getNotifications(params?: NotificationListParams): Promise<NotificationListResponse> {
     try {
-      const response = await apiClient.get('/notifications', { params });
+      console.log('Notifications API - list');
+      console.log('Listing notifications with options:', params);
+      const response = await apiClient.get('/v1/notifications', { params });
+      console.log('Processing notification response:', {
+        hasData: !!response.data,
+        status: response.status
+      });
+      
+      console.log('Raw API response received:', {
+        status: response.status,
+        hasData: !!response.data
+      });
+      
+      console.log('Processed notifications:', {
+        count: response.data?.notifications?.length,
+        total: response.data?.total
+      });
+      
+      console.log('Returning processed notifications response');
       return response.data;
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -58,7 +76,7 @@ class NotificationService {
    */
   async getNotification(id: string): Promise<Notification> {
     try {
-      const response = await apiClient.get(`/notifications/${id}`);
+      const response = await apiClient.get(`/v1/notifications/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching notification ${id}:`, error);
@@ -71,7 +89,7 @@ class NotificationService {
    */
   async markAsRead(id: string): Promise<void> {
     try {
-      await apiClient.put(`/notifications/${id}/read`);
+      await apiClient.put(`/v1/notifications/${id}/read`);
     } catch (error) {
       console.error(`Error marking notification ${id} as read:`, error);
       throw error;
@@ -83,7 +101,7 @@ class NotificationService {
    */
   async markAllAsRead(): Promise<void> {
     try {
-      await apiClient.put('/notifications/read-all');
+      await apiClient.put('/v1/notifications/read-all');
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
       throw error;
@@ -95,7 +113,7 @@ class NotificationService {
    */
   async deleteNotification(id: string): Promise<void> {
     try {
-      await apiClient.delete(`/notifications/${id}`);
+      await apiClient.delete(`/v1/notifications/${id}`);
     } catch (error) {
       console.error(`Error deleting notification ${id}:`, error);
       throw error;
@@ -113,7 +131,7 @@ class NotificationService {
     byType: Record<string, number>;
   }> {
     try {
-      const response = await apiClient.get('/notifications/stats');
+      const response = await apiClient.get('/v1/notifications/stats');
       return response.data;
     } catch (error) {
       console.error('Error fetching notification stats:', error);
@@ -129,7 +147,7 @@ class NotificationService {
     sources: Array<{ name: string; count: number; color: string }>;
   }> {
     try {
-      const response = await apiClient.get('/notifications/activity');
+      const response = await apiClient.get('/v1/notifications/activity');
       return response.data;
     } catch (error) {
       console.error('Error fetching notification activity:', error);
@@ -142,7 +160,7 @@ class NotificationService {
    */
   async getNotificationsBySubscription(subscriptionId: string, params?: NotificationListParams): Promise<NotificationListResponse> {
     try {
-      const response = await apiClient.get(`/subscriptions/${subscriptionId}/notifications`, { params });
+      const response = await apiClient.get(`/v1/subscriptions/${subscriptionId}/notifications`, { params });
       return response.data;
     } catch (error) {
       console.error(`Error fetching notifications for subscription ${subscriptionId}:`, error);

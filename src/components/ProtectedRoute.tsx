@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from './DashboardLayout';
+import { useAuth } from '@/contexts/AuthContext';
+import LoadingPage from './LoadingPage';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -8,15 +10,23 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const navigate = useNavigate();
-  const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+  const { isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/auth');
+    // Only redirect if auth check is complete and user is not authenticated
+    if (!isLoading && !isAuthenticated) {
+      console.log('User not authenticated, redirecting to login');
+      navigate('/auth', { state: { isLogin: true } });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, isLoading, navigate]);
 
+  // Show loading while checking auth status
+  if (isLoading) {
+    return <LoadingPage />;
+  }
+
+  // Only render the children if authenticated
   return isAuthenticated ? <DashboardLayout>{children}</DashboardLayout> : null;
 };
 
-export default ProtectedRoute; 
+export default ProtectedRoute;

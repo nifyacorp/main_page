@@ -1,7 +1,17 @@
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 // Environment variables
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+const useNetlifyRedirects = import.meta.env.VITE_USE_NETLIFY_REDIRECTS === 'true';
+console.log('Using Netlify redirects:', useNetlifyRedirects);
+
+// If using Netlify redirects, API requests go through the same origin
+// Otherwise, use the backend URLs directly
+const API_BASE_URL = useNetlifyRedirects 
+  ? '/api' 
+  : import.meta.env.VITE_BACKEND_URL ? `${import.meta.env.VITE_BACKEND_URL}/api` : 'http://localhost:3000/api';
+
+console.log('API base URL being used:', API_BASE_URL);
+
 const AUTH_TOKEN_KEY = import.meta.env.VITE_AUTH_TOKEN_KEY || 'nifya_auth_token';
 const REFRESH_TOKEN_KEY = import.meta.env.VITE_REFRESH_TOKEN_KEY || 'nifya_refresh_token';
 
@@ -31,6 +41,23 @@ apiClient.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
     
+    console.log('Request details:', {
+      url: config.url,
+      method: config.method,
+      baseURL: config.baseURL
+    });
+    
+    console.log('Auth headers:', {
+      Authorization: config.headers?.Authorization ? 'Bearer [token]' : 'None'
+    });
+    
+    console.log('Final request options:', {
+      url: config.url,
+      baseURL: config.baseURL,
+      hasAuth: !!config.headers?.Authorization,
+      method: config.method
+    });
+    
     return config;
   },
   (error: AxiosError): Promise<AxiosError> => {
@@ -41,6 +68,22 @@ apiClient.interceptors.request.use(
 // Response interceptor for handling errors and token refresh
 apiClient.interceptors.response.use(
   (response: AxiosResponse): AxiosResponse => {
+    console.log('Response received:', {
+      status: response.status,
+      url: response.config.url,
+    });
+    
+    console.log('Parsed JSON response:', {
+      type: typeof response.data,
+      hasData: !!response.data
+    });
+    
+    console.log('Final API response object:', {
+      status: response.status,
+      statusText: response.statusText,
+      hasData: !!response.data
+    });
+    
     return response;
   },
   async (error: AxiosError): Promise<any> => {
@@ -94,4 +137,4 @@ apiClient.interceptors.response.use(
   }
 );
 
-export default apiClient; 
+export default apiClient;

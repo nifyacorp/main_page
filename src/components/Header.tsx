@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Menu, X, Bell, User, LogOut, Settings } from 'lucide-react';
@@ -10,11 +10,27 @@ export default function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [authState, setAuthState] = useState({ isAuthenticated: false, user: null });
+  
+  // Use effect to update auth state from context
+  useEffect(() => {
+    setAuthState({ isAuthenticated, user });
+    console.log('Auth state in header updated:', { isAuthenticated, user });
+  }, [isAuthenticated, user]);
   
   const handleLogoClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    if (isAuthenticated) {
+    if (authState.isAuthenticated) {
       e.preventDefault();
       navigate('/dashboard');
+    }
+  };
+  
+  const handleLogout = async () => {
+    try {
+      await logout();
+      // Navigation will be handled by auth context
+    } catch (error) {
+      console.error('Logout error:', error);
     }
   };
   
@@ -23,7 +39,7 @@ export default function Header() {
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center">
           <Link 
-            to={isAuthenticated ? "/dashboard" : "/"} 
+            to={authState.isAuthenticated ? "/dashboard" : "/"} 
             className="mr-6 flex items-center space-x-2"
             onClick={handleLogoClick}
           >
@@ -33,17 +49,22 @@ export default function Header() {
           
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-4">
-            {isAuthenticated && (
-              <Link to="/dashboard" className="text-sm font-medium hover:text-primary">
-                Dashboard
-              </Link>
+            {authState.isAuthenticated && (
+              <>
+                <Link to="/dashboard" className="text-sm font-medium hover:text-primary">
+                  Dashboard
+                </Link>
+                <Link to="/subscriptions" className="text-sm font-medium hover:text-primary">
+                  Subscriptions
+                </Link>
+              </>
             )}
           </nav>
         </div>
 
         {/* Right side nav items */}
         <div className="flex items-center gap-4">
-          {isAuthenticated ? (
+          {authState.isAuthenticated ? (
             <>
               <Link to="/notifications" className="p-2 hover:bg-accent rounded-full">
                 <Bell className="h-5 w-5" />
@@ -53,7 +74,7 @@ export default function Header() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-full h-9 w-9">
                     <div className="h-8 w-8 bg-primary/10 text-primary rounded-full flex items-center justify-center">
-                      {user?.name?.charAt(0) || 'U'}
+                      {authState.user?.name?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || 'U'}
                     </div>
                   </Button>
                 </DropdownMenuTrigger>
@@ -62,7 +83,7 @@ export default function Header() {
                     <Settings className="mr-2 h-4 w-4" />
                     <span>Settings</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => logout()}>
+                  <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
                   </DropdownMenuItem>
@@ -81,7 +102,7 @@ export default function Header() {
           )}
           
           {/* Mobile menu button - only show for non-authenticated or on landing page */}
-          {(!isAuthenticated || location.pathname === '/') && (
+          {(!authState.isAuthenticated || location.pathname === '/') && (
             <button 
               className="md:hidden p-2 hover:bg-accent rounded-full"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -97,7 +118,7 @@ export default function Header() {
       </div>
       
       {/* Mobile menu - only for non-authenticated */}
-      {mobileMenuOpen && !isAuthenticated && (
+      {mobileMenuOpen && !authState.isAuthenticated && (
         <div className="md:hidden p-4 bg-background border-t">
           <div className="flex flex-col space-y-4">
             <Link to="/" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
@@ -114,4 +135,4 @@ export default function Header() {
       )}
     </header>
   );
-} 
+}

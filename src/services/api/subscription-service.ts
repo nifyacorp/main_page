@@ -69,7 +69,7 @@ class SubscriptionService {
    */
   async getSubscriptions(params?: SubscriptionListParams): Promise<SubscriptionListResponse> {
     try {
-      const response = await apiClient.get('/subscriptions', { params });
+      const response = await apiClient.get('/v1/subscriptions', { params });
       return response.data;
     } catch (error) {
       console.error('Error fetching subscriptions:', error);
@@ -82,7 +82,7 @@ class SubscriptionService {
    */
   async getSubscription(id: string): Promise<Subscription> {
     try {
-      const response = await apiClient.get(`/subscriptions/${id}`);
+      const response = await apiClient.get(`/v1/subscriptions/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching subscription ${id}:`, error);
@@ -95,7 +95,7 @@ class SubscriptionService {
    */
   async createSubscription(data: SubscriptionFormData): Promise<Subscription> {
     try {
-      const response = await apiClient.post('/subscriptions', data);
+      const response = await apiClient.post('/v1/subscriptions', data);
       return response.data;
     } catch (error) {
       console.error('Error creating subscription:', error);
@@ -108,7 +108,7 @@ class SubscriptionService {
    */
   async updateSubscription(id: string, data: SubscriptionFormData): Promise<Subscription> {
     try {
-      const response = await apiClient.put(`/subscriptions/${id}`, data);
+      const response = await apiClient.put(`/v1/subscriptions/${id}`, data);
       return response.data;
     } catch (error) {
       console.error(`Error updating subscription ${id}:`, error);
@@ -121,7 +121,7 @@ class SubscriptionService {
    */
   async deleteSubscription(id: string): Promise<void> {
     try {
-      await apiClient.delete(`/subscriptions/${id}`);
+      await apiClient.delete(`/v1/subscriptions/${id}`);
     } catch (error) {
       console.error(`Error deleting subscription ${id}:`, error);
       throw error;
@@ -133,7 +133,7 @@ class SubscriptionService {
    */
   async processSubscription(id: string): Promise<{ message: string; jobId?: string }> {
     try {
-      const response = await apiClient.post(`/subscriptions/${id}/process`);
+      const response = await apiClient.post(`/v1/subscriptions/${id}/process`);
       return response.data;
     } catch (error) {
       console.error(`Error processing subscription ${id}:`, error);
@@ -146,7 +146,7 @@ class SubscriptionService {
    */
   async toggleSubscriptionStatus(id: string, isActive: boolean): Promise<Subscription> {
     try {
-      const response = await apiClient.patch(`/subscriptions/${id}/status`, { isActive });
+      const response = await apiClient.patch(`/v1/subscriptions/${id}/status`, { isActive });
       return response.data;
     } catch (error) {
       console.error(`Error toggling subscription status ${id}:`, error);
@@ -159,7 +159,7 @@ class SubscriptionService {
    */
   async shareSubscription(id: string, email: string): Promise<{ message: string }> {
     try {
-      const response = await apiClient.post(`/subscriptions/${id}/share`, { email });
+      const response = await apiClient.post(`/v1/subscriptions/${id}/share`, { email });
       return response.data;
     } catch (error) {
       console.error(`Error sharing subscription ${id}:`, error);
@@ -178,7 +178,7 @@ class SubscriptionService {
     byFrequency: Record<string, number>;
   }> {
     try {
-      const response = await apiClient.get('/subscriptions/stats');
+      const response = await apiClient.get('/v1/subscriptions/stats');
       return response.data;
     } catch (error) {
       console.error('Error fetching subscription stats:', error);
@@ -187,4 +187,4 @@ class SubscriptionService {
   }
 }
 
-export default new SubscriptionService(); 
+export default new SubscriptionService();

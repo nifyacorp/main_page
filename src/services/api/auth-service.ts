@@ -1,6 +1,9 @@
 import apiClient, { ApiError } from './axios-config';
 
 // Environment variables
+const AUTH_URL = import.meta.env.VITE_AUTH_URL;
+console.log('Auth URL being used:', AUTH_URL || '(Using Netlify redirects)');
+
 const AUTH_TOKEN_KEY = import.meta.env.VITE_AUTH_TOKEN_KEY || 'nifya_auth_token';
 const REFRESH_TOKEN_KEY = import.meta.env.VITE_REFRESH_TOKEN_KEY || 'nifya_refresh_token';
 
@@ -174,8 +177,33 @@ class AuthService {
    * Get the current user profile
    */
   async getCurrentUser(): Promise<User> {
+    console.log('🔒 User Profile Flow');
+    console.log('Step 1: Checking authentication state');
+    
+    const token = this.getToken();
+    console.log('Current auth state:', { 
+      hasToken: !!token,
+      isAuthenticated: this.isAuthenticated() 
+    });
+    
     try {
-      const response = await apiClient.get<User>('/auth/me');
+      console.log('Step 2: Fetching user profile from API');
+      console.log('Making request to /api/users/me endpoint');
+      
+      console.log('👤 Get User Profile');
+      console.log('Fetching user profile...');
+      
+      const response = await apiClient.get<User>('/v1/users/me');
+      
+      console.log('Step 3: Processing API response');
+      console.log('Response data:', {
+        hasData: !!response.data,
+        status: response.status
+      });
+      
+      console.log('Step 3 Success: Valid profile data received');
+      console.log('✅ Profile fetch completed successfully');
+      
       return response.data;
     } catch (error) {
       console.error('Get current user error:', error);
@@ -236,4 +264,4 @@ class AuthService {
   }
 }
 
-export default new AuthService(); 
+export default new AuthService();
