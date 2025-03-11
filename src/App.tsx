@@ -7,6 +7,7 @@ import Auth from './pages/Auth';
 import Subscriptions from './pages/Subscriptions';
 import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
+import SubscriptionDetail from './pages/SubscriptionDetail';
 import SubscriptionCatalog from './pages/SubscriptionCatalog';
 import SubscriptionPrompt from './pages/SubscriptionPrompt';
 import TemplateConfig from './pages/TemplateConfig';
@@ -153,6 +154,14 @@ export default function App() {
                   element={
                     <ProtectedRoute>
                       <SubscriptionPrompt mode="create" />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/subscriptions/:id"
+                  element={
+                    <ProtectedRoute>
+                      <SubscriptionDetail />
                     </ProtectedRoute>
                   }
                 />

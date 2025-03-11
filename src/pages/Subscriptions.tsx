@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Clock, FileText, Play, Edit, Trash, Bell, Loader2 } from 'lucide-react';
+import { Plus, Clock, FileText, Play, Edit, Trash, Bell, Loader2, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useSubscriptions } from '../hooks/use-subscriptions';
 import { useToast } from '../components/ui/use-toast';
@@ -11,6 +11,17 @@ import { Input } from '../components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "../components/ui/alert-dialog";
 
 export default function Subscriptions() {
   const { user } = useAuth();
@@ -19,12 +30,14 @@ export default function Subscriptions() {
   const [filterSource, setFilterSource] = useState('all');
   const [processingIds, setProcessingIds] = useState<Record<string, boolean>>({});
   const [completedIds, setCompletedIds] = useState<Record<string, boolean>>({});
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   
   // Use the subscriptions hook
   const { 
     subscriptions, 
     isLoadingSubscriptions,
-    processSubscription
+    processSubscription,
+    deleteSubscription
   } = useSubscriptions();
 
   // Use the real data or sample data if not loaded yet
@@ -81,6 +94,20 @@ export default function Subscriptions() {
       toast({
         title: "Processing failed",
         description: error instanceof Error ? error.message : "An error occurred while processing the subscription",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle deleting a subscription
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteSubscription.mutateAsync(id);
+      setDeletingId(null);
+    } catch (error) {
+      toast({
+        title: "Delete failed",
+        description: error instanceof Error ? error.message : "An error occurred while deleting the subscription",
         variant: "destructive",
       });
     }
@@ -198,7 +225,7 @@ export default function Subscriptions() {
                     variant="ghost" 
                     size="icon" 
                     onClick={() => handleProcess(subscription.id.toString())}
-                    disabled={processingIds[subscription.id] || completedIds[subscription.id]}
+                    disabled={processingIds[subscription.id] || completedIds[subscription.id] || deleteSubscription.isPending}
                     className={completedIds[subscription.id] ? "text-green-500" : ""}
                     title={
                       processingIds[subscription.id] ? "Procesando..." : 
@@ -215,15 +242,48 @@ export default function Subscriptions() {
                     )}
                   </Button>
                   
-                  <Button variant="ghost" size="icon" asChild>
+                  <Button variant="ghost" size="icon" asChild disabled={deleteSubscription.isPending}>
                     <Link to={`/subscriptions/${subscription.id}/edit`}>
                       <Edit className="h-4 w-4" />
                     </Link>
                   </Button>
                   
-                  <Button variant="ghost" size="icon" className="text-destructive/70 hover:text-destructive">
-                    <Trash className="h-4 w-4" />
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="text-destructive/70 hover:text-destructive"
+                        onClick={() => setDeletingId(subscription.id.toString())}
+                        disabled={deleteSubscription.isPending}
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta acción no se puede deshacer. Se eliminará permanentemente la suscripción 
+                          <span className="font-semibold"> {subscription.name}</span> y todos sus datos asociados.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setDeletingId(null)}>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={() => handleDelete(subscription.id.toString())}
+                          className="bg-destructive hover:bg-destructive/90"
+                        >
+                          {deleteSubscription.isPending && deletingId === subscription.id.toString() ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Trash className="h-4 w-4 mr-2" />
+                          )}
+                          Eliminar
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </CardFooter>
             </Card>
