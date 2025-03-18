@@ -60,7 +60,7 @@ class WebSocketClient {
     
     // For Netlify deployments, use relative URL to go through the same proxy
     if (import.meta.env.VITE_USE_NETLIFY_REDIRECTS === 'true') {
-      baseUrl = '/socket'; // We'll add a proxy for this path
+      baseUrl = '/socket.io'; // Use the same path that socket.io expects on the server
     } else {
       baseUrl = this.options.baseUrl || import.meta.env.VITE_BACKEND_URL || '';
     }
