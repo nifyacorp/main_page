@@ -1,14 +1,12 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { AlertTriangle, Bell, Newspaper, Home, Users, Archive, BookOpen, BellRing, Info, Compass, ClipboardCheck, PieChart, Lightbulb, Zap } from 'lucide-react';
+import { Bell, ClipboardCheck, PieChart } from 'lucide-react';
 import ErrorBoundary from './components/ErrorBoundary';
-import LoadingPage from './components/LoadingPage';
 import Auth from './pages/Auth';
 import Subscriptions from './pages/Subscriptions';
 import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
 import SubscriptionDetail from './pages/SubscriptionDetail';
-import SubscriptionCatalog from './pages/SubscriptionCatalog';
 import SubscriptionPrompt from './pages/SubscriptionPrompt';
 import TemplateConfig from './pages/TemplateConfig';
 import Notifications from './pages/Notifications';
@@ -147,7 +145,8 @@ export default function App() {
                   path="/subscriptions/catalog"
                   element={
                     <ProtectedRoute>
-                      <SubscriptionCatalog />
+                      {/* Redirect to /subscriptions/new as this is the modern replacement */}
+                      <Navigate to="/subscriptions/new" replace />
                     </ProtectedRoute>
                   }
                 />
