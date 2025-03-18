@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FileText, Building2, Brain, ArrowLeft, Plus, X, Bell, Clock } from 'lucide-react';
-import { subscriptionTypes, subscriptions } from '../lib/api';
+import { FileText, Building2, Brain, ArrowLeft, Plus, X, Bell, Clock, Loader2 } from 'lucide-react';
+import { subscriptions, templates } from '../lib/api';
+import { templateService } from '../lib/api/services/templates';
 import type { IconType } from 'lucide-react';
+import type { Template } from '../lib/api/types';
 
-interface SubscriptionType {
+interface Subscription {
   id: string;
   name: string;
   description: string;
-  icon: string;
-  isSystem: boolean;
-  createdBy: string | null;
+  prompts: string[];
+  frequency: 'immediate' | 'daily';
+  logo?: string;
+  type?: string;
 }
 
 const iconMap: Record<string, IconType> = {
@@ -41,7 +44,7 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
   const [frequency, setFrequency] = useState<'immediate' | 'daily'>('immediate');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [type, setType] = useState<SubscriptionType | null>(null);
+  const [template, setTemplate] = useState<Template | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
 
   useEffect(() => {
@@ -55,29 +58,50 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
           if (data?.subscription) {
             setSubscription(data.subscription);
             setPrompts(data.subscription.prompts);
-            setFrequency(data.subscription.frequency);
-            setType({
-              id: data.subscription.id,
-              name: data.subscription.name,
-              description: data.subscription.description,
-              icon: data.subscription.type === 'boe' ? 'FileText' : 
-                    data.subscription.type === 'real-estate' ? 'Building2' : 'Brain',
-              isSystem: true,
-              createdBy: null
-            });
+            setFrequency(data.subscription.frequency as 'immediate' | 'daily');
           }
         } else if (mode === 'create' && typeId) {
-          // Fetch subscription type for new subscription
-          const { data, error } = await subscriptionTypes.list();
-          if (error) throw new Error(error);
+          // Fetch template details for new subscription
+          const response = await templates.getDetails(typeId);
+          if (response.error) throw new Error(response.error);
 
-          const foundType = data?.types.find(t => t.id === typeId);
-          if (!foundType) throw new Error('Subscription type not found');
-          
-          setType(foundType);
+          if (response.data) {
+            setTemplate(response.data);
+            // If template has default prompts, use them
+            if (response.data.prompts && response.data.prompts.length > 0) {
+              setPrompts(response.data.prompts);
+            }
+            // Set default frequency from template
+            if (response.data.frequency) {
+              setFrequency(response.data.frequency);
+            }
+          }
         }
       } catch (err) {
+        console.error('Error fetching data:', err);
         setError(err instanceof Error ? err.message : 'Failed to load data');
+        
+        // In development mode, create a mock template if needed
+        if (import.meta.env.DEV && mode === 'create' && typeId) {
+          console.log('Creating mock template for development');
+          const mockTemplate: Template = {
+            id: typeId,
+            name: typeId === 'boe-template' ? 'BOE Subscription' : 'Custom Subscription',
+            description: 'Development mode template',
+            type: typeId === 'boe-template' ? 'boe' : 'custom',
+            prompts: [],
+            icon: typeId === 'boe-template' ? 'FileText' : 'Brain',
+            logo: '',
+            isPublic: true,
+            metadata: {
+              category: 'development',
+              source: 'mock'
+            },
+            frequency: 'daily'
+          };
+          setTemplate(mockTemplate);
+          setError(null);
+        }
       } finally {
         setLoading(false);
       }
@@ -86,8 +110,8 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
     fetchData();
   }, [mode, typeId, subscriptionId]);
 
-  if ((mode === 'create' && !typeId) || (!loading && !type)) {
-    navigate('/subscriptions/catalog');
+  if ((mode === 'create' && !typeId) || (!loading && !template && !subscription)) {
+    navigate('/subscriptions/new');
     return null;
   }
 
@@ -112,31 +136,55 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const validPrompts = prompts.filter(p => p.trim());
-    if (!type || validPrompts.length === 0) return;
+    if (validPrompts.length === 0) {
+      setError('Please add at least one prompt');
+      return;
+    }
+    
+    if (mode === 'create' && !template && !typeId) {
+      setError('No template selected');
+      return;
+    }
 
     try {
       setLoading(true);
+      setError(null);
       
       if (mode === 'edit' && subscriptionId) {
-        const { error } = await subscriptions.update(subscriptionId, {
+        const response = await subscriptions.update(subscriptionId, {
           prompts: validPrompts,
           frequency,
         });
-        if (error) throw new Error(error);
-      } else {
-        const { error } = await subscriptions.create({
-          typeId: typeId as string,
-          name: type.name,
-          description: type.description,
-          prompts: validPrompts,
-          logo: type.logo || '',
-          frequency,
-        });
-        if (error) throw new Error(error);
+        if (response.error) throw new Error(response.error);
+      } else if (template) {
+        // Try to subscribe to template
+        const response = await templates.subscribe(
+          template.id,
+          {
+            prompts: validPrompts,
+            frequency,
+          }
+        );
+        
+        if (response.error) {
+          // If template subscription fails, try direct creation
+          console.warn('Template subscription failed, falling back to direct creation');
+          const createResponse = await subscriptions.create({
+            typeId: typeId as string,
+            name: template.name,
+            description: template.description,
+            prompts: validPrompts,
+            logo: template.logo || '',
+            frequency,
+          });
+          
+          if (createResponse.error) throw new Error(createResponse.error);
+        }
       }
 
       navigate('/subscriptions');
     } catch (err) {
+      console.error(`Error ${mode === 'edit' ? 'updating' : 'creating'} subscription:`, err);
       setError(err instanceof Error ? err.message : `Failed to ${mode} subscription`);
     } finally {
       setLoading(false);
@@ -171,17 +219,36 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
           {mode === 'edit' ? 'Volver a suscripciones' : 'Volver al catálogo'}
         </button>
 
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md text-red-600">
+            {error}
+          </div>
+        )}
+        
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-3 rounded-full bg-primary/10">
-              {type && React.createElement(iconMap[type.icon] || Brain, {
-                className: "h-6 w-6 text-primary"
-              })}
+              {mode === 'edit' && subscription ? (
+                React.createElement(iconMap[subscription.type === 'boe' ? 'FileText' : 
+                  subscription.type === 'real-estate' ? 'Building2' : 'Brain'] || Brain, {
+                  className: "h-6 w-6 text-primary"
+                })
+              ) : template ? (
+                React.createElement(iconMap[template.icon] || Brain, {
+                  className: "h-6 w-6 text-primary"
+                })
+              ) : (
+                <Brain className="h-6 w-6 text-primary" />
+              )}
             </div>
-            <h1 className="text-2xl font-bold">{type?.name}</h1>
+            <h1 className="text-2xl font-bold">
+              {mode === 'edit' ? subscription?.name : template?.name}
+            </h1>
           </div>
           <p className="text-muted-foreground">
-            {mode === 'edit' ? 'Edita tu suscripción actual' : type?.description}
+            {mode === 'edit' 
+              ? 'Edita tu suscripción actual' 
+              : template?.description || 'Create a new subscription'}
           </p>
         </div>
 
@@ -200,7 +267,14 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
                   <textarea
                     value={prompt}
                     onChange={(e) => handlePromptChange(index, e.target.value)}
-                    placeholder={type ? getPromptPlaceholder(type.icon) : ''}
+                    placeholder={
+                      mode === 'edit' && subscription?.type 
+                        ? getPromptPlaceholder(subscription.type === 'boe' ? 'FileText' : 
+                           subscription.type === 'real-estate' ? 'Building2' : 'Brain')
+                        : template 
+                        ? getPromptPlaceholder(template.icon)
+                        : 'Enter what you want to monitor...'
+                    }
                     className="w-full h-32 px-4 py-3 rounded-lg border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none pr-10"
                     required
                   />

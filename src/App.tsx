@@ -19,6 +19,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/lib/theme/theme-provider';
 import Header from './components/Header';
 import { AuthProvider } from './contexts/AuthContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 
 // Lazy-load the pages
 const LandingPage = lazy(() => import('./pages/Landing'));
@@ -86,10 +87,11 @@ export default function App() {
     return (
       <ThemeProvider defaultTheme="system" storageKey="nifya-ui-theme">
         <AuthProvider>
-          <div className="min-h-screen bg-background text-foreground">
-            <Header />
-            <main>
-              <Routes>
+          <NotificationProvider>
+            <div className="min-h-screen bg-background text-foreground">
+              <Header />
+              <main>
+                <Routes>
                 <Route 
                   path="/" 
                   element={
@@ -204,6 +206,7 @@ export default function App() {
             </main>
             <Toaster />
           </div>
+          </NotificationProvider>
         </AuthProvider>
       </ThemeProvider>
     );
