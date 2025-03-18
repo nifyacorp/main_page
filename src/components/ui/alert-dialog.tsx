@@ -212,9 +212,11 @@ export function AlertDialogCancel({ className, children, ...props }: AlertDialog
         className
       )}
       onClick={(e) => {
+        e.stopPropagation(); // Stop event propagation
         if (props.onClick) props.onClick(e);
         onOpenChange(false);
       }}
+      type="button" // Explicitly set button type to prevent form submission
       {...props}
     >
       {children || "Cancel"}
