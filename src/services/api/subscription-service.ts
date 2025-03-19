@@ -146,7 +146,7 @@ class SubscriptionService {
    */
   async toggleSubscriptionStatus(id: string, isActive: boolean): Promise<Subscription> {
     try {
-      const response = await apiClient.patch(`/v1/subscriptions/${id}/status`, { isActive });
+      const response = await apiClient.patch(`/v1/subscriptions/${id}/toggle`, { active: isActive });
       return response.data;
     } catch (error) {
       console.error(`Error toggling subscription status ${id}:`, error);

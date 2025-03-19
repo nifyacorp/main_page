@@ -59,14 +59,15 @@ function normalizeNotification(data: any): Notification {
     };
   }
   
-  // Debug logging to see the raw notification data
-  console.log('Normalizing notification:', { 
-    id: data.id,
-    originalTitle: data.title,
-    possibleAlternateTitle: data.notification_title || data.message_title || data.subject,
-    hasTitle: !!data.title,
-    contentPreview: data.content ? data.content.substring(0, 30) + '...' : 'no content'
-  });
+  // Debug logging only in development mode
+  if (import.meta.env.DEV) {
+    console.log('Normalizing notification:', { 
+      id: data.id,
+      originalTitle: data.title,
+      hasTitle: !!data.title,
+      contentPreview: data.content ? data.content.substring(0, 30) + '...' : 'no content'
+    });
+  }
   
   // Look for a title in multiple possible fields
   let title = data.title || data.notification_title || data.message_title || data.subject || '';
@@ -138,14 +139,13 @@ function normalizeNotification(data: any): Notification {
 export function enhanceNotification(notification: any): Notification {
   if (!notification) return notification;
   
-  // Log the raw notification data before normalization
-  console.log('Enhancing notification:', { 
-    id: notification.id,
-    rawTitle: notification.title,
-    hasRawTitle: !!notification.title,
-    keys: notification ? Object.keys(notification) : [],
-    dataType: typeof notification
-  });
+  // Log the raw notification data before normalization (only in development mode)
+  if (import.meta.env.DEV) {
+    console.log('Enhancing notification:', { 
+      id: notification.id,
+      hasTitle: !!notification.title
+    });
+  }
   
   // First normalize the notification structure
   const normalized = normalizeNotification(notification);
@@ -247,30 +247,20 @@ export const notificationService = {
         };
       }
       
-      // Debug the raw notification data from the backend
-      if (response.data.notifications.length > 0) {
+      // Debug the raw notification data from the backend (only in development mode)
+      if (import.meta.env.DEV && response.data.notifications.length > 0) {
         const firstNotification = response.data.notifications[0];
         console.log('First raw notification from backend:', {
-          sample: firstNotification,
           hasTitle: !!firstNotification.title,
-          titleValue: firstNotification.title,
           titleType: typeof firstNotification.title,
-          titleLength: firstNotification.title?.length,
-          keys: Object.keys(firstNotification)
+          hasMetadata: !!firstNotification.metadata
         });
         
-        // Add this additional logging to extract the real title structure
+        // Add minimal debugging for missing title
         if (firstNotification.title === undefined) {
-          console.warn('Title is undefined in notification', firstNotification);
-          // Check if title is in metadata or other fields
-          console.log('Possible title fields:', {
-            notification_title: firstNotification.notification_title,
-            message_title: firstNotification.message_title,
-            subject: firstNotification.subject,
-            message: firstNotification.message,
-            hasMessage: !!firstNotification.message,
-            hasMetadata: !!firstNotification.metadata,
-            metadataKeys: firstNotification.metadata ? Object.keys(firstNotification.metadata) : []
+          console.warn('Title is undefined in notification', {
+            id: firstNotification.id,
+            hasMetadata: !!firstNotification.metadata
           });
         }
       }

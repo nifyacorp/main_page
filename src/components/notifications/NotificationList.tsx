@@ -1,9 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { format, isToday, isYesterday, isThisWeek, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-<<<<<<< HEAD
-import { Notification, notificationService } from '../../lib/api/services/notifications';
-=======
 import { CheckCircle, Bell, ExternalLink, Trash2, Eye } from 'lucide-react';
 import { 
   Notification, 
@@ -11,7 +8,6 @@ import {
   enhanceNotification, 
   enhanceNotifications 
 } from '../../lib/api/services/notifications';
->>>>>>> 4fd3b08e6314ff559d4deb347ee8ec16103b1dc8
 import { useNotifications } from '../../contexts/NotificationContext';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
 import { Button } from '../ui/button';
@@ -64,34 +60,27 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
       if (response.data && response.data.notifications && response.data.notifications.length > 0) {
         console.log(`Received ${response.data.notifications.length} notifications from API`);
         
-        // Add detailed debugging for raw notifications
-        console.group('Raw Notification Structure Analysis');
-        try {
-          const firstRaw = response.data.notifications[0];
-          console.log('Raw notification structure example:', {
-            first: firstRaw,
-            keys: Object.keys(firstRaw),
-            hasDirectTitle: 'title' in firstRaw,
-            directTitleValue: firstRaw.title,
-            directTitleType: typeof firstRaw.title,
-            possibleAlternateTitles: {
-              notification_title: firstRaw.notification_title,
-              message_title: firstRaw.message_title,
-              subject: firstRaw.subject
-            },
-            hasMessage: 'message' in firstRaw,
-            messageType: typeof firstRaw.message,
-            messageStructure: firstRaw.message ? (typeof firstRaw.message === 'object' ? Object.keys(firstRaw.message) : 'not an object') : null,
-            hasMetadata: 'metadata' in firstRaw,
-            metadataKeys: firstRaw.metadata ? Object.keys(firstRaw.metadata) : []
-          });
-          
-          // Dump stringified version for complete analysis
-          console.log('Full raw notification JSON:', JSON.stringify(firstRaw, null, 2));
-        } catch (error) {
-          console.error('Error analyzing notification structure:', error);
+        // Process debugging data only in development mode
+        if (import.meta.env.DEV) {
+          // Add detailed debugging for raw notifications
+          console.group('Raw Notification Structure Analysis');
+          try {
+            const firstRaw = response.data.notifications[0];
+            console.log('Raw notification structure example:', {
+              first: firstRaw,
+              keys: Object.keys(firstRaw),
+              hasDirectTitle: 'title' in firstRaw,
+              directTitleValue: firstRaw.title,
+              directTitleType: typeof firstRaw.title,
+              hasMessage: 'message' in firstRaw,
+              hasMetadata: 'metadata' in firstRaw,
+              metadataKeys: firstRaw.metadata ? Object.keys(firstRaw.metadata) : []
+            });
+          } catch (error) {
+            console.error('Error analyzing notification structure:', error);
+          }
+          console.groupEnd();
         }
-        console.groupEnd();
         
         // Process the notifications and enhance them
         const processedNotifications = enhanceNotifications(response.data.notifications);
@@ -297,18 +286,18 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
   };
 
   const getNotificationTitle = (notification: Notification): string => {
-    console.log('Processing notification title:', {
-      id: notification.id,
-      originalTitle: notification.title,
-      isUntitled: notification.title === 'Untitled Notification',
-      hasContent: !!notification.content,
-      contentLength: notification.content?.length || 0,
-      contentPreview: notification.content ? notification.content.substring(0, 30) + '...' : 'none'
-    });
+    // Only log in development mode
+    if (import.meta.env.DEV) {
+      console.log('Processing notification title:', {
+        id: notification.id,
+        hasTitle: !!notification.title,
+        isUntitled: notification.title === 'Untitled Notification',
+        hasContent: !!notification.content
+      });
+    }
 
     // Step 1: Check if we have a real title that's not the default "Untitled Notification"
     if (notification.title && notification.title !== 'Untitled Notification') {
-      console.log(`Using original title for notification ${notification.id}: "${notification.title}"`);
       return notification.title;
     }
     
@@ -317,7 +306,6 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
       const truncatedContent = notification.content.length > 50 
         ? `${notification.content.substring(0, 47)}...` 
         : notification.content;
-      console.log(`Using content as title for notification ${notification.id}: "${truncatedContent}"`);
       return truncatedContent;
     }
     
@@ -329,13 +317,11 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
                             notification.metadata.name;
       
       if (metadataTitle) {
-        console.log(`Found title in metadata for notification ${notification.id}: "${metadataTitle}"`);
         return typeof metadataTitle === 'string' ? metadataTitle : String(metadataTitle);
       }
     }
     
     // Step 4: Last resort fallback
-    console.log(`Falling back to "Untitled Notification" for ${notification.id}`);
     return 'Untitled Notification';
   };
 
@@ -420,12 +406,8 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
               >
                 <div className="flex justify-between">
                   <div className="flex-grow">
-                    {/* Debug notification title */}
-                    {console.log('Rendering notification:', {
-                      id: notification.id,
-                      titleBeforeHelper: notification.title,
-                      titleAfterHelper: getNotificationTitle(notification)
-                    })}
+                    {/* Debug notification title only in development */}
+                    {import.meta.env.DEV && console.log('Rendering notification ID:', notification.id)}
                     <h4 className={`font-medium ${!notification.read ? 'font-bold' : ''}`}>
                       {getNotificationTitle(notification)}
                     </h4>

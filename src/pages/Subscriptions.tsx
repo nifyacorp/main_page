@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Clock, FileText, Play, Edit, Trash, Bell, Loader2 } from 'lucide-react';
+import { Plus, Clock, FileText, Play, Edit, Trash, Bell, Loader2, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useSubscriptions } from '../hooks/use-subscriptions';
 import { useToast } from '../components/ui/use-toast';
@@ -11,6 +11,17 @@ import { Input } from '../components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "../components/ui/alert-dialog";
 
 export default function Subscriptions() {
   const { user } = useAuth();
@@ -19,20 +30,18 @@ export default function Subscriptions() {
   const [filterSource, setFilterSource] = useState('all');
   const [processingIds, setProcessingIds] = useState<Record<string, boolean>>({});
   const [completedIds, setCompletedIds] = useState<Record<string, boolean>>({});
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   
   // Use the subscriptions hook
   const { 
     subscriptions, 
     isLoadingSubscriptions,
-    processSubscription
+    processSubscription,
+    deleteSubscription
   } = useSubscriptions();
 
-  // Use the real data or sample data if not loaded yet
-  const subscriptionsData = isLoadingSubscriptions 
-    ? [] 
-    : subscriptions.length > 0 
-      ? subscriptions 
-      : sampleSubscriptionData;
+  // Only use real data from the database
+  const subscriptionsData = subscriptions || [];
 
   // Filter subscriptions based on search and filters
   const filteredSubscriptions = subscriptionsData.filter(sub => {
@@ -81,6 +90,40 @@ export default function Subscriptions() {
       toast({
         title: "Processing failed",
         description: error instanceof Error ? error.message : "An error occurred while processing the subscription",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle deleting a subscription
+  const handleDelete = async (id: string) => {
+    try {
+      // Set deletingId to track which subscription is being deleted
+      setDeletingId(id);
+      
+      // Call the mutation
+      await deleteSubscription.mutateAsync(id);
+      
+      // Show success message
+      toast({
+        title: "Subscription deleted",
+        description: "The subscription has been deleted successfully",
+        variant: "default",
+      });
+      
+      // Reset deleting state
+      setDeletingId(null);
+      
+      // Refetch subscriptions to update the list
+      queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['subscriptionStats'] });
+    } catch (error) {
+      // Reset deleting state and show error
+      setDeletingId(null);
+      
+      toast({
+        title: "Delete failed",
+        description: error instanceof Error ? error.message : "An error occurred while deleting the subscription",
         variant: "destructive",
       });
     }
@@ -197,8 +240,13 @@ export default function Subscriptions() {
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    onClick={() => handleProcess(subscription.id.toString())}
-                    disabled={processingIds[subscription.id] || completedIds[subscription.id]}
+                    onClick={() => handleProcess(subscription.id)}
+                    disabled={
+                      processingIds[subscription.id] || 
+                      completedIds[subscription.id] || 
+                      deleteSubscription.isPending ||
+                      processSubscription.isPending
+                    }
                     className={completedIds[subscription.id] ? "text-green-500" : ""}
                     title={
                       processingIds[subscription.id] ? "Procesando..." : 
@@ -215,15 +263,48 @@ export default function Subscriptions() {
                     )}
                   </Button>
                   
-                  <Button variant="ghost" size="icon" asChild>
+                  <Button variant="ghost" size="icon" asChild disabled={deleteSubscription.isPending}>
                     <Link to={`/subscriptions/${subscription.id}/edit`}>
                       <Edit className="h-4 w-4" />
                     </Link>
                   </Button>
                   
-                  <Button variant="ghost" size="icon" className="text-destructive/70 hover:text-destructive">
-                    <Trash className="h-4 w-4" />
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="text-destructive/70 hover:text-destructive"
+                        onClick={() => setDeletingId(subscription.id.toString())}
+                        disabled={deleteSubscription.isPending}
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta acción no se puede deshacer. Se eliminará permanentemente la suscripción 
+                          <span className="font-semibold"> {subscription.name}</span> y todos sus datos asociados.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setDeletingId(null)}>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={() => handleDelete(subscription.id.toString())}
+                          className="bg-destructive hover:bg-destructive/90"
+                        >
+                          {deleteSubscription.isPending && deletingId === subscription.id.toString() ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Trash className="h-4 w-4 mr-2" />
+                          )}
+                          Eliminar
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </CardFooter>
             </Card>
@@ -234,68 +315,36 @@ export default function Subscriptions() {
       {!isLoadingSubscriptions && filteredSubscriptions.length === 0 && (
         <div className="text-center py-12 bg-card rounded-lg border">
           <Bell className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="text-lg font-medium mb-1">No se encontraron subscripciones</h3>
-          <p className="text-muted-foreground mb-4">Prueba a ajustar tu búsqueda o filtros</p>
-          <Button 
-            variant="outline" 
-            onClick={() => {setSearchTerm(''); setFilterSource('all');}}
-          >
-            Limpiar filtros
-          </Button>
+          {searchTerm || filterSource !== 'all' ? (
+            <>
+              <h3 className="text-lg font-medium mb-1">No se encontraron subscripciones</h3>
+              <p className="text-muted-foreground mb-4">Prueba a ajustar tu búsqueda o filtros</p>
+              <Button 
+                variant="outline" 
+                onClick={() => {setSearchTerm(''); setFilterSource('all');}}
+              >
+                Limpiar filtros
+              </Button>
+            </>
+          ) : (
+            <>
+              <h3 className="text-lg font-medium mb-1">Aún no tienes suscripciones</h3>
+              <p className="text-muted-foreground mb-4">Crea tu primera suscripción para recibir notificaciones</p>
+              <Button 
+                variant="default" 
+                asChild
+              >
+                <Link to="/subscriptions/new" className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  <span>Nueva Subscripción</span>
+                </Link>
+              </Button>
+            </>
+          )}
         </div>
       )}
     </div>
   );
 }
 
-// Sample data (used when backend data is not available)
-const sampleSubscriptionData = [
-  { 
-    id: "1", 
-    name: "BOE Legal Updates", 
-    description: "Updates on legal regulations published in BOE",
-    source: "BOE", 
-    frequency: "Instant", 
-    keywords: ["law", "regulation", "legal"], 
-    lastNotification: "2 hours ago", 
-    status: "active", 
-    notifications: 24,
-    createdAt: "2023-12-10"
-  },
-  { 
-    id: "2", 
-    name: "DOGA Regulatory Changes", 
-    description: "Changes to regional regulations in Galicia",
-    source: "DOGA", 
-    frequency: "Daily", 
-    keywords: ["regulation", "Galicia", "policy"], 
-    lastNotification: "1 day ago", 
-    status: "active", 
-    notifications: 16,
-    createdAt: "2023-12-15"
-  },
-  { 
-    id: "3", 
-    name: "Tax Law Updates", 
-    description: "Updates on tax legislation and regulations",
-    source: "BOE", 
-    frequency: "Weekly", 
-    keywords: ["tax", "fiscal", "budget"], 
-    lastNotification: "3 days ago", 
-    status: "active", 
-    notifications: 8,
-    createdAt: "2023-12-05"
-  },
-  { 
-    id: "4", 
-    name: "Environmental Regulations", 
-    description: "Environmental policy updates and regulations",
-    source: "DOGA", 
-    frequency: "Instant", 
-    keywords: ["environment", "ecological", "sustainability"], 
-    lastNotification: "1 week ago", 
-    status: "active", 
-    notifications: 5,
-    createdAt: "2023-11-22"
-  },
-];
+// No sample data - only use real data from backend

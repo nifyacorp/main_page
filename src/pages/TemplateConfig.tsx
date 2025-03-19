@@ -35,7 +35,7 @@ const TemplateConfig = () => {
   useEffect(() => {
     const fetchTemplate = async () => {
       if (!templateId) {
-        navigate('/subscriptions/catalog');
+        navigate('/subscriptions/new');
         return;
       }
 
@@ -57,7 +57,7 @@ const TemplateConfig = () => {
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load template');
-        navigate('/subscriptions/catalog');
+        navigate('/subscriptions/new');
       } finally {
         setLoading(false);
       }
@@ -142,7 +142,7 @@ const TemplateConfig = () => {
     <div className="p-8">
       <div className="max-w-2xl mx-auto">
         <button
-          onClick={() => navigate('/subscriptions/catalog')}
+          onClick={() => navigate('/subscriptions/new')}
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8"
         >
           <ArrowLeft className="h-4 w-4" />

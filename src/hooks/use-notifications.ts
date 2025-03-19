@@ -34,9 +34,24 @@ export function useNotifications(params?: NotificationListParams) {
     data: notificationCount,
     isLoading: isLoadingCount,
     refetch: refetchCount,
+    error: countError
   } = useQuery({
     queryKey: ['notificationCount'],
-    queryFn: () => notificationService.getNotificationCount(),
+    queryFn: async () => {
+      try {
+        return await notificationService.getNotificationCount();
+      } catch (error) {
+        console.error('Error fetching notification count:', error);
+        // Return default values to prevent UI errors
+        return {
+          total: 0,
+          unread: 0,
+          change: 0,
+          isIncrease: false,
+          byType: {}
+        };
+      }
+    },
     staleTime: 30000, // 30 seconds
     refetchInterval: 60000, // Poll every minute
   });

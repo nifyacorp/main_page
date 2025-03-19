@@ -1,13 +1,12 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { AlertTriangle, Bell, Newspaper, Home, Users, Archive, BookOpen, BellRing, Info, Compass, ClipboardCheck, PieChart, Lightbulb, Zap } from 'lucide-react';
+import { Bell, ClipboardCheck, PieChart } from 'lucide-react';
 import ErrorBoundary from './components/ErrorBoundary';
-import LoadingPage from './components/LoadingPage';
 import Auth from './pages/Auth';
 import Subscriptions from './pages/Subscriptions';
 import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
-import SubscriptionCatalog from './pages/SubscriptionCatalog';
+import SubscriptionDetail from './pages/SubscriptionDetail';
 import SubscriptionPrompt from './pages/SubscriptionPrompt';
 import TemplateConfig from './pages/TemplateConfig';
 import Notifications from './pages/Notifications';
@@ -18,6 +17,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/lib/theme/theme-provider';
 import Header from './components/Header';
 import { AuthProvider } from './contexts/AuthContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 
 // Lazy-load the pages
 const LandingPage = lazy(() => import('./pages/Landing'));
@@ -85,10 +85,11 @@ export default function App() {
     return (
       <ThemeProvider defaultTheme="system" storageKey="nifya-ui-theme">
         <AuthProvider>
-          <div className="min-h-screen bg-background text-foreground">
-            <Header />
-            <main>
-              <Routes>
+          <NotificationProvider>
+            <div className="min-h-screen bg-background text-foreground">
+              <Header />
+              <main>
+                <Routes>
                 <Route 
                   path="/" 
                   element={
@@ -144,7 +145,8 @@ export default function App() {
                   path="/subscriptions/catalog"
                   element={
                     <ProtectedRoute>
-                      <SubscriptionCatalog />
+                      {/* Redirect to /subscriptions/new as this is the modern replacement */}
+                      <Navigate to="/subscriptions/new" replace />
                     </ProtectedRoute>
                   }
                 />
@@ -153,6 +155,14 @@ export default function App() {
                   element={
                     <ProtectedRoute>
                       <SubscriptionPrompt mode="create" />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/subscriptions/:id"
+                  element={
+                    <ProtectedRoute>
+                      <SubscriptionDetail />
                     </ProtectedRoute>
                   }
                 />
@@ -195,6 +205,7 @@ export default function App() {
             </main>
             <Toaster />
           </div>
+          </NotificationProvider>
         </AuthProvider>
       </ThemeProvider>
     );

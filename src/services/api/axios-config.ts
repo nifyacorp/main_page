@@ -35,10 +35,16 @@ const apiClient: AxiosInstance = axios.create({
 // Request interceptor for adding auth token
 apiClient.interceptors.request.use(
   (config: AxiosRequestConfig): AxiosRequestConfig => {
-    const token = localStorage.getItem(AUTH_TOKEN_KEY);
+    const token = localStorage.getItem('accessToken') || localStorage.getItem(AUTH_TOKEN_KEY);
+    const userId = localStorage.getItem('userId');
     
     if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${token.replace('Bearer ', '')}`;
+      
+      // Add user ID header for proper authentication
+      if (userId) {
+        config.headers['x-user-id'] = userId;
+      }
     }
     
     console.log('Request details:', {
@@ -48,13 +54,15 @@ apiClient.interceptors.request.use(
     });
     
     console.log('Auth headers:', {
-      Authorization: config.headers?.Authorization ? 'Bearer [token]' : 'None'
+      Authorization: config.headers?.Authorization ? 'Bearer [token]' : 'None',
+      userId: userId || 'None'
     });
     
     console.log('Final request options:', {
       url: config.url,
       baseURL: config.baseURL,
       hasAuth: !!config.headers?.Authorization,
+      hasUserId: !!userId,
       method: config.method
     });
     
@@ -94,10 +102,14 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
       
       try {
-        const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+        const refreshToken = localStorage.getItem('refreshToken') || localStorage.getItem(REFRESH_TOKEN_KEY);
         
         if (!refreshToken) {
           // No refresh token, user needs to login again
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('isAuthenticated');
+          localStorage.removeItem('userId');
           localStorage.removeItem(AUTH_TOKEN_KEY);
           localStorage.removeItem(REFRESH_TOKEN_KEY);
           window.location.href = '/login';
@@ -109,16 +121,31 @@ apiClient.interceptors.response.use(
           refreshToken,
         });
         
-        if (response.data.token) {
-          localStorage.setItem(AUTH_TOKEN_KEY, response.data.token);
-          localStorage.setItem(REFRESH_TOKEN_KEY, response.data.refreshToken);
+        if (response.data.token || response.data.accessToken) {
+          const newToken = response.data.token || response.data.accessToken;
+          const newRefreshToken = response.data.refreshToken;
+          
+          // Support both storage mechanisms for maximum compatibility
+          localStorage.setItem('accessToken', newToken);
+          localStorage.setItem(AUTH_TOKEN_KEY, newToken);
+          
+          if (newRefreshToken) {
+            localStorage.setItem('refreshToken', newRefreshToken);
+            localStorage.setItem(REFRESH_TOKEN_KEY, newRefreshToken);
+          }
+          
+          localStorage.setItem('isAuthenticated', 'true');
           
           // Update authorization header and retry original request
-          apiClient.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+          apiClient.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
           return apiClient(originalRequest);
         }
       } catch (refreshError) {
         // Refresh token failed, redirect to login
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('userId');
         localStorage.removeItem(AUTH_TOKEN_KEY);
         localStorage.removeItem(REFRESH_TOKEN_KEY);
         window.location.href = '/login';

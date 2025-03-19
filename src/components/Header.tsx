@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Menu, X, Bell, User, LogOut, Settings } from 'lucide-react';
+import { Menu, X, User, LogOut, Settings } from 'lucide-react';
 import { Button } from './ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
+import { NotificationBadge } from './notifications/NotificationBadge';
 
 export default function Header() {
   const { isAuthenticated, user, logout } = useAuth();
@@ -66,9 +67,9 @@ export default function Header() {
         <div className="flex items-center gap-4">
           {authState.isAuthenticated ? (
             <>
-              <Link to="/notifications" className="p-2 hover:bg-accent rounded-full">
-                <Bell className="h-5 w-5" />
-              </Link>
+              <div className="p-2 hover:bg-accent rounded-full">
+                <NotificationBadge />
+              </div>
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

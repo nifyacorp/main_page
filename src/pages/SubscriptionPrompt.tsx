@@ -1,16 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FileText, Building2, Brain, ArrowLeft, Plus, X, Bell, Clock } from 'lucide-react';
-import { subscriptionTypes, subscriptions } from '../lib/api';
+import { 
+  FileText, 
+  Building2, 
+  Brain, 
+  ArrowLeft, 
+  Plus, 
+  X, 
+  Bell, 
+  Clock, 
+  Loader2, 
+  AlertCircle 
+} from 'lucide-react';
+import { subscriptions, templates } from '../lib/api';
 import type { IconType } from 'lucide-react';
+import type { Template } from '../lib/api/types';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
+import { useToast } from "../components/ui/use-toast";
 
-interface SubscriptionType {
+interface Subscription {
   id: string;
   name: string;
   description: string;
-  icon: string;
-  isSystem: boolean;
-  createdBy: string | null;
+  prompts: string[];
+  frequency: 'immediate' | 'daily';
+  logo?: string;
+  type: string;
 }
 
 const iconMap: Record<string, IconType> = {
@@ -37,11 +54,13 @@ interface SubscriptionPromptProps {
 const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
   const { typeId, subscriptionId } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [prompts, setPrompts] = useState<string[]>(['']);
   const [frequency, setFrequency] = useState<'immediate' | 'daily'>('immediate');
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [type, setType] = useState<SubscriptionType | null>(null);
+  const [template, setTemplate] = useState<Template | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
 
   useEffect(() => {
@@ -55,29 +74,50 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
           if (data?.subscription) {
             setSubscription(data.subscription);
             setPrompts(data.subscription.prompts);
-            setFrequency(data.subscription.frequency);
-            setType({
-              id: data.subscription.id,
-              name: data.subscription.name,
-              description: data.subscription.description,
-              icon: data.subscription.type === 'boe' ? 'FileText' : 
-                    data.subscription.type === 'real-estate' ? 'Building2' : 'Brain',
-              isSystem: true,
-              createdBy: null
-            });
+            setFrequency(data.subscription.frequency as 'immediate' | 'daily');
           }
         } else if (mode === 'create' && typeId) {
-          // Fetch subscription type for new subscription
-          const { data, error } = await subscriptionTypes.list();
-          if (error) throw new Error(error);
+          // Fetch template details for new subscription
+          const response = await templates.getDetails(typeId);
+          if (response.error) throw new Error(response.error);
 
-          const foundType = data?.types.find(t => t.id === typeId);
-          if (!foundType) throw new Error('Subscription type not found');
-          
-          setType(foundType);
+          if (response.data) {
+            setTemplate(response.data);
+            // If template has default prompts, use them
+            if (response.data.prompts && response.data.prompts.length > 0) {
+              setPrompts(response.data.prompts);
+            }
+            // Set default frequency from template
+            if (response.data.frequency) {
+              setFrequency(response.data.frequency);
+            }
+          }
         }
       } catch (err) {
+        console.error('Error fetching data:', err);
         setError(err instanceof Error ? err.message : 'Failed to load data');
+        
+        // In development mode, create a mock template if needed
+        if (import.meta.env.DEV && mode === 'create' && typeId) {
+          console.log('Creating mock template for development');
+          const mockTemplate: Template = {
+            id: typeId,
+            name: typeId === 'boe-template' ? 'BOE Subscription' : 'Custom Subscription',
+            description: 'Development mode template',
+            type: typeId === 'boe-template' ? 'boe' : 'custom',
+            prompts: [],
+            icon: typeId === 'boe-template' ? 'FileText' : 'Brain',
+            logo: '',
+            isPublic: true,
+            metadata: {
+              category: 'development',
+              source: 'mock'
+            },
+            frequency: 'daily'
+          };
+          setTemplate(mockTemplate);
+          setError(null);
+        }
       } finally {
         setLoading(false);
       }
@@ -86,18 +126,18 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
     fetchData();
   }, [mode, typeId, subscriptionId]);
 
-  if ((mode === 'create' && !typeId) || (!loading && !type)) {
-    navigate('/subscriptions/catalog');
+  if ((mode === 'create' && !typeId) || (!loading && !template && !subscription)) {
+    navigate('/subscriptions/new');
     return null;
   }
 
   if (loading) {
     return (
       <div className="p-8">
-        <div className="max-w-2xl mx-auto">
-          <div className="animate-pulse">
-            <div className="h-8 w-48 bg-muted rounded mb-4" />
-            <div className="h-4 w-96 bg-muted rounded" />
+        <div className="flex justify-center items-center h-[60vh]">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 text-primary animate-spin" />
+            <p className="text-muted-foreground">Cargando información...</p>
           </div>
         </div>
       </div>
@@ -105,41 +145,77 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
   }
 
   if (error) {
-    navigate('/subscriptions/catalog');
+    navigate('/subscriptions/new');
     return null;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const validPrompts = prompts.filter(p => p.trim());
-    if (!type || validPrompts.length === 0) return;
+    if (validPrompts.length === 0) {
+      setError('Por favor, añade al menos un prompt');
+      toast({
+        title: "Error",
+        description: "Por favor, añade al menos un prompt",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (mode === 'create' && !template && !typeId) {
+      setError('No se ha seleccionado ninguna plantilla');
+      return;
+    }
 
     try {
-      setLoading(true);
+      setSubmitting(true);
+      setError(null);
       
       if (mode === 'edit' && subscriptionId) {
-        const { error } = await subscriptions.update(subscriptionId, {
+        const response = await subscriptions.update(subscriptionId, {
           prompts: validPrompts,
           frequency,
         });
-        if (error) throw new Error(error);
-      } else {
-        const { error } = await subscriptions.create({
-          typeId: typeId as string,
-          name: type.name,
-          description: type.description,
+        if (response.error) throw new Error(response.error);
+        
+        toast({
+          title: "Suscripción actualizada",
+          description: "La suscripción se ha actualizado correctamente",
+          variant: "default"
+        });
+      } else if (template) {
+        // Create directly instead of subscribing to template to avoid undefined ID issues
+        const createResponse = await subscriptions.create({
+          type: template.type || 'boe', // Use template.type for backend compatibility
+          typeId: template.id, // Keep typeId for reference
+          name: template.name,
+          description: template.description,
           prompts: validPrompts,
-          logo: type.logo || '',
+          logo: template.logo || '',
           frequency,
         });
-        if (error) throw new Error(error);
+        
+        if (createResponse.error) throw new Error(createResponse.error);
+        
+        toast({
+          title: "Suscripción creada",
+          description: "Tu nueva suscripción se ha creado correctamente",
+          variant: "default"
+        });
       }
 
       navigate('/subscriptions');
     } catch (err) {
-      setError(err instanceof Error ? err.message : `Failed to ${mode} subscription`);
+      console.error(`Error ${mode === 'edit' ? 'updating' : 'creating'} subscription:`, err);
+      const errorMessage = err instanceof Error ? err.message : `Failed to ${mode} subscription`;
+      setError(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive"
+      });
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -161,46 +237,90 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
   };
 
   return (
-    <div className="p-8">
-      <div className="max-w-2xl mx-auto">
-        <button
-          onClick={() => navigate('/subscriptions/catalog')}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {mode === 'edit' ? 'Volver a suscripciones' : 'Volver al catálogo'}
-        </button>
-
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 rounded-full bg-primary/10">
-              {type && React.createElement(iconMap[type.icon] || Brain, {
-                className: "h-6 w-6 text-primary"
-              })}
-            </div>
-            <h1 className="text-2xl font-bold">{type?.name}</h1>
-          </div>
-          <p className="text-muted-foreground">
-            {mode === 'edit' ? 'Edita tu suscripción actual' : type?.description}
-          </p>
+    <div className="p-6 md:p-8">
+      <div className="max-w-3xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate(mode === 'edit' ? '/subscriptions' : '/subscriptions/new')} 
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {mode === 'edit' ? 'Volver a suscripciones' : 'Volver al catálogo'}
+          </Button>
+          
+          <Badge variant="outline" className="px-3 py-1">
+            {mode === 'edit' ? 'Editando Suscripción' : 'Nueva Suscripción'}
+          </Badge>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block font-medium">
-              ¿Qué quieres monitorizar? ({prompts.length}/3)
-            </label>
-            <p className="text-sm text-muted-foreground mt-1 mb-4">
-              Describe con el mayor detalle posible lo que quieres que NIFYA busque para ti.
-            </p>
-            
-            <div className="space-y-4">
+        {error && (
+          <Card className="mb-6 border-destructive/50 bg-destructive/5">
+            <CardContent className="pt-6">
+              <div className="flex gap-3 items-start">
+                <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-destructive">Error</p>
+                  <p className="text-sm text-muted-foreground">{error}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        
+        <Card className="mb-6">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-full bg-primary/10">
+                {mode === 'edit' && subscription ? (
+                  React.createElement(iconMap[subscription.type === 'boe' ? 'FileText' : 
+                    subscription.type === 'real-estate' ? 'Building2' : 'Brain'] || Brain, {
+                    className: "h-6 w-6 text-primary"
+                  })
+                ) : template ? (
+                  React.createElement(iconMap[template.icon] || Brain, {
+                    className: "h-6 w-6 text-primary"
+                  })
+                ) : (
+                  <Brain className="h-6 w-6 text-primary" />
+                )}
+              </div>
+              <div>
+                <CardTitle className="text-xl">
+                  {mode === 'edit' ? subscription?.name : template?.name}
+                </CardTitle>
+                <CardDescription>
+                  {mode === 'edit' 
+                    ? 'Edita tu suscripción actual' 
+                    : template?.description || 'Create a new subscription'}
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+        </Card>
+
+        <form onSubmit={handleSubmit}>
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="text-lg">¿Qué quieres monitorizar? ({prompts.length}/3)</CardTitle>
+              <CardDescription>
+                Describe con el mayor detalle posible lo que quieres que NIFYA busque para ti.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               {prompts.map((prompt, index) => (
                 <div key={index} className="relative">
                   <textarea
                     value={prompt}
                     onChange={(e) => handlePromptChange(index, e.target.value)}
-                    placeholder={type ? getPromptPlaceholder(type.icon) : ''}
+                    placeholder={
+                      mode === 'edit' && subscription?.type 
+                        ? getPromptPlaceholder(subscription.type === 'boe' ? 'FileText' : 
+                           subscription.type === 'real-estate' ? 'Building2' : 'Brain')
+                        : template 
+                        ? getPromptPlaceholder(template.icon)
+                        : 'Enter what you want to monitor...'
+                    }
                     className="w-full h-32 px-4 py-3 rounded-lg border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none pr-10"
                     required
                   />
@@ -215,91 +335,102 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
                   )}
                 </div>
               ))}
-            </div>
+              
+              {prompts.length < 3 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addPrompt}
+                  className="mt-2"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Añadir otro prompt
+                </Button>
+              )}
+            </CardContent>
+          </Card>
 
-            {prompts.length < 3 && (
-              <button
-                type="button"
-                onClick={addPrompt}
-                className="mt-4 flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
-              >
-                <Plus className="h-4 w-4" />
-                <span>Añadir otro prompt</span>
-              </button>
-            )}
-          </div>
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="text-lg">Frecuencia de notificaciones</CardTitle>
+              <CardDescription>
+                ¿Con qué frecuencia quieres recibir las notificaciones?
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div
+                  onClick={() => setFrequency('immediate')}
+                  className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-all ${
+                    frequency === 'immediate'
+                      ? 'bg-primary/10 border-primary'
+                      : 'bg-card hover:bg-muted/50'
+                  }`}
+                >
+                  <div className={`p-2 rounded-full ${
+                    frequency === 'immediate' ? 'bg-primary/20' : 'bg-muted'
+                  }`}>
+                    <Bell className={`h-5 w-5 ${
+                      frequency === 'immediate' ? 'text-primary' : 'text-muted-foreground'
+                    }`} />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-medium">Inmediata</p>
+                    <p className="text-sm text-muted-foreground">
+                      Recibe notificaciones tan pronto como haya coincidencias
+                    </p>
+                  </div>
+                </div>
 
-          {/* Notification Frequency */}
-          <div className="space-y-4 pt-6 border-t">
-            <label className="block font-medium">
-              Frecuencia de notificaciones
-            </label>
-            <p className="text-sm text-muted-foreground">
-              ¿Con qué frecuencia quieres recibir las notificaciones?
-            </p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <button
-                type="button"
-                onClick={() => setFrequency('immediate')}
-                className={`flex items-center gap-3 p-4 rounded-lg border transition-all ${
-                  frequency === 'immediate'
-                    ? 'bg-primary/10 border-primary'
-                    : 'bg-card hover:bg-muted/50'
-                }`}
-              >
-                <div className={`p-2 rounded-full ${
-                  frequency === 'immediate' ? 'bg-primary/20' : 'bg-muted'
-                }`}>
-                  <Bell className={`h-5 w-5 ${
-                    frequency === 'immediate' ? 'text-primary' : 'text-muted-foreground'
-                  }`} />
+                <div
+                  onClick={() => setFrequency('daily')}
+                  className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-all ${
+                    frequency === 'daily'
+                      ? 'bg-primary/10 border-primary'
+                      : 'bg-card hover:bg-muted/50'
+                  }`}
+                >
+                  <div className={`p-2 rounded-full ${
+                    frequency === 'daily' ? 'bg-primary/20' : 'bg-muted'
+                  }`}>
+                    <Clock className={`h-5 w-5 ${
+                      frequency === 'daily' ? 'text-primary' : 'text-muted-foreground'
+                    }`} />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-medium">Diaria</p>
+                    <p className="text-sm text-muted-foreground">
+                      Recibe un resumen diario con todas las coincidencias
+                    </p>
+                  </div>
                 </div>
-                <div className="text-left">
-                  <p className="font-medium">Inmediata</p>
-                  <p className="text-sm text-muted-foreground">
-                    Recibe notificaciones tan pronto como haya coincidencias
-                  </p>
-                </div>
-              </button>
+              </div>
+            </CardContent>
+          </Card>
 
-              <button
-                type="button"
-                onClick={() => setFrequency('daily')}
-                className={`flex items-center gap-3 p-4 rounded-lg border transition-all ${
-                  frequency === 'daily'
-                    ? 'bg-primary/10 border-primary'
-                    : 'bg-card hover:bg-muted/50'
-                }`}
-              >
-                <div className={`p-2 rounded-full ${
-                  frequency === 'daily' ? 'bg-primary/20' : 'bg-muted'
-                }`}>
-                  <Clock className={`h-5 w-5 ${
-                    frequency === 'daily' ? 'text-primary' : 'text-muted-foreground'
-                  }`} />
-                </div>
-                <div className="text-left">
-                  <p className="font-medium">Diaria</p>
-                  <p className="text-sm text-muted-foreground">
-                    Recibe un resumen diario con todas las coincidencias
-                  </p>
-                </div>
-              </button>
-            </div>
-          </div>
-
-          <div className="pt-6">
-            <button
-              type="submit"
-              className="w-full bg-primary text-primary-foreground rounded-lg px-4 py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-              disabled={loading}
-            >
-              {loading ? (mode === 'edit' ? 'Guardando...' : 'Creando...') : 
-                mode === 'edit' ? 'Guardar cambios' : 
-                `Crear ${prompts.length > 1 ? 'Suscripciones' : 'Suscripción'}`}
-            </button>
-          </div>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex flex-col sm:flex-row gap-4 justify-between">
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => navigate('/subscriptions/catalog')}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  className="w-full sm:w-auto"
+                  disabled={submitting}
+                >
+                  {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {submitting 
+                    ? (mode === 'edit' ? 'Guardando...' : 'Creando...') 
+                    : (mode === 'edit' ? 'Guardar cambios' : `Crear ${prompts.length > 1 ? 'Suscripciones' : 'Suscripción'}`)}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </form>
       </div>
     </div>
