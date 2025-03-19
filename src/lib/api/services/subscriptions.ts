@@ -41,10 +41,23 @@ export const subscriptionService = {
     console.group('📝 Create Subscription');
     console.log('Creating subscription:', data);
     
+    // Format data for backend compatibility
+    const backendData = {
+      name: data.name,
+      description: data.description,
+      type: data.type,
+      typeId: data.typeId, 
+      prompts: data.prompts,
+      frequency: data.frequency,
+      logo: data.logo
+    };
+    
+    console.log('Formatted data for backend:', backendData);
+    
     return backendClient({
       endpoint: '/api/v1/subscriptions',
       method: 'POST',
-      body: data,
+      body: backendData,
     }).finally(() => console.groupEnd());
   },
   
