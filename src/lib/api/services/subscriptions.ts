@@ -2,7 +2,8 @@ import { backendClient } from '../clients/backend';
 import type { ApiResponse } from '../types';
 
 interface CreateSubscriptionInput {
-  typeId: string;
+  type: string; // Required by backend ('boe', 'real-estate', 'custom')
+  typeId?: string; // Template ID reference (frontend only)
   name: string;
   description: string;
   prompts: string[];

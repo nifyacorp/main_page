@@ -27,7 +27,7 @@ interface Subscription {
   prompts: string[];
   frequency: 'immediate' | 'daily';
   logo?: string;
-  type?: string;
+  type: string;
 }
 
 const iconMap: Record<string, IconType> = {
@@ -186,7 +186,8 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
       } else if (template) {
         // Create directly instead of subscribing to template to avoid undefined ID issues
         const createResponse = await subscriptions.create({
-          typeId: template.id, // Use template.id directly instead of typeId from params
+          type: template.type || 'boe', // Use template.type for backend compatibility
+          typeId: template.id, // Keep typeId for reference
           name: template.name,
           description: template.description,
           prompts: validPrompts,
