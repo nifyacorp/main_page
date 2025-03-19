@@ -48,23 +48,34 @@ class WebSocketClient {
     
     this.log('Initializing socket connection to:', baseUrl);
     
-    this.socket = io(baseUrl, {
-      autoConnect: true,
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      timeout: 10000,
-      withCredentials: true,
-      transports: ['websocket', 'polling']
-    });
+    try {
+      this.socket = io(baseUrl, {
+        autoConnect: true,
+        reconnection: true,
+        reconnectionAttempts: 3, // Reduce retry attempts
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        timeout: 5000, // Reduced timeout
+        withCredentials: true,
+        transports: ['websocket', 'polling']
+      });
 
-    this.setUpListeners();
-    
-    // Wait for connection to authenticate
-    this.socket.on('connect', () => {
-      this.authenticate();
-    });
+      this.setUpListeners();
+      
+      // Wait for connection to authenticate
+      this.socket.on('connect', () => {
+        this.authenticate();
+      });
+      
+      // Add error handling for connection errors
+      this.socket.on('connect_error', (error) => {
+        console.warn('Socket.io connection error. Real-time updates will be disabled.', error.message);
+        // Don't disconnect here, let socket.io retry a few times with its built-in backoff
+      });
+    } catch (error) {
+      console.warn('Socket.io initialization failed. Real-time updates will be disabled.', error);
+      // Continue with application flow without socket connection
+    }
   }
 
   /**
