@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { collectDiagnosticInfo, formatDiagnosticInfo, testBackendConnectivity } from '../lib/utils/diagnostics';
 import { backendClientWithMethods as api } from '../lib/api/clients/backend';
 import { useToast } from './ui/use-toast';
+import SubscriptionApiDebug from './SubscriptionApiDebug';
 
 export default function Debug() {
   const [info, setInfo] = useState(collectDiagnosticInfo());
@@ -143,6 +144,9 @@ export default function Debug() {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">NIFYA Frontend Diagnostics</h1>
+      
+      {/* Add the subscription API debug component at the top */}
+      <SubscriptionApiDebug />
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <Card>
