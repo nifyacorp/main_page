@@ -189,11 +189,14 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
           type: template.type || 'boe', // Use template.type for backend compatibility
           typeId: template.id, // Keep typeId for reference
           name: template.name,
-          description: template.description,
+          description: template.description || '',
           prompts: validPrompts,
           logo: template.logo || '',
           frequency,
         });
+        
+        // Log the response for debugging
+        console.log('Subscription creation response:', createResponse);
         
         if (createResponse.error) throw new Error(createResponse.error);
         
