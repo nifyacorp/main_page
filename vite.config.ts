@@ -11,7 +11,34 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     server: {
-      historyApiFallback: true
+      historyApiFallback: true,
+      proxy: {
+        // Proxy API requests to remote backend when not using Netlify redirects
+        '/api/v1': {
+          target: env.VITE_BACKEND_URL || 'https://backend-415554190254.us-central1.run.app',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/v1/, '/v1'),
+          configure: (proxy, _options) => {
+            proxy.on('error', (err, _req, _res) => {
+              console.log('Proxy error:', err);
+            });
+            proxy.on('proxyReq', (proxyReq, req, _res) => {
+              console.log('Proxying:', req.method, req.url, '→', proxyReq.path);
+            });
+          },
+        },
+        // Proxy auth requests
+        '/api/auth': {
+          target: env.VITE_AUTH_URL || 'https://authentication-415554190254.us-central1.run.app',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/auth/, '/api/auth'),
+          configure: (proxy, _options) => {
+            proxy.on('error', (err, _req, _res) => {
+              console.log('Auth proxy error:', err);
+            });
+          },
+        },
+      },
     },
     optimizeDeps: {
       exclude: ['lucide-react'],

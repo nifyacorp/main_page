@@ -18,6 +18,7 @@ import { ThemeProvider } from '@/lib/theme/theme-provider';
 import Header from './components/Header';
 import { AuthProvider } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
+import Debug from './components/Debug';
 
 // Lazy-load the pages
 const LandingPage = lazy(() => import('./pages/Landing'));
@@ -182,6 +183,13 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 />
+                
+                {/* Debug page for API troubleshooting */}
+                <Route path="/debug" element={
+                  <ErrorBoundary>
+                    <Debug />
+                  </ErrorBoundary>
+                } />
                 
                 {/* 404 fallback - implement a simple inline component for now */}
                 <Route path="*" element={
