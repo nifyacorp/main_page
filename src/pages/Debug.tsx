@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsItem, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SubscriptionApiDebug } from '@/components/SubscriptionApiDebug';
 import { useSubscriptionsEnhanced } from '@/hooks/use-subscriptions-enhanced';
 import { useSubscriptions } from '@/hooks/use-subscriptions';

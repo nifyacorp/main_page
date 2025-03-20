@@ -8,6 +8,9 @@ export default defineConfig(({ mode }) => {
   // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
   const env = loadEnv(mode, process.cwd(), '');
   
+  // Log configuration
+  console.log(`🚀 Vite Config: ${mode} mode`);
+  
   return {
     plugins: [react()],
     server: {
