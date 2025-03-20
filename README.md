@@ -399,8 +399,9 @@ Para preguntas, sugerencias o problemas:
 
 Desarrollado con ❤️ por el equipo de NIFYA
 
-## Development
+## 🧰 Development
 
+### Standard Development Mode
 ```bash
 # Install dependencies
 npm install
@@ -409,35 +410,114 @@ npm install
 npm run dev
 ```
 
-## Building for Production
+### Hybrid Development Mode
+The hybrid development mode allows you to run the frontend locally while connecting to production backend services. This is useful for testing frontend changes against real data.
 
-For local production builds:
+```bash
+# Run frontend with connections to production services
+npm run hybrid
+# Or for WSL environments:
+npm run hybrid:wsl
+```
+
+### Environment Configuration
+The application supports different environment configurations:
+
+1. **Local Development** (.env.local)
+   - Local frontend with local backend services
+   - Full debugging enabled
+   - All services running on localhost
+
+2. **Hybrid Development** (created by hybrid-dev.sh)
+   - Local frontend with production backend services
+   - Enhanced debugging and logging
+   - Uses proxy configuration for API requests
+
+3. **Production** (.env.production)
+   - Production build for deployment
+   - Optimized for performance
+   - Minimal logging and debugging
+
+### Debugging Tools
+
+The application includes built-in debugging tools accessible at `/debug` in development mode. This provides:
+
+- API connectivity testing
+- Environment variable inspection
+- Data comparison between standard and enhanced hooks
+- System diagnostics
+- Network request monitoring
+
+To access the debug page:
+1. Start the app in development mode (`npm run dev` or `npm run hybrid`)
+2. Navigate to `http://localhost:5173/debug` (or your configured port)
+
+## 🏗️ Building for Production
+
+### Local Production Build
 ```bash
 npm run build
 ```
 
-For Netlify deployment:
+### Netlify Deployment Build
 ```bash
 npm run build:netlify
 ```
 
-## Netlify Deployment Notes
+### Local Preview of Production Build
+```bash
+npm run preview
+```
+
+## 🚀 Netlify Deployment Notes
 
 If you encounter build issues on Netlify:
 
 1. The project is configured to use the `build:netlify` script which bypasses certain checks
-2. Environment variables are set in the `netlify.toml` file
+2. Environment variables are set in the `netlify.toml` file and Netlify UI
 3. All redirects are configured to point to index.html for SPA routing
+4. Set `NODE_ENV=production` for the optimal production build
 
-## Common Issues
+## 🔍 Troubleshooting
 
+### Common Build Issues
+
+- **JSX Transformation Errors**: Ensure `NODE_ENV=development` is set for development builds
 - **ESLint Errors**: The build may show linting errors but should still complete if using the Netlify build command
 - **TypeScript Errors**: Make sure to address any TypeScript errors before deploying
 - **Environment Variables**: If your app requires specific environment variables, add them to the `[build.environment]` section in `netlify.toml`
 
-## Project Structure
+### API Connection Issues
 
-- `src/components` - Reusable components
+- **CORS Errors**: Check that the API endpoints support cross-origin requests from your frontend
+- **Authentication Failures**: Verify that tokens are being correctly stored and sent with requests
+- **Network Errors**: Use the debug page to test API connectivity and inspect request/response details
+
+### Development Environment Setup
+
+1. For local backend development:
+   ```
+   VITE_AUTH_URL=http://localhost:4000
+   VITE_BACKEND_URL=http://localhost:3000
+   VITE_SUBSCRIPTION_WORKER=http://localhost:5000
+   NODE_ENV=development
+   ```
+
+2. For production backend with local frontend:
+   ```
+   VITE_AUTH_URL=https://authentication-service-415554190254.us-central1.run.app
+   VITE_BACKEND_URL=https://backend-415554190254.us-central1.run.app
+   VITE_USE_NETLIFY_REDIRECTS=false
+   NODE_ENV=development
+   VITE_ENV=development
+   ```
+
+## 📁 Project Structure
+
+- `src/components` - Reusable UI components
+- `src/components/ui` - Base UI components (buttons, cards, etc.)
 - `src/contexts` - React contexts for state management
+- `src/hooks` - Custom React hooks for shared logic
 - `src/lib` - Utility functions and API services
-- `src/pages` - Page components
+- `src/pages` - Page components and routes
+- `src/services` - Service layer for API interactions
