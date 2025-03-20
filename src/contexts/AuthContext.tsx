@@ -61,17 +61,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               // If API call fails, use basic user info from localStorage
               console.log('API returned error:', response.error);
               setUser({
-                id: userId || '1',
+                id: userId || '00000000-0000-0000-0000-000000000001',
                 email: userEmail || 'user@example.com'
               });
-              console.log('AuthContext: Using fallback user data', { id: userId || '1' });
+              console.log('AuthContext: Using fallback user data', { id: userId || '00000000-0000-0000-0000-000000000001' });
             }
           } catch (apiError) {
             console.error('Error fetching user profile:', apiError);
             
             // Use fallback user data from localStorage
             setUser({
-              id: userId || '1',
+              id: userId || '00000000-0000-0000-0000-000000000001',
               email: userEmail || 'user@example.com'
             });
           }
@@ -103,7 +103,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Mock user data for now, this will be replaced by API call in useEffect
       const email = localStorage.getItem('email') || 'user@example.com';
       setUser({
-        id: '1',
+        id: '00000000-0000-0000-0000-000000000001',
         email: email
       });
     } catch (error) {

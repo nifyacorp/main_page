@@ -71,10 +71,17 @@ class WebSocketClient {
       this.socket = io(baseUrl, {
         autoConnect: true,
         reconnection: true,
+<<<<<<< HEAD
+        reconnectionAttempts: 3, // Reduce retry attempts
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        timeout: 5000, // Reduced timeout
+=======
         reconnectionAttempts: 3, // Reduced to prevent too many retries
         reconnectionDelay: 2000,
         reconnectionDelayMax: 10000,
         timeout: 10000,
+>>>>>>> 29b1daf4dc12c61824bf757765262c4e8771f3b7
         withCredentials: true,
         transports: ['websocket', 'polling']
       });
@@ -85,6 +92,17 @@ class WebSocketClient {
       this.socket.on('connect', () => {
         this.authenticate();
       });
+<<<<<<< HEAD
+      
+      // Add error handling for connection errors
+      this.socket.on('connect_error', (error) => {
+        console.warn('Socket.io connection error. Real-time updates will be disabled.', error.message);
+        // Don't disconnect here, let socket.io retry a few times with its built-in backoff
+      });
+    } catch (error) {
+      console.warn('Socket.io initialization failed. Real-time updates will be disabled.', error);
+      // Continue with application flow without socket connection
+=======
     } catch (error) {
       console.error('Error creating socket connection:', error);
       // Simulate connected state to avoid cascading errors
@@ -95,6 +113,7 @@ class WebSocketClient {
         }
         this.dispatchEvent('connect', { socketId: 'error-fallback' });
       }, 100);
+>>>>>>> 29b1daf4dc12c61824bf757765262c4e8771f3b7
     }
   }
 
