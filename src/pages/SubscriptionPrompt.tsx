@@ -37,13 +37,13 @@ const iconMap: Record<string, LucideIcon> = {
 };
 
 const getPromptPlaceholder = (type: string) => {
-  switch (type) {
-    case 'FileText':
-      return 'Ej: Subvenciones para startups tecnológicas en Madrid';
-    case 'Building2':
-      return 'Ej: Pisos de 2 habitaciones en el centro de Madrid por menos de 300.000€';
+  switch (type.toLowerCase()) {
+    case 'boe':
+      return 'Ej: "subvenciones para empresas tecnológicas en Madrid"';
+    case 'real-estate':
+      return 'Ej: "apartamento de 2 habitaciones en Barcelona"';
     default:
-      return 'Describe lo que quieres monitorizar...';
+      return 'Describe lo que quieres buscar...';
   }
 };
 
@@ -93,7 +93,7 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
             }
           }
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error fetching data:', err);
         setError(err instanceof Error ? err.message : 'Failed to load data');
         
@@ -108,7 +108,7 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
             prompts: [],
             icon: typeId === 'boe-template' ? 'FileText' : 'Brain',
             logo: '',
-            isPublic: true,
+            isBuiltIn: true,
             metadata: {
               category: 'development',
               source: 'mock'
@@ -133,7 +133,7 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
 
   if (loading) {
     return (
-      <div className="p-8">
+      <div className="p-8" data-testid="subscription-loading">
         <div className="flex justify-center items-center h-[60vh]">
           <div className="flex flex-col items-center gap-4">
             <Loader2 className="h-8 w-8 text-primary animate-spin" />
@@ -152,51 +152,33 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Add validation logging
-    console.log('Form submission started', { prompts, frequency });
+    // Reset error state
+    setError(null);
     
-    // Ensure we're working with non-empty prompts
-    const validPrompts = prompts.filter(p => p.trim());
-    console.log('Filtered valid prompts:', validPrompts);
+    // Validate prompts
+    const validPrompts = prompts.filter(p => p.trim().length > 0);
     
-    // Enhanced client-side validation
     if (validPrompts.length === 0) {
-      const errorMsg = "Por favor, añade al menos un prompt";
-      setError(errorMsg);
+      setError('Por favor, añade al menos un término de búsqueda.');
       toast({
-        title: "Error",
-        description: errorMsg,
+        title: "Error de validación",
+        description: "Por favor, añade al menos un término de búsqueda.",
         variant: "destructive"
       });
-      console.error('Validation failed: No valid prompts');
       return;
     }
     
-    if (mode === 'create' && !template && !typeId) {
-      const errorMsg = "No se ha seleccionado ninguna plantilla";
-      setError(errorMsg);
-      toast({
-        title: "Error", 
-        description: errorMsg,
-        variant: "destructive"
-      });
-      console.error('Validation failed: No template selected');
-      return;
-    }
-
+    setSubmitting(true);
+    
+    console.log('Submitting form with prompts:', validPrompts);
+    console.log('Frequency:', frequency);
+    
     try {
-      setSubmitting(true);
-      setError(null);
-      
-      if (mode === 'edit' && subscriptionId) {
-        console.log('Updating subscription with prompts:', validPrompts);
-        
-        // Ensure prompts are in the correct format - always an array
-        const formattedPrompts = Array.isArray(validPrompts) ? validPrompts : [validPrompts];
-        
-        const response = await subscriptions.update(subscriptionId, {
-          prompts: formattedPrompts,
-          frequency,
+      if (mode === 'edit' && subscription) {
+        // Update existing subscription
+        const response = await subscriptions.update(subscription.id, {
+          prompts: validPrompts,
+          frequency
         });
         
         console.log('Update response:', response);
@@ -265,8 +247,10 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
         });
       }
 
-      // Redirect to subscriptions page ddda
-      navigate('/subscriptions');
+      // Redirect to subscriptions page with a slight delay to ensure state is updated
+      setTimeout(() => {
+        navigate('/subscriptions', { replace: true });
+      }, 300);
     } catch (err) {
       console.error(`Error ${mode === 'edit' ? 'updating' : 'creating'} subscription:`, err);
       const errorMessage = err instanceof Error ? err.message : `Failed to ${mode} subscription`;
@@ -298,201 +282,165 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
     setPrompts(newPrompts);
   };
 
-  return (
-    <div className="p-6 md:p-8">
-      <div className="max-w-3xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate(mode === 'edit' ? '/subscriptions' : '/subscriptions/new')} 
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {mode === 'edit' ? 'Volver a suscripciones' : 'Volver al catálogo'}
-          </Button>
-          
-          <Badge variant="outline" className="px-3 py-1">
-            {mode === 'edit' ? 'Editando Suscripción' : 'Nueva Suscripción'}
-          </Badge>
-        </div>
+  // Set the icon based on subscription/template type
+  const getIcon = () => {
+    const type = subscription?.type || template?.type || '';
+    switch (type.toLowerCase()) {
+      case 'boe':
+        return <FileText className="h-6 w-6" />;
+      case 'real-estate':
+      case 'inmobiliaria':
+        return <Building2 className="h-6 w-6" />;
+      default:
+        return <Brain className="h-6 w-6" />;
+    }
+  };
 
-        {error && (
-          <Card className="mb-6 border-destructive/50 bg-destructive/5">
-            <CardContent className="pt-6">
-              <div className="flex gap-3 items-start">
-                <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium text-destructive">Error</p>
-                  <p className="text-sm text-muted-foreground">{error}</p>
-                </div>
+  return (
+    <div className="container max-w-2xl mx-auto py-8" data-testid="subscription-form-container">
+      <div className="mb-8 flex items-center gap-4">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => navigate('/subscriptions/new')}
+          data-testid="back-button"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold">
+            {mode === 'edit' ? 'Editar Suscripción' : 'Nueva Suscripción'}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {mode === 'edit' 
+              ? 'Modifica los parámetros de tu suscripción' 
+              : 'Configura tu nueva suscripción para recibir alertas'}
+          </p>
+        </div>
+      </div>
+
+      <Card className="mb-6">
+        <CardHeader className="flex flex-row items-center gap-4 pb-2">
+          <div className="p-2 bg-primary/10 rounded-full">
+            {getIcon()}
+          </div>
+          <div>
+            <CardTitle data-testid="subscription-title">
+              {subscription?.name || template?.name || 'Nueva Suscripción'}
+            </CardTitle>
+            <CardDescription>
+              {subscription?.description || template?.description || ''}
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6" data-testid="subscription-form">
+            {error && (
+              <div className="bg-destructive/10 p-3 rounded-md text-destructive text-sm" data-testid="form-error">
+                {error}
               </div>
-            </CardContent>
-          </Card>
-        )}
-        
-        <Card className="mb-6">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-full bg-primary/10">
-                {mode === 'edit' && subscription ? (
-                  React.createElement(iconMap[subscription.type === 'boe' ? 'FileText' : 
-                    subscription.type === 'real-estate' ? 'Building2' : 'Brain'] || Brain, {
-                    className: "h-6 w-6 text-primary"
-                  })
-                ) : template ? (
-                  React.createElement(iconMap[template.icon] || Brain, {
-                    className: "h-6 w-6 text-primary"
-                  })
-                ) : (
-                  <Brain className="h-6 w-6 text-primary" />
+            )}
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Términos de búsqueda
+                </label>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Especifica los términos que quieres encontrar (máximo 3)
+                </p>
+                
+                {prompts.map((prompt, index) => (
+                  <div key={index} className="flex gap-2 mb-2">
+                    <input
+                      type="text"
+                      value={prompt}
+                      onChange={(e) => handlePromptChange(index, e.target.value)}
+                      placeholder={getPromptPlaceholder(subscription?.type || template?.type || '')}
+                      className="flex-1 px-3 py-2 rounded-md border"
+                      data-testid={`prompt-input-${index}`}
+                    />
+                    {prompts.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => removePrompt(index)}
+                        data-testid={`remove-prompt-${index}`}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                
+                {prompts.length < 3 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addPrompt}
+                    className="mt-2"
+                    data-testid="add-prompt-button"
+                  >
+                    <Plus className="h-4 w-4 mr-2" /> Añadir término
+                  </Button>
                 )}
               </div>
+              
               <div>
-                <CardTitle className="text-xl">
-                  {mode === 'edit' ? subscription?.name : template?.name}
-                </CardTitle>
-                <CardDescription>
-                  {mode === 'edit' 
-                    ? 'Edita tu suscripción actual' 
-                    : template?.description || 'Create a new subscription'}
-                </CardDescription>
+                <label className="block text-sm font-medium mb-1">
+                  Frecuencia de notificaciones
+                </label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div
+                    className={`border rounded-md p-3 cursor-pointer ${
+                      frequency === 'immediate' ? 'border-primary bg-primary/5' : ''
+                    }`}
+                    onClick={() => setFrequency('immediate')}
+                    data-testid="frequency-immediate"
+                  >
+                    <div className="flex items-center">
+                      <Bell className="h-4 w-4 mr-2" />
+                      <span className="font-medium">Inmediatas</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Recibe notificaciones tan pronto como haya resultados
+                    </p>
+                  </div>
+                  
+                  <div
+                    className={`border rounded-md p-3 cursor-pointer ${
+                      frequency === 'daily' ? 'border-primary bg-primary/5' : ''
+                    }`}
+                    onClick={() => setFrequency('daily')}
+                    data-testid="frequency-daily"
+                  >
+                    <div className="flex items-center">
+                      <Clock className="h-4 w-4 mr-2" />
+                      <span className="font-medium">Diarias</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Recibe un resumen diario con todos los resultados
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
-          </CardHeader>
-        </Card>
-
-        <form onSubmit={handleSubmit} className="mt-6" id="subscription-form">
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="text-lg">¿Qué quieres monitorizar? ({prompts.length}/3)</CardTitle>
-              <CardDescription>
-                Describe con el mayor detalle posible lo que quieres que NIFYA busque para ti.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {prompts.map((prompt, index) => (
-                <div key={index} className="relative">
-                  <textarea
-                    value={prompt}
-                    onChange={(e) => handlePromptChange(index, e.target.value)}
-                    placeholder={
-                      mode === 'edit' && subscription?.type 
-                        ? getPromptPlaceholder(subscription.type === 'boe' ? 'FileText' : 
-                           subscription.type === 'real-estate' ? 'Building2' : 'Brain')
-                        : template 
-                        ? getPromptPlaceholder(template.icon)
-                        : 'Enter what you want to monitor...'
-                    }
-                    className="w-full h-32 px-4 py-3 rounded-lg border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none pr-10"
-                    required
-                  />
-                  {prompts.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removePrompt(index)}
-                      className="absolute top-3 right-3 text-muted-foreground hover:text-destructive transition-colors"
-                    >
-                      <X className="h-5 w-5" />
-                    </button>
-                  )}
-                </div>
-              ))}
-              
-              {prompts.length < 3 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={addPrompt}
-                  className="mt-2"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Añadir otro prompt
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="text-lg">Frecuencia de notificaciones</CardTitle>
-              <CardDescription>
-                ¿Con qué frecuencia quieres recibir las notificaciones?
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div
-                  onClick={() => setFrequency('immediate')}
-                  className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-all ${
-                    frequency === 'immediate'
-                      ? 'bg-primary/10 border-primary'
-                      : 'bg-card hover:bg-muted/50'
-                  }`}
-                >
-                  <div className={`p-2 rounded-full ${
-                    frequency === 'immediate' ? 'bg-primary/20' : 'bg-muted'
-                  }`}>
-                    <Bell className={`h-5 w-5 ${
-                      frequency === 'immediate' ? 'text-primary' : 'text-muted-foreground'
-                    }`} />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium">Inmediata</p>
-                    <p className="text-sm text-muted-foreground">
-                      Recibe notificaciones tan pronto como haya coincidencias
-                    </p>
-                  </div>
-                </div>
-
-                <div
-                  onClick={() => setFrequency('daily')}
-                  className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-all ${
-                    frequency === 'daily'
-                      ? 'bg-primary/10 border-primary'
-                      : 'bg-card hover:bg-muted/50'
-                  }`}
-                >
-                  <div className={`p-2 rounded-full ${
-                    frequency === 'daily' ? 'bg-primary/20' : 'bg-muted'
-                  }`}>
-                    <Clock className={`h-5 w-5 ${
-                      frequency === 'daily' ? 'text-primary' : 'text-muted-foreground'
-                    }`} />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium">Diaria</p>
-                    <p className="text-sm text-muted-foreground">
-                      Recibe un resumen diario con todas las coincidencias
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex flex-col sm:flex-row gap-4 justify-between">
-                <Button 
-                  type="button" 
-                  variant="outline"
-                  onClick={() => navigate('/subscriptions/catalog')}
-                >
-                  Cancelar
-                </Button>
-                <Button 
-                  type="submit" 
-                  id="create-subscription-button"
-                  className="w-full sm:w-auto" 
-                  disabled={submitting}
-                >
-                  {submitting ? "Procesando..." : mode === 'edit' ? "Actualizar Suscripción" : "Crear Suscripción"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </form>
-      </div>
+            
+            <div className="pt-4">
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={submitting}
+                data-testid="subscription-submit-button"
+              >
+                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {mode === 'edit' ? 'Actualizar Suscripción' : 'Crear Suscripción'}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 };

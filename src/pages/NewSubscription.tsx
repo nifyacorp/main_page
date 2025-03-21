@@ -72,42 +72,62 @@ const NewSubscription: React.FC = () => {
         }
       } catch (err) {
         console.error('Error fetching data:', err);
-        setError('Failed to load subscription templates. Please try again later.');
+        setError(err instanceof Error ? err.message : 'Failed to load data');
         
-        // Provide fallback templates in development mode
+        // In development mode, create mock data for testing
         if (import.meta.env.DEV) {
-          setTemplates([
-            {
-              id: 'boe-template',
-              name: 'BOE Subscription',
-              description: 'Subscribe to official government publications',
-              type: 'boe',
-              prompts: [],
-              icon: 'FileText',
-              logo: 'https://www.boe.es/favicon.ico',
-              isPublic: true,
-              metadata: {
-                category: 'government',
-                source: 'boe',
+          console.log('Creating mock data for development');
+          
+          // Set mock templates if in dev mode
+          if (templates.length === 0) {
+            setTemplates([
+              {
+                id: 'boe-general',
+                name: 'BOE General',
+                description: 'Seguimiento general del Boletín Oficial del Estado',
+                type: 'boe',
+                prompts: ['disposición', 'ley', 'real decreto'],
+                icon: 'FileText',
+                logo: 'https://www.boe.es/favicon.ico',
+                isBuiltIn: true,
+                metadata: {
+                  category: 'government',
+                  source: 'boe'
+                },
+                frequency: 'daily'
               },
-              frequency: 'daily'
-            },
-            {
-              id: 'real-estate-template',
-              name: 'Real Estate Subscription',
-              description: 'Track property listings and updates',
-              type: 'real-estate',
-              prompts: [],
-              icon: 'Building2',
-              logo: 'https://cdn-icons-png.flaticon.com/512/1040/1040993.png',
-              isPublic: true,
-              metadata: {
-                category: 'real-estate',
-                source: 'property-listings',
+              {
+                id: 'boe-subvenciones',
+                name: 'Subvenciones BOE',
+                description: 'Alertas de subvenciones y ayudas públicas',
+                type: 'boe',
+                prompts: ['subvención', 'ayuda', 'convocatoria'],
+                icon: 'Coins',
+                logo: 'https://www.boe.es/favicon.ico',
+                isBuiltIn: true,
+                metadata: {
+                  category: 'government',
+                  source: 'boe'
+                },
+                frequency: 'immediate'
               },
-              frequency: 'daily'
-            }
-          ]);
+              {
+                id: 'real-estate-rental',
+                name: 'Alquiler de Viviendas',
+                description: 'Búsqueda de alquileres en zonas específicas',
+                type: 'real-estate',
+                prompts: ['alquiler', 'piso', 'apartamento'],
+                icon: 'Building2',
+                logo: 'https://example.com/icon.png',
+                isBuiltIn: true,
+                metadata: {
+                  category: 'real-estate',
+                  source: 'property-listings'
+                },
+                frequency: 'immediate'
+              }
+            ]);
+          }
           
           // Add mock subscriptions in development mode
           setUserSubscriptions([
@@ -145,7 +165,7 @@ const NewSubscription: React.FC = () => {
   }, []);
 
   const handleSelectTemplate = (templateId: string) => {
-    navigate(`/subscriptions/new/${templateId}`);
+    navigate(`/subscriptions/create/${templateId}`);
   };
 
   return (
@@ -277,13 +297,13 @@ const NewSubscription: React.FC = () => {
                 <h2 className="text-lg font-semibold mb-4">Available Templates</h2>
                 <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
                   {templates.map((template) => (
-                    <Card key={template.id} className="border-2 shadow-md hover:shadow-lg transition-shadow">
+                    <Card key={template.id} className="border-2 shadow-md hover:shadow-lg transition-shadow" data-testid={`template-card-${template.id}`}>
                       <CardHeader className="flex flex-row items-center gap-4 pb-2">
                         <div className="p-2 bg-primary/10 rounded-full">
                           {iconMap[template.icon] || <Bell className="h-6 w-6" />}
                         </div>
                         <div>
-                          <CardTitle>{template.name}</CardTitle>
+                          <CardTitle data-testid={`template-title-${template.id}`}>{template.name}</CardTitle>
                           <CardDescription>
                             {template.description}
                           </CardDescription>
@@ -312,6 +332,7 @@ const NewSubscription: React.FC = () => {
                         <Button 
                           className="w-full"
                           onClick={() => handleSelectTemplate(template.id)}
+                          data-testid={`template-select-button-${template.id}`}
                         >
                           Select
                         </Button>
@@ -320,13 +341,13 @@ const NewSubscription: React.FC = () => {
                   ))}
 
                   {/* Add Custom Subscription Card */}
-                  <Card className="border-2 border-dashed shadow-md">
+                  <Card className="border-2 border-dashed shadow-md" data-testid="template-card-custom">
                     <CardHeader className="flex flex-row items-center gap-4 pb-2">
                       <div className="p-2 bg-primary/10 rounded-full">
                         <Plus className="h-6 w-6" />
                       </div>
                       <div>
-                        <CardTitle>Custom Subscription</CardTitle>
+                        <CardTitle data-testid="template-title-custom">Custom Subscription</CardTitle>
                         <CardDescription>
                           Create a custom notification source
                         </CardDescription>
@@ -342,7 +363,8 @@ const NewSubscription: React.FC = () => {
                       <Button 
                         className="w-full" 
                         variant="outline"
-                        onClick={() => navigate('/subscriptions/new/custom')}
+                        onClick={() => handleSelectTemplate('custom')}
+                        data-testid="template-select-button-custom"
                       >
                         Create Custom
                       </Button>

@@ -126,9 +126,14 @@ export default function App() {
                     <Subscriptions />
                   </ProtectedRoute>
                 } />
-                <Route path="/subscriptions/new" element={
+                <Route path="/subscriptions/create" element={
                   <ProtectedRoute>
                     <NewSubscription />
+                  </ProtectedRoute>
+                } />
+                <Route path="/subscriptions/new" element={
+                  <ProtectedRoute>
+                    <Navigate to="/subscriptions/create" replace />
                   </ProtectedRoute>
                 } />
                 <Route path="/notifications" element={
@@ -146,8 +151,15 @@ export default function App() {
                   path="/subscriptions/catalog"
                   element={
                     <ProtectedRoute>
-                      {/* Redirect to /subscriptions/new as this is the modern replacement */}
-                      <Navigate to="/subscriptions/new" replace />
+                      <Navigate to="/subscriptions/create" replace />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/subscriptions/create/:typeId"
+                  element={
+                    <ProtectedRoute>
+                      <SubscriptionPrompt mode="create" />
                     </ProtectedRoute>
                   }
                 />
@@ -155,7 +167,7 @@ export default function App() {
                   path="/subscriptions/new/:typeId"
                   element={
                     <ProtectedRoute>
-                      <SubscriptionPrompt mode="create" />
+                      <Navigate to={(location) => location.pathname.replace('/new/', '/create/')} replace />
                     </ProtectedRoute>
                   }
                 />
@@ -168,7 +180,7 @@ export default function App() {
                   }
                 />
                 <Route
-                  path="/subscriptions/:subscriptionId/edit"
+                  path="/subscriptions/edit/:id"
                   element={
                     <ProtectedRoute>
                       <SubscriptionPrompt mode="edit" />
