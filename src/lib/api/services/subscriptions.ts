@@ -66,13 +66,13 @@ export const subscriptionService = {
     // Proceed with valid data
     console.log('Validation passed, sending to backend');
     
-    // Remove type field before sending to backend since it doesn't exist in the database
-    const { type, ...dataWithoutType } = validation.data;
-    
+    // Keep the type field in the request to satisfy backend validation
+    // Note: This assumes the backend handles the type field appropriately 
+    // and doesn't try to insert it directly into the database
     return backendClient({
       endpoint: '/api/v1/subscriptions',
       method: 'POST',
-      body: dataWithoutType,
+      body: validation.data,
     }).finally(() => console.groupEnd());
   },
   
