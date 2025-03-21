@@ -72,7 +72,12 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
           if (error) throw new Error(error);
           
           if (data?.subscription) {
-            setSubscription(data.subscription);
+            // Ensure type conversion from API subscription to our interface
+            const fullSubscription: Subscription = {
+              ...data.subscription,
+              type: data.subscription.type || 'custom' // Ensure type property exists
+            };
+            setSubscription(fullSubscription);
             setPrompts(data.subscription.prompts);
             setFrequency(data.subscription.frequency as 'immediate' | 'daily');
           }
@@ -108,7 +113,6 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
             prompts: [],
             icon: typeId === 'boe-template' ? 'FileText' : 'Brain',
             logo: '',
-            isBuiltIn: true,
             metadata: {
               category: 'development',
               source: 'mock'
@@ -246,9 +250,20 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
           variant: "default"
         });
         
-        // Immediate redirect to subscriptions page without delay
+        // Enhanced redirect approach - multiple strategies to ensure navigation happens
+        console.log('Redirecting to subscriptions list...');
+        
+        // Strategy 1: Immediate navigation with replace
         navigate('/subscriptions', { replace: true });
-        return; // Return early to prevent the setTimeout below from executing
+        
+        // Strategy 2: Forced navigation after a slight delay as backup
+        setTimeout(() => {
+          console.log('Executing delayed redirect as backup');
+          window.location.href = '/subscriptions';
+        }, 500);
+        
+        // Return early to prevent the edit mode setTimeout from executing
+        return;
       }
 
       // This setTimeout only executes in edit mode now
