@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Clock, FileText, Play, Edit, Trash, Bell, Loader2, AlertTriangle, RefreshCcw } from 'lucide-react';
+import { Plus, Clock, FileText, Play, Edit, Trash, Bell, Loader2, AlertTriangle, RefreshCcw, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useSubscriptions } from '../hooks/use-subscriptions';
 import { useToast } from '../components/ui/use-toast';
