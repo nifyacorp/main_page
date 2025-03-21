@@ -116,15 +116,41 @@ class SubscriptionService {
    */
   async createSubscription(data: SubscriptionFormData): Promise<Subscription> {
     try {
-      const response = await apiClient.post('/v1/subscriptions', data);
+      // Format data to match backend API schema
+      const formattedData = {
+        name: data.name,
+        description: data.description || '',
+        type: data.source.toLowerCase() === 'boe' ? 'boe' : 
+               data.source.toLowerCase() === 'doga' ? 'doga' : 'custom',
+        prompts: Array.isArray(data.keywords) ? data.keywords : [data.keywords],
+        logo: data.logo || 'https://nifya.com/assets/logo.png',
+        frequency: data.frequency === 'realtime' ? 'immediate' : 
+                   data.frequency.toLowerCase() === 'weekly' ? 'daily' : 
+                   data.frequency.toLowerCase() === 'monthly' ? 'daily' : 
+                   data.frequency.toLowerCase(),
+        // Add any other required fields
+        typeId: data.typeId
+      };
+
+      console.log('Formatted subscription data for API:', formattedData);
+      
+      const response = await apiClient.post('/v1/subscriptions', formattedData);
       return response.data;
     } catch (error) {
       console.error('Error creating subscription:', error);
       
       // Extract and throw more helpful error messages
       if (error.response && error.response.data) {
-        const { message, code } = error.response.data;
-        if (message) {
+        const { message, code, details } = error.response.data;
+        
+        if (details) {
+          // Format validation errors
+          const validationErrors = Object.entries(details)
+            .map(([field, msg]) => `${field}: ${msg}`)
+            .join('\n');
+          
+          throw new Error(`Validation failed: ${validationErrors}`);
+        } else if (message) {
           throw new Error(message);
         }
       }

@@ -5,6 +5,24 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>NIFYA - Notificaciones inteligentes impulsadas por IA</title>
+    <script type="text/javascript">
+      // Fix for subscription redirect issue
+      (function() {
+        // Only run this on subscription create pages (post-submission)
+        if (window.location.pathname.includes('/subscriptions/create') || 
+            (window.location.pathname.includes('/subscriptions/new') && !window.location.pathname.includes('/new/'))) {
+          
+          // Check if we're on a post-submission page by looking for the form
+          setTimeout(function() {
+            const formElement = document.querySelector('[data-testid="subscription-form"]');
+            if (!formElement) {
+              console.log('Redirect fix: Form not found, redirecting to subscriptions list');
+              window.location.href = '/subscriptions';
+            }
+          }, 800); // Small delay to ensure DOM is loaded
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

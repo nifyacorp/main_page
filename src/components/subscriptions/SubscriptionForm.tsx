@@ -286,10 +286,10 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
         </TabsList>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-6" data-testid="subscription-form">
             {/* Display form-wide error message if there is one */}
             {submitError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert" data-testid="form-error">
                 <strong className="font-bold">Error: </strong>
                 <span className="block sm:inline">{submitError}</span>
               </div>
@@ -301,12 +301,34 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Subscription Name</FormLabel>
+                    <FormLabel>Nombre de la suscripción</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter a name for this subscription" {...field} />
+                      <Input placeholder="Ej: Alertas de BOE" {...field} data-testid="name-input" />
                     </FormControl>
                     <FormDescription>
-                      A descriptive name for your subscription
+                      Un nombre descriptivo para identificar esta suscripción.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Descripción</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Breve descripción del propósito de esta suscripción" 
+                        className="resize-none" 
+                        {...field}
+                        data-testid="description-input"
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Describe para qué sirve esta suscripción.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

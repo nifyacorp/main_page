@@ -207,18 +207,18 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
         
         // Create the subscription payload
         const subscriptionData = {
-          // Type field is used for validation but will be removed before API call
+          // Type is required by the backend API
           type: template.type || 'boe', 
           typeId: template.id, // Keep typeId for reference
-          name: template.name,
+          name: template.name || `Subscription from ${typeId || 'template'}`,
           description: template.description || '',
           prompts: formattedPrompts,
-          logo: template.logo || '',
+          logo: template.logo || 'https://nifya.com/assets/logo.png', // Always provide a default logo
           frequency,
         };
         
         // Ensure required fields are present and valid
-        if (!subscriptionData.name) {
+        if (!subscriptionData.name || subscriptionData.name.trim() === '') {
           subscriptionData.name = typeId ? `Subscription from ${typeId}` : 'Custom Subscription';
         }
         
@@ -236,52 +236,68 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
         
         console.log('Subscription data being sent:', subscriptionData);
         
-        const createResponse = await subscriptions.create(subscriptionData);
-        
-        // Log the complete response for debugging
-        console.log('Subscription creation complete response:', createResponse);
-        
-        // Additional error logging for better debugging
-        if (createResponse.error) {
-          console.error('Error details:', createResponse);
-          // Handle validation errors from the API response
-          const responseData = createResponse.data as any;
-          if (responseData && responseData.validationErrors) {
-            console.error('Validation errors:', responseData.validationErrors);
+        try {
+          const createResponse = await subscriptions.create(subscriptionData);
+          
+          // Log the complete response for debugging
+          console.log('Subscription creation complete response:', createResponse);
+          
+          // If we got here, the subscription was created successfully
+          console.log('Subscription created successfully:', createResponse);
+          
+          toast({
+            title: "Suscripción creada",
+            description: "Tu nueva suscripción se ha creado correctamente",
+            variant: "default"
+          });
+          
+          // Enhanced redirect approach - multiple strategies to ensure navigation happens
+          console.log('Redirecting to subscriptions list...');
+          
+          // Strategy 1: Immediate navigation with replace
+          navigate('/subscriptions', { replace: true });
+          
+          // Strategy 2: Forced navigation after a slight delay as backup
+          setTimeout(() => {
+            console.log('Executing delayed redirect as backup');
+            window.location.href = '/subscriptions';
+          }, 500);
+          
+          // Return early to prevent the edit mode setTimeout from executing
+          return;
+        } catch (error: any) {
+          console.error('Error creating subscription:', error);
+          
+          // Try to extract validation errors from the response
+          let errorMessage = 'Failed to create subscription';
+          
+          if (error.response && error.response.data) {
+            const { message, details } = error.response.data;
             
-            // Format validation errors for the toast message
-            const validationErrorText = Object.entries(responseData.validationErrors as Record<string, string>)
-              .map(([field, error]) => `${field}: ${error}`)
-              .join('\n');
-            
-            throw new Error(`Validation errors:\n${validationErrorText}`);
+            if (details && typeof details === 'object') {
+              // Format validation errors for display
+              const validationErrors = Object.entries(details)
+                .map(([field, msg]) => `${field}: ${msg}`)
+                .join('\n');
+              
+              errorMessage = `Validation failed:\n${validationErrors}`;
+            } else if (message) {
+              errorMessage = message;
+            }
+          } else if (error instanceof Error) {
+            errorMessage = error.message;
           }
-          throw new Error(createResponse.error);
+          
+          // Display the error
+          setError(errorMessage);
+          toast({
+            title: "Error de validación",
+            description: errorMessage,
+            variant: "destructive"
+          });
+          
+          throw error; // Re-throw to be caught by the outer catch block
         }
-        
-        // If we got here, the subscription was created successfully
-        console.log('Subscription created successfully:', createResponse.data);
-        
-        toast({
-          title: "Suscripción creada",
-          description: "Tu nueva suscripción se ha creado correctamente",
-          variant: "default"
-        });
-        
-        // Enhanced redirect approach - multiple strategies to ensure navigation happens
-        console.log('Redirecting to subscriptions list...');
-        
-        // Strategy 1: Immediate navigation with replace
-        navigate('/subscriptions', { replace: true });
-        
-        // Strategy 2: Forced navigation after a slight delay as backup
-        setTimeout(() => {
-          console.log('Executing delayed redirect as backup');
-          window.location.href = '/subscriptions';
-        }, 500);
-        
-        // Return early to prevent the edit mode setTimeout from executing
-        return;
       }
 
       // This setTimeout only executes in edit mode now
@@ -379,100 +395,108 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
             )}
             
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Términos de búsqueda
+              <div className="mb-6">
+                <label className="block text-gray-700 text-sm font-medium mb-2">
+                  {prompts.length > 1 ? 'Prompts' : 'Prompt'} 
+                  <span className="text-gray-400 text-xs ml-1">(Máximo 3)</span>
                 </label>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Especifica los términos que quieres encontrar (máximo 3)
-                </p>
                 
                 {prompts.map((prompt, index) => (
-                  <div key={index} className="flex gap-2 mb-2">
+                  <div key={index} className="flex items-center mb-2">
                     <input
                       type="text"
                       value={prompt}
                       onChange={(e) => handlePromptChange(index, e.target.value)}
-                      placeholder={getPromptPlaceholder(subscription?.type || template?.type || '')}
-                      className="flex-1 px-3 py-2 rounded-md border"
+                      className="flex-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder={getPromptPlaceholder(template?.type || subscription?.type || 'default')}
                       data-testid={`prompt-input-${index}`}
                     />
-                    {prompts.length > 1 && (
-                      <Button
+                    
+                    {index > 0 && (
+                      <button
                         type="button"
-                        variant="outline"
-                        size="icon"
                         onClick={() => removePrompt(index)}
+                        className="ml-2 p-1.5 text-gray-600 hover:text-gray-900"
+                        aria-label="Remove prompt"
                         data-testid={`remove-prompt-${index}`}
                       >
-                        <X className="h-4 w-4" />
-                      </Button>
+                        <X className="h-5 w-5" />
+                      </button>
                     )}
                   </div>
                 ))}
                 
                 {prompts.length < 3 && (
-                  <Button
+                  <button
                     type="button"
-                    variant="outline"
                     onClick={addPrompt}
-                    className="mt-2"
+                    className="mt-2 flex items-center text-sm text-indigo-600 hover:text-indigo-900"
                     data-testid="add-prompt-button"
                   >
-                    <Plus className="h-4 w-4 mr-2" /> Añadir término
-                  </Button>
+                    <Plus className="h-4 w-4 mr-1" />
+                    Añadir prompt
+                  </button>
                 )}
               </div>
               
-              <div>
-                <label className="block text-sm font-medium mb-1">
+              <div className="mb-6">
+                <label className="block text-gray-700 text-sm font-medium mb-2">
                   Frecuencia de notificaciones
                 </label>
-                <div className="grid grid-cols-2 gap-4">
-                  <div
-                    className={`border rounded-md p-3 cursor-pointer ${
-                      frequency === 'immediate' ? 'border-primary bg-primary/5' : ''
-                    }`}
-                    onClick={() => setFrequency('immediate')}
-                    data-testid="frequency-immediate"
-                  >
-                    <div className="flex items-center">
-                      <Bell className="h-4 w-4 mr-2" />
-                      <span className="font-medium">Inmediatas</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Recibe notificaciones tan pronto como haya resultados
-                    </p>
-                  </div>
+                
+                <div className="flex flex-col space-y-2">
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="frequency"
+                      value="immediate"
+                      checked={frequency === 'immediate'}
+                      onChange={() => setFrequency('immediate')}
+                      className="form-radio text-indigo-600"
+                      data-testid="frequency-immediate"
+                    />
+                    <span>Inmediata</span>
+                  </label>
                   
-                  <div
-                    className={`border rounded-md p-3 cursor-pointer ${
-                      frequency === 'daily' ? 'border-primary bg-primary/5' : ''
-                    }`}
-                    onClick={() => setFrequency('daily')}
-                    data-testid="frequency-daily"
-                  >
-                    <div className="flex items-center">
-                      <Clock className="h-4 w-4 mr-2" />
-                      <span className="font-medium">Diarias</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Recibe un resumen diario con todos los resultados
-                    </p>
-                  </div>
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="frequency"
+                      value="daily"
+                      checked={frequency === 'daily'}
+                      onChange={() => setFrequency('daily')}
+                      className="form-radio text-indigo-600"
+                      data-testid="frequency-daily"
+                    />
+                    <span>Diaria</span>
+                  </label>
                 </div>
               </div>
             </div>
             
-            <div className="pt-4">
+            <div className="flex justify-end gap-3 mt-6">
               <Button
-                type="submit"
-                className="w-full"
+                type="button"
+                variant="outline"
+                onClick={() => navigate('/subscriptions')}
+                disabled={submitting}
+              >
+                Cancelar
+              </Button>
+              
+              <Button 
+                type="submit" 
                 disabled={submitting}
                 data-testid="subscription-submit-button"
               >
-                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {mode === 'edit' ? 'Actualizar Suscripción' : 'Crear Suscripción'}
+                {submitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {mode === 'edit' ? 'Actualizando...' : 'Creando...'}
+                  </>
+                ) : (
+                  mode === 'edit' ? 'Actualizar suscripción' : 'Crear suscripción'
+                )}
               </Button>
             </div>
           </form>
