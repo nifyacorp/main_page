@@ -8,8 +8,8 @@ export interface Subscription {
   source: string;
   keywords: string[];
   categories?: string[];
-  frequency: 'realtime' | 'daily' | 'weekly' | 'monthly';
-  notificationType: 'email' | 'push' | 'both';
+  frequency: 'realtime' | 'daily' | 'weekly' | 'monthly' | 'immediate';
+  notificationType?: 'email' | 'push' | 'both';
   filters?: {
     includePatterns?: string[];
     excludePatterns?: string[];
@@ -22,6 +22,7 @@ export interface Subscription {
   userId: string;
   createdAt: string;
   updatedAt: string;
+  prompts?: string[];
 }
 
 export interface SubscriptionFormData {
