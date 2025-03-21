@@ -265,7 +265,7 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
         });
       }
 
-      // Redirect to subscriptions page
+      // Redirect to subscriptions page ddda
       navigate('/subscriptions');
     } catch (err) {
       console.error(`Error ${mode === 'edit' ? 'updating' : 'creating'} subscription:`, err);
