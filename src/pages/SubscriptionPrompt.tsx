@@ -207,7 +207,8 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
         
         // Create the subscription payload
         const subscriptionData = {
-          type: template.type || 'boe', // Use template.type for backend compatibility
+          // Type field is used for validation but will be removed before API call
+          type: template.type || 'boe', 
           typeId: template.id, // Keep typeId for reference
           name: template.name,
           description: template.description || '',

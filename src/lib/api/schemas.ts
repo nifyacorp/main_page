@@ -23,7 +23,7 @@ export const SubscriptionTypeSchema = z.enum(['boe', 'real-estate', 'custom'], {
 export const CreateSubscriptionSchema = z.object({
   name: z.string().min(3, { message: 'Name must be at least 3 characters long' }).max(100),
   description: z.string().max(500).optional(),
-  type: SubscriptionTypeSchema,
+  type: SubscriptionTypeSchema.optional(),
   typeId: z.string().optional(),
   prompts: z.union([
     z.array(z.string()).min(1, { message: 'At least one prompt is required' }).max(3, { message: 'Maximum 3 prompts allowed' }),
