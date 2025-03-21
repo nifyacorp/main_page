@@ -67,13 +67,21 @@ class SubscriptionService {
   /**
    * Fetch all subscriptions with optional filtering
    */
-  async getSubscriptions(params?: SubscriptionListParams): Promise<SubscriptionListResponse> {
+  async getSubscriptions(params?: SubscriptionListParams): Promise<{ subscriptions: Subscription[]; total: number; page: number; limit: number; totalPages: number; error?: string }> {
     try {
       const response = await apiClient.get('/v1/subscriptions', { params });
       return response.data;
     } catch (error) {
       console.error('Error fetching subscriptions:', error);
-      throw error;
+      // Return a user-friendly error but with empty subscriptions array to prevent UI crashes
+      return {
+        subscriptions: [],
+        total: 0,
+        page: params?.page || 1,
+        limit: params?.limit || 10,
+        totalPages: 0,
+        error: 'Unable to load subscriptions. Please try again later.'
+      };
     }
   }
 
@@ -168,7 +176,7 @@ class SubscriptionService {
   }
 
   /**
-   * Get subscription statistics
+   * Get subscription statistics with fallback for failed requests
    */
   async getSubscriptionStats(): Promise<{
     total: number;
@@ -176,13 +184,22 @@ class SubscriptionService {
     inactive: number;
     bySource: Record<string, number>;
     byFrequency: Record<string, number>;
+    error?: string;
   }> {
     try {
       const response = await apiClient.get('/v1/subscriptions/stats');
       return response.data;
     } catch (error) {
       console.error('Error fetching subscription stats:', error);
-      throw error;
+      // Return fallback data to prevent UI crashes
+      return {
+        total: 0,
+        active: 0,
+        inactive: 0,
+        bySource: {},
+        byFrequency: {},
+        error: 'Unable to load subscription statistics. Please try again later.'
+      };
     }
   }
 }

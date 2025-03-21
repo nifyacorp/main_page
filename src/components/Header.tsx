@@ -37,6 +37,22 @@ export default function Header() {
   
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      {/* Large, visible logout button that appears when authenticated */}
+      {authState.isAuthenticated && (
+        <div className="absolute top-2 right-2 z-50">
+          <button
+            id="main-logout-button"
+            data-testid="main-logout-button"
+            onClick={handleLogout}
+            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2"
+            aria-label="Log out from application"
+          >
+            <LogOut className="h-4 w-4" />
+            Logout
+          </button>
+        </div>
+      )}
+    
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center">
           <Link 
@@ -71,6 +87,20 @@ export default function Header() {
                 <NotificationBadge />
               </div>
               
+              {/* Visible logout button for desktop */}
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="hidden md:flex items-center gap-2"
+                onClick={handleLogout}
+                id="logout-button"
+                data-testid="logout-button"
+                aria-label="Log out"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Log out</span>
+              </Button>
+              
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-full h-9 w-9">
@@ -84,7 +114,11 @@ export default function Header() {
                     <Settings className="mr-2 h-4 w-4" />
                     <span>Settings</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleLogout}>
+                  <DropdownMenuItem 
+                    onClick={handleLogout}
+                    id="dropdown-logout-button"
+                    data-testid="dropdown-logout-button"
+                  >
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
                   </DropdownMenuItem>
@@ -131,6 +165,36 @@ export default function Header() {
             <Link to="/auth" state={{ isLogin: false }} className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
               Sign up
             </Link>
+          </div>
+        </div>
+      )}
+      
+      {/* Mobile menu - for authenticated users */}
+      {mobileMenuOpen && authState.isAuthenticated && (
+        <div className="md:hidden p-4 bg-background border-t">
+          <div className="flex flex-col space-y-4">
+            <Link to="/dashboard" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
+              Dashboard
+            </Link>
+            <Link to="/subscriptions" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
+              Subscriptions
+            </Link>
+            <Link to="/settings" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
+              Settings
+            </Link>
+            <button 
+              className="text-sm font-medium text-left text-red-500 flex items-center"
+              onClick={() => {
+                handleLogout();
+                setMobileMenuOpen(false);
+              }}
+              id="mobile-logout-button"
+              data-testid="mobile-logout-button"
+              aria-label="Log out"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Log out
+            </button>
           </div>
         </div>
       )}

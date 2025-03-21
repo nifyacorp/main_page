@@ -56,6 +56,25 @@ const Auth: React.FC = () => {
     }
   }, []);
 
+  // Use an effect to manually set the autocomplete attribute on the password field
+  useEffect(() => {
+    const passwordInput = document.getElementById('password');
+    if (passwordInput) {
+      if (isLogin) {
+        passwordInput.setAttribute('autocomplete', 'current-password');
+      } else if (isResetPassword) {
+        passwordInput.setAttribute('autocomplete', 'new-password');
+      } else {
+        passwordInput.setAttribute('autocomplete', 'new-password');
+      }
+    }
+    
+    const emailInput = document.getElementById('email');
+    if (emailInput) {
+      emailInput.setAttribute('autocomplete', 'email');
+    }
+  }, [isLogin, isResetPassword]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -256,6 +275,7 @@ const Auth: React.FC = () => {
                 onChange={handleInputChange}
                 className="w-full px-4 py-2 bg-background border rounded-lg pl-10 focus:outline-none focus:ring-2 focus:ring-primary/50"
                 placeholder="tu@email.com"
+                autoComplete="email"
               />
               <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
               {!isLogin && (
@@ -302,6 +322,7 @@ const Auth: React.FC = () => {
                 className="w-full px-4 py-2 bg-background border rounded-lg pl-10 pr-20 focus:outline-none focus:ring-2 focus:ring-primary/50"
                 placeholder="••••••••"
                 minLength={8}
+                autoComplete={isLogin ? "current-password" : isResetPassword ? "new-password" : "new-password"}
               />
               <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
             </div>

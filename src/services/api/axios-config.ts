@@ -39,11 +39,16 @@ apiClient.interceptors.request.use(
     const userId = localStorage.getItem('userId');
     
     if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token.replace('Bearer ', '')}`;
+      // Ensure proper Bearer format and maintain case sensitivity
+      // Remove 'Bearer ' prefix if it exists in the token to prevent duplication
+      const tokenValue = token.replace(/^Bearer\s+/i, '');
+      config.headers.Authorization = `Bearer ${tokenValue}`;
       
-      // Add user ID header for proper authentication
+      // Add user ID header with proper case for backend compatibility
       if (userId) {
+        // Ensure both header formats for maximum compatibility with different servers
         config.headers['x-user-id'] = userId;
+        config.headers['X-User-ID'] = userId;
       }
     }
     
