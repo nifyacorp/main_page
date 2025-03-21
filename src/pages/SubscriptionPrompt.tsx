@@ -10,10 +10,10 @@ import {
   Bell, 
   Clock, 
   Loader2, 
-  AlertCircle 
+  AlertCircle,
+  LucideIcon
 } from 'lucide-react';
 import { subscriptions, templates } from '../lib/api';
-import type { IconType } from 'lucide-react';
 import type { Template } from '../lib/api/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -30,7 +30,7 @@ interface Subscription {
   type: string;
 }
 
-const iconMap: Record<string, IconType> = {
+const iconMap: Record<string, LucideIcon> = {
   FileText,
   Building2,
   Brain,
@@ -152,8 +152,12 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Add validation logging
+    console.log('Form submission started', { prompts, frequency });
+    
     // Ensure we're working with non-empty prompts
     const validPrompts = prompts.filter(p => p.trim());
+    console.log('Filtered valid prompts:', validPrompts);
     
     // Enhanced client-side validation
     if (validPrompts.length === 0) {
@@ -164,6 +168,7 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
         description: errorMsg,
         variant: "destructive"
       });
+      console.error('Validation failed: No valid prompts');
       return;
     }
     
@@ -175,6 +180,7 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
         description: errorMsg,
         variant: "destructive"
       });
+      console.error('Validation failed: No template selected');
       return;
     }
 
@@ -183,12 +189,22 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
       setError(null);
       
       if (mode === 'edit' && subscriptionId) {
+        console.log('Updating subscription with prompts:', validPrompts);
+        
+        // Ensure prompts are in the correct format - always an array
+        const formattedPrompts = Array.isArray(validPrompts) ? validPrompts : [validPrompts];
+        
         const response = await subscriptions.update(subscriptionId, {
-          prompts: validPrompts,
+          prompts: formattedPrompts,
           frequency,
         });
         
-        if (response.error) throw new Error(response.error);
+        console.log('Update response:', response);
+        
+        if (response.error) {
+          console.error('Error details:', response);
+          throw new Error(response.error);
+        }
         
         toast({
           title: "Suscripción actualizada",
@@ -196,23 +212,51 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
           variant: "default"
         });
       } else if (template) {
-        // Create directly instead of subscribing to template to avoid undefined ID issues
+        // Create subscription with template
         console.log('Creating subscription with prompts:', validPrompts);
         
-        const createResponse = await subscriptions.create({
+        // Ensure prompts are in the correct format - always an array
+        const formattedPrompts = Array.isArray(validPrompts) ? validPrompts : [validPrompts];
+        console.log('Formatted prompts (array):', formattedPrompts);
+        
+        // Create the subscription payload
+        const subscriptionData = {
           type: template.type || 'boe', // Use template.type for backend compatibility
           typeId: template.id, // Keep typeId for reference
           name: template.name,
           description: template.description || '',
-          prompts: validPrompts,
+          prompts: formattedPrompts,
           logo: template.logo || '',
           frequency,
-        });
+        };
         
-        // Log the response for debugging
-        console.log('Subscription creation response:', createResponse);
+        console.log('Subscription data being sent:', subscriptionData);
         
-        if (createResponse.error) throw new Error(createResponse.error);
+        const createResponse = await subscriptions.create(subscriptionData);
+        
+        // Log the complete response for debugging
+        console.log('Subscription creation complete response:', createResponse);
+        
+        // Additional error logging for better debugging
+        if (createResponse.error) {
+          console.error('Error details:', createResponse);
+          // Handle validation errors from the API response
+          const responseData = createResponse.data as any;
+          if (responseData && responseData.validationErrors) {
+            console.error('Validation errors:', responseData.validationErrors);
+            
+            // Format validation errors for the toast message
+            const validationErrorText = Object.entries(responseData.validationErrors as Record<string, string>)
+              .map(([field, error]) => `${field}: ${error}`)
+              .join('\n');
+            
+            throw new Error(`Validation errors:\n${validationErrorText}`);
+          }
+          throw new Error(createResponse.error);
+        }
+        
+        // If we got here, the subscription was created successfully
+        console.log('Subscription created successfully:', createResponse.data);
         
         toast({
           title: "Suscripción creada",
@@ -221,6 +265,7 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
         });
       }
 
+      // Redirect to subscriptions page
       navigate('/subscriptions');
     } catch (err) {
       console.error(`Error ${mode === 'edit' ? 'updating' : 'creating'} subscription:`, err);
@@ -435,21 +480,13 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
                 >
                   Cancelar
                 </Button>
-                <Button
-                  type="submit"
-                  className="w-full sm:w-auto"
-                  disabled={submitting}
-                  data-testid="create-subscription-button"
+                <Button 
+                  type="submit" 
                   id="create-subscription-button"
+                  className="w-full sm:w-auto" 
+                  disabled={submitting}
                 >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {mode === 'edit' ? 'Actualizando...' : 'Creando...'}
-                    </>
-                  ) : (
-                    mode === 'edit' ? 'Actualizar Suscripción' : 'Crear Suscripción'
-                  )}
+                  {submitting ? "Procesando..." : mode === 'edit' ? "Actualizar Suscripción" : "Crear Suscripción"}
                 </Button>
               </div>
             </CardContent>

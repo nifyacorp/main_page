@@ -25,7 +25,18 @@ export const CreateSubscriptionSchema = z.object({
   description: z.string().max(500).optional(),
   type: SubscriptionTypeSchema,
   typeId: z.string().optional(),
-  prompts: z.array(z.string()).min(1, { message: 'At least one prompt is required' }).max(3, { message: 'Maximum 3 prompts allowed' }),
+  prompts: z.union([
+    z.array(z.string()).min(1, { message: 'At least one prompt is required' }).max(3, { message: 'Maximum 3 prompts allowed' }),
+    z.string().refine((val) => {
+      try {
+        const parsed = JSON.parse(val);
+        return Array.isArray(parsed) && parsed.length >= 1 && parsed.length <= 3;
+      } catch {
+        // If not a valid JSON, check if it's a non-empty string to use as a single prompt
+        return typeof val === 'string' && val.trim().length > 0;
+      }
+    }, { message: 'Invalid prompts format: must be an array of 1-3 strings, a JSON string of the same, or a single non-empty string' })
+  ]),
   logo: z.string().url({ message: 'Logo must be a valid URL' }).optional(),
   frequency: SubscriptionFrequencySchema
 });
