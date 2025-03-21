@@ -58,10 +58,13 @@ export default function Subscriptions() {
 
   // Filter subscriptions based on search and filters
   const filteredSubscriptions = subscriptionsData.filter(sub => {
+    // Handle case where keywords or prompts might be used
+    const keywords = sub.keywords || sub.prompts || [];
+    
     const matchesSearch = 
       sub.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
       (sub.description && sub.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (sub.keywords && Array.isArray(sub.keywords) && sub.keywords.some(k => 
+      (Array.isArray(keywords) && keywords.some(k => 
         typeof k === 'string' && k.toLowerCase().includes(searchTerm.toLowerCase())
       ));
     
@@ -279,21 +282,21 @@ export default function Subscriptions() {
               </CardHeader>
               <CardContent className="pb-2">
                 <div className="flex gap-1 flex-wrap">
-                  {subscription.keywords.slice(0, 3).map((keyword, i) => (
+                  {(subscription.keywords || subscription.prompts || []).slice(0, 3).map((keyword, i) => (
                     <Badge key={i} variant="outline" className="bg-secondary/10">
                       {keyword}
                     </Badge>
                   ))}
-                  {subscription.keywords.length > 3 && (
+                  {(subscription.keywords || subscription.prompts || []).length > 3 && (
                     <Badge variant="outline" className="bg-secondary/10">
-                      +{subscription.keywords.length - 3}
+                      +{(subscription.keywords || subscription.prompts || []).length - 3}
                     </Badge>
                   )}
                 </div>
                 <div className="flex items-center mt-3 text-sm text-muted-foreground">
                   <Clock className="h-4 w-4 mr-1" />
                   <span>
-                    {subscription.frequency === 'realtime' ? 'Tiempo real' :
+                    {subscription.frequency === 'realtime' || subscription.frequency === 'immediate' ? 'Tiempo real' :
                      subscription.frequency === 'daily' ? 'Diaria' :
                      subscription.frequency === 'weekly' ? 'Semanal' : 'Mensual'}
                   </span>

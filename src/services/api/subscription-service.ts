@@ -118,12 +118,13 @@ class SubscriptionService {
                   description: `This is a mock subscription created from stats data (${source})`,
                   source: source,
                   prompts: [`${source} terms`, 'Example prompt'],
+                  keywords: [`${source} terms`, 'Example prompt'],
                   frequency: Object.keys(frequencies)[i % Object.keys(frequencies).length] as 'immediate' | 'daily',
+                  notificationType: 'email',
                   isActive: true,
                   createdAt: new Date().toISOString(),
                   updatedAt: new Date().toISOString(),
-                  userId: "current-user",
-                  keywords: [`${source} terms`, 'Example prompt'],
+                  userId: "current-user"
                 });
               }
             }
