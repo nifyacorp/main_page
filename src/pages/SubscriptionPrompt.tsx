@@ -216,6 +216,23 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
           frequency,
         };
         
+        // Ensure required fields are present and valid
+        if (!subscriptionData.name) {
+          subscriptionData.name = typeId ? `Subscription from ${typeId}` : 'Custom Subscription';
+        }
+        
+        // Ensure logo is a valid URL if present, or use a default
+        if (!subscriptionData.logo || !subscriptionData.logo.startsWith('http')) {
+          // Provide a default logo URL based on the subscription type
+          if (template.type === 'boe') {
+            subscriptionData.logo = 'https://www.boe.es/favicon.ico';
+          } else if (template.type === 'real-estate') {
+            subscriptionData.logo = 'https://cdn-icons-png.flaticon.com/512/1040/1040993.png';
+          } else {
+            subscriptionData.logo = 'https://nifya.com/assets/logo.png';
+          }
+        }
+        
         console.log('Subscription data being sent:', subscriptionData);
         
         const createResponse = await subscriptions.create(subscriptionData);
