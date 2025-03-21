@@ -116,12 +116,14 @@ class SubscriptionService {
    */
   async createSubscription(data: SubscriptionFormData): Promise<Subscription> {
     try {
-      // Format data to match backend API schema
+      // Format data to match backend API schema without 'type' field
+      // Backend doesn't have a 'type' column in the database
       const formattedData = {
         name: data.name,
         description: data.description || '',
-        type: data.source.toLowerCase() === 'boe' ? 'boe' : 
-               data.source.toLowerCase() === 'doga' ? 'doga' : 'custom',
+        // Don't send 'type' field to avoid database error
+        // Instead use 'source' field which the backend expects
+        source: data.source.toLowerCase(),
         prompts: Array.isArray(data.keywords) ? data.keywords : [data.keywords],
         logo: data.logo || 'https://nifya.com/assets/logo.png',
         frequency: data.frequency === 'realtime' ? 'immediate' : 
