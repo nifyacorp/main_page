@@ -29,6 +29,8 @@ export function useSubscriptions(params?: SubscriptionListParams) {
     queryKey: ['subscriptions', filter],
     queryFn: () => subscriptionService.getSubscriptions(filter),
     staleTime: 30000, // 30 seconds
+    retry: 2, // Retry failed requests up to 2 times
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 10000) // Exponential backoff
   });
 
   // Extract error message or undefined
@@ -39,10 +41,12 @@ export function useSubscriptions(params?: SubscriptionListParams) {
     data: stats,
     isLoading: isLoadingStats,
     isError: isErrorStats,
+    refetch: refetchStats
   } = useQuery({
     queryKey: ['subscriptionStats'],
     queryFn: () => subscriptionService.getSubscriptionStats(),
     staleTime: 60000, // 1 minute
+    retry: 2
   });
 
   // Fetch single subscription
@@ -64,8 +68,16 @@ export function useSubscriptions(params?: SubscriptionListParams) {
         description: 'Your subscription has been created successfully.',
         variant: 'default',
       });
+      // Invalidate and refetch both subscriptions and stats
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
       queryClient.invalidateQueries({ queryKey: ['subscriptionStats'] });
+      
+      // Force immediate refetch to ensure we get latest data
+      setTimeout(() => {
+        refetch();
+        refetchStats();
+      }, 500);
+      
       navigate('/subscriptions');
     },
     onError: (error: any) => {

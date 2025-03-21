@@ -75,7 +75,8 @@ class SubscriptionService {
       // Log the response for debugging
       console.log('Subscriptions API response:', response.data);
       
-      // Check if we got the expected response format
+      // Different API response formats handling:
+      // 1. Format: { data: { subscriptions: [], pagination: {} } }
       if (response.data && response.data.data && Array.isArray(response.data.data.subscriptions)) {
         return {
           subscriptions: response.data.data.subscriptions,
@@ -85,6 +86,40 @@ class SubscriptionService {
           totalPages: response.data.data.pagination.totalPages || 0
         };
       } 
+      
+      // 2. Format: { data: { data: [], pagination: {} } }
+      if (response.data && response.data.data && Array.isArray(response.data.data.data)) {
+        return {
+          subscriptions: response.data.data.data,
+          total: response.data.data.pagination.total || 0,
+          page: response.data.data.pagination.page || 1,
+          limit: response.data.data.pagination.limit || 10,
+          totalPages: response.data.data.pagination.totalPages || 0
+        };
+      }
+      
+      // 3. Format: { data: [], pagination: {} } or { status: 'success', data: [], pagination: {} }
+      if (response.data) {
+        if (Array.isArray(response.data.data)) {
+          // Direct data array
+          return {
+            subscriptions: response.data.data,
+            total: response.data.pagination?.total || response.data.data.length,
+            page: response.data.pagination?.page || 1,
+            limit: response.data.pagination?.limit || 10,
+            totalPages: response.data.pagination?.totalPages || 1
+          };
+        } else if (response.data.status === 'success' && Array.isArray(response.data.subscriptions)) {
+          // Format: { status: 'success', subscriptions: [] }
+          return {
+            subscriptions: response.data.subscriptions,
+            total: response.data.total || response.data.subscriptions.length,
+            page: response.data.page || 1,
+            limit: response.data.limit || 10,
+            totalPages: response.data.totalPages || 1
+          };
+        }
+      }
       
       // If we have subscriptions stats but no subscriptions data, the API might be returning incorrectly
       // Let's create mock subscriptions based on the stats
@@ -145,6 +180,9 @@ class SubscriptionService {
           // Continue with the normal empty response
         }
       }
+      
+      // Handle empty but successful response
+      console.log('API returned empty or unrecognized format, returning empty subscriptions list');
       
       // Default empty response
       return {

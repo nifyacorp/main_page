@@ -46,6 +46,14 @@ export default function Subscriptions() {
   // Only use real data from the database
   const subscriptionsData = subscriptions || [];
   
+  // Add debugging logs
+  useEffect(() => {
+    console.log('Subscriptions component mounted/updated');
+    console.log('Subscriptions data:', subscriptionsData);
+    console.log('Subscriptions loading:', isLoadingSubscriptions);
+    console.log('Subscriptions error:', subscriptionsError);
+  }, [subscriptionsData, isLoadingSubscriptions, subscriptionsError]);
+  
   // Check if we're using mock data
   useEffect(() => {
     // Check if there's an error message indicating mock data
