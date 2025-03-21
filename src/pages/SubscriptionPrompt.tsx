@@ -245,9 +245,13 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
           description: "Tu nueva suscripción se ha creado correctamente",
           variant: "default"
         });
+        
+        // Immediate redirect to subscriptions page without delay
+        navigate('/subscriptions', { replace: true });
+        return; // Return early to prevent the setTimeout below from executing
       }
 
-      // Redirect to subscriptions page with a slight delay to ensure state is updated
+      // This setTimeout only executes in edit mode now
       setTimeout(() => {
         navigate('/subscriptions', { replace: true });
       }, 300);
