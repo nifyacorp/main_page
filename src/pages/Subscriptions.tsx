@@ -50,8 +50,19 @@ export default function Subscriptions() {
   useEffect(() => {
     console.log('Subscriptions component mounted/updated');
     console.log('Subscriptions data:', subscriptionsData);
+    console.log('Subscriptions data length:', subscriptionsData.length);
     console.log('Subscriptions loading:', isLoadingSubscriptions);
     console.log('Subscriptions error:', subscriptionsError);
+    
+    // Log each subscription to help debug
+    if (subscriptionsData.length > 0) {
+      console.log('Individual subscriptions:');
+      subscriptionsData.forEach((sub, index) => {
+        console.log(`Subscription ${index + 1}:`, sub);
+      });
+    } else {
+      console.log('No subscriptions data available');
+    }
   }, [subscriptionsData, isLoadingSubscriptions, subscriptionsError]);
   
   // Check if we're using mock data
