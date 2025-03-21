@@ -35,24 +35,10 @@ export default function Header() {
     }
   };
   
+  // Only show one logout button to prevent duplication
+  // We'll use the dropdown menu only, and remove the absolute positioned button
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      {/* Large, visible logout button that appears when authenticated */}
-      {authState.isAuthenticated && (
-        <div className="absolute top-2 right-2 z-50">
-          <button
-            id="main-logout-button"
-            data-testid="main-logout-button"
-            onClick={handleLogout}
-            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2"
-            aria-label="Log out from application"
-          >
-            <LogOut className="h-4 w-4" />
-            Logout
-          </button>
-        </div>
-      )}
-    
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center">
           <Link 
@@ -86,20 +72,6 @@ export default function Header() {
               <div className="p-2 hover:bg-accent rounded-full">
                 <NotificationBadge />
               </div>
-              
-              {/* Visible logout button for desktop */}
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="hidden md:flex items-center gap-2"
-                onClick={handleLogout}
-                id="logout-button"
-                data-testid="logout-button"
-                aria-label="Log out"
-              >
-                <LogOut className="h-4 w-4" />
-                <span>Log out</span>
-              </Button>
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

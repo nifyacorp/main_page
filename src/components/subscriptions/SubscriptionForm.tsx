@@ -56,26 +56,34 @@ const formSchema = z.object({
   source: z.enum(['BOE', 'DOGA']),
   keywords: z.array(z.string()).min(1, { message: 'At least one keyword is required' }),
   frequency: z.enum(['Instant', 'Daily', 'Weekly']),
-  notificationType: z.enum(['email', 'webapp', 'both']),
+  notificationType: z.enum(['email', 'webapp', 'both']).default('both'),
   emailNotifications: z.boolean().default(true),
-  categories: z.array(z.string()).optional(),
+  categories: z.array(z.string()).optional().default([]),
   advancedFilters: z.object({
-    includeRegions: z.array(z.string()).optional(),
-    excludeSections: z.array(z.string()).optional(),
+    includeRegions: z.array(z.string()).optional().default([]),
+    excludeSections: z.array(z.string()).optional().default([]),
     dateRange: z.object({
       enabled: z.boolean().default(false),
-      startDate: z.string().optional(),
-      endDate: z.string().optional(),
-    }).optional(),
-  }).optional(),
+      startDate: z.string().optional().default(''),
+      endDate: z.string().optional().default(''),
+    }).optional().default({ enabled: false, startDate: '', endDate: '' }),
+  }).optional().default({
+    includeRegions: [],
+    excludeSections: [],
+    dateRange: { enabled: false, startDate: '', endDate: '' },
+  }),
   filters: z.object({
-    includePatterns: z.array(z.string()).optional(),
-    excludePatterns: z.array(z.string()).optional(),
+    includePatterns: z.array(z.string()).optional().default([]),
+    excludePatterns: z.array(z.string()).optional().default([]),
     dateRange: z.object({
-      start: z.string().optional(),
-      end: z.string().optional(),
-    }).optional(),
-  }).optional(),
+      start: z.string().optional().default(''),
+      end: z.string().optional().default(''),
+    }).optional().default({ start: '', end: '' }),
+  }).optional().default({
+    includePatterns: [],
+    excludePatterns: [],
+    dateRange: { start: '', end: '' },
+  }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -93,6 +101,7 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
   const [newKeyword, setNewKeyword] = useState('');
   const [newIncludePattern, setNewIncludePattern] = useState('');
   const [newExcludePattern, setNewExcludePattern] = useState('');
+  const [submitError, setSubmitError] = useState<string | null>(null);
   
   const { createSubscription, updateSubscription } = useSubscriptions();
   const isSubmitting = createSubscription.isLoading || updateSubscription.isLoading;
@@ -127,6 +136,7 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
         },
       },
     },
+    mode: 'onChange' // Validate fields on change for immediate feedback
   });
   
   // Set keywords from form values
@@ -135,6 +145,13 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
       setKeywords(form.getValues('keywords'));
     }
   }, [form]);
+
+  // Reset error message when form values change
+  useEffect(() => {
+    if (submitError) {
+      setSubmitError(null);
+    }
+  }, [form.watch()]);
   
   const handleAddKeyword = () => {
     if (keywordInput.trim() && !keywords.includes(keywordInput.trim())) {
@@ -162,7 +179,8 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
     if (newIncludePattern.trim() !== "") {
       const currentPatterns = form.getValues("filters.includePatterns") || [];
       if (!currentPatterns.includes(newIncludePattern.trim())) {
-        form.setValue("filters.includePatterns", [...currentPatterns, newIncludePattern.trim()]);
+        const updatedPatterns = [...currentPatterns, newIncludePattern.trim()];
+        form.setValue("filters.includePatterns", updatedPatterns, { shouldValidate: true });
       }
       setNewIncludePattern("");
     }
@@ -172,7 +190,8 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
     if (newExcludePattern.trim() !== "") {
       const currentPatterns = form.getValues("filters.excludePatterns") || [];
       if (!currentPatterns.includes(newExcludePattern.trim())) {
-        form.setValue("filters.excludePatterns", [...currentPatterns, newExcludePattern.trim()]);
+        const updatedPatterns = [...currentPatterns, newExcludePattern.trim()];
+        form.setValue("filters.excludePatterns", updatedPatterns, { shouldValidate: true });
       }
       setNewExcludePattern("");
     }
@@ -183,18 +202,71 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
     const currentPatterns = form.getValues(field) || [];
     form.setValue(
       field,
-      currentPatterns.filter((p) => p !== pattern)
+      currentPatterns.filter((p) => p !== pattern),
+      { shouldValidate: true }
     );
   };
 
   const onSubmit = (data: FormValues) => {
-    if (isEditing && initialData) {
-      updateSubscription.mutate({ 
-        id: (initialData as any).id, 
-        data 
-      });
-    } else {
-      createSubscription.mutate(data);
+    setSubmitError(null);
+    
+    // Make sure we have at least one keyword
+    if (!data.keywords || data.keywords.length === 0) {
+      setSubmitError("At least one keyword is required");
+      setActiveTab("basic");
+      return;
+    }
+    
+    try {
+      // Create deep copy to avoid reference issues
+      const formData = JSON.parse(JSON.stringify(data));
+      
+      // Ensure all required fields have default values if not provided
+      if (!formData.notificationType) formData.notificationType = 'both';
+      if (!formData.categories) formData.categories = [];
+      
+      // Ensure nested objects exist
+      if (!formData.filters) {
+        formData.filters = {
+          includePatterns: [],
+          excludePatterns: [],
+          dateRange: { start: '', end: '' }
+        };
+      }
+      
+      if (!formData.advancedFilters) {
+        formData.advancedFilters = {
+          includeRegions: [],
+          excludeSections: [],
+          dateRange: { enabled: false, startDate: '', endDate: '' }
+        };
+      }
+      
+      if (isEditing && initialData) {
+        updateSubscription.mutate({ 
+          id: (initialData as any).id, 
+          data: formData 
+        }, {
+          onError: (error) => {
+            setSubmitError(error.message || "Failed to update subscription. Please try again.");
+          },
+          onSuccess: () => {
+            navigate('/subscriptions');
+          }
+        });
+      } else {
+        createSubscription.mutate(formData, {
+          onError: (error) => {
+            setSubmitError(error.message || "Failed to create subscription. Please try again.");
+          },
+          onSuccess: () => {
+            navigate('/subscriptions');
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Form submission error:", error);
+      setSubmitError("An unexpected error occurred. Please try again.");
     }
   };
 
@@ -215,6 +287,14 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-6">
+            {/* Display form-wide error message if there is one */}
+            {submitError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
+                <strong className="font-bold">Error: </strong>
+                <span className="block sm:inline">{submitError}</span>
+              </div>
+            )}
+            
             <TabsContent value="basic" className="space-y-4">
               <FormField
                 control={form.control}
@@ -464,6 +544,43 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
                 </CardContent>
               </Card>
             </TabsContent>
+            
+            <div className="flex justify-between mt-8">
+              {activeTab !== 'basic' && (
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    const prevTab = activeTab === 'notification' ? 'basic' : 'notification';
+                    setActiveTab(prevTab);
+                  }}
+                >
+                  Previous
+                </Button>
+              )}
+              
+              {activeTab !== 'advanced' ? (
+                <Button 
+                  type="button" 
+                  className="ml-auto"
+                  onClick={() => {
+                    const nextTab = activeTab === 'basic' ? 'notification' : 'advanced';
+                    setActiveTab(nextTab);
+                  }}
+                >
+                  Next
+                </Button>
+              ) : (
+                <Button 
+                  type="submit" 
+                  className="ml-auto"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isEditing ? 'Update Subscription' : 'Create Subscription'}
+                </Button>
+              )}
+            </div>
           </form>
         </Form>
       </Tabs>
