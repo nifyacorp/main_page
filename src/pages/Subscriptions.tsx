@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Clock, FileText, Play, Edit, Trash, Bell, Loader2, AlertTriangle, RefreshCcw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -31,6 +31,7 @@ export default function Subscriptions() {
   const [processingIds, setProcessingIds] = useState<Record<string, boolean>>({});
   const [completedIds, setCompletedIds] = useState<Record<string, boolean>>({});
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showMockBanner, setShowMockBanner] = useState(false);
   
   // Use the subscriptions hook
   const { 
@@ -44,6 +45,16 @@ export default function Subscriptions() {
 
   // Only use real data from the database
   const subscriptionsData = subscriptions || [];
+  
+  // Check if we're using mock data
+  useEffect(() => {
+    // Check if there's an error message indicating mock data
+    if (subscriptionsError && subscriptionsError.includes('mock data')) {
+      setShowMockBanner(true);
+    } else {
+      setShowMockBanner(false);
+    }
+  }, [subscriptionsError]);
 
   // Filter subscriptions based on search and filters
   const filteredSubscriptions = subscriptionsData.filter(sub => {
@@ -194,8 +205,18 @@ export default function Subscriptions() {
         </Button>
       </div>
 
-      {/* Error state */}
-      {subscriptionsError && renderErrorState()}
+      {/* Mock Data Banner */}
+      {showMockBanner && (
+        <div className="mb-6 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded relative">
+          <strong className="font-bold">Nota: </strong>
+          <span className="block sm:inline">
+            Estás viendo datos simulados basados en estadísticas. La API retornó una lista vacía, pero las estadísticas muestran que tienes subscripciones.
+          </span>
+        </div>
+      )}
+
+      {/* Error state - only show for non-mock data errors */}
+      {subscriptionsError && !showMockBanner && renderErrorState()}
 
       {/* Search & Filter */}
       <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">

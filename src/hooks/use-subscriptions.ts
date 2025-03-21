@@ -23,13 +23,16 @@ export function useSubscriptions(params?: SubscriptionListParams) {
     data,
     isLoading: isLoadingSubscriptions,
     isError: isErrorSubscriptions,
-    error: errorSubscriptions,
+    error: errorData,
     refetch,
   } = useQuery({
     queryKey: ['subscriptions', filter],
     queryFn: () => subscriptionService.getSubscriptions(filter),
     staleTime: 30000, // 30 seconds
   });
+
+  // Extract error message or undefined
+  const error = data?.error || (errorData instanceof Error ? errorData.message : undefined);
 
   // Fetch subscription stats
   const {
@@ -177,7 +180,7 @@ export function useSubscriptions(params?: SubscriptionListParams) {
     filter,
     isLoadingSubscriptions,
     isErrorSubscriptions,
-    errorSubscriptions,
+    error,
     isLoadingStats,
     isErrorStats,
     fetchSubscription,

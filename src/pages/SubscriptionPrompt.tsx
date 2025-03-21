@@ -433,7 +433,7 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
                       value={prompt}
                       onChange={(e) => handlePromptChange(index, e.target.value)}
                       className="flex-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder={getPromptPlaceholder(template?.type || subscription?.type || 'default')}
+                      placeholder={getPromptPlaceholder(template?.type || (subscription?.source || 'default'))}
                       data-testid={`prompt-input-${index}`}
                     />
                     
