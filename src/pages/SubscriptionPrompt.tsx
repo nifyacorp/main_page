@@ -23,11 +23,16 @@ import { useToast } from "../components/ui/use-toast";
 interface Subscription {
   id: string;
   name: string;
-  description: string;
+  description?: string;
+  source: string;
   prompts: string[];
   frequency: 'immediate' | 'daily';
   logo?: string;
-  type: string;
+  isActive?: boolean;
+  userId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  typeId?: string;
 }
 
 const iconMap: Record<string, LucideIcon> = {
@@ -72,14 +77,24 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
           if (error) throw new Error(error);
           
           if (data?.subscription) {
-            // Ensure type conversion from API subscription to our interface
+            // Use type assertion to avoid linter errors
+            const apiData = data.subscription as any;
             const fullSubscription: Subscription = {
-              ...data.subscription,
-              type: data.subscription.type || 'custom' // Ensure type property exists
+              id: apiData.id,
+              name: apiData.name || '',
+              description: apiData.description || '',
+              source: apiData.source || apiData.type || 'custom',
+              prompts: apiData.prompts || [],
+              frequency: apiData.frequency as 'immediate' | 'daily',
+              logo: apiData.logo || '',
+              isActive: apiData.isActive,
+              userId: apiData.userId,
+              createdAt: apiData.createdAt,
+              updatedAt: apiData.updatedAt
             };
             setSubscription(fullSubscription);
-            setPrompts(data.subscription.prompts);
-            setFrequency(data.subscription.frequency as 'immediate' | 'daily');
+            setPrompts(fullSubscription.prompts);
+            setFrequency(fullSubscription.frequency);
           }
         } else if (mode === 'create' && typeId) {
           // Fetch template details for new subscription
@@ -117,7 +132,8 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
               category: 'development',
               source: 'mock'
             },
-            frequency: 'daily'
+            frequency: 'daily',
+            isPublic: true
           };
           setTemplate(mockTemplate);
           setError(null);
@@ -335,10 +351,19 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
     setPrompts(newPrompts);
   };
 
-  // Set the icon based on subscription/template type
+  // Set the icon based on the source or template type
   const getIcon = () => {
-    const type = subscription?.type || template?.type || '';
-    switch (type.toLowerCase()) {
+    let iconType = '';
+    
+    if (subscription && subscription.source) {
+      // If we have a subscription, use its source
+      iconType = subscription.source;
+    } else if (template && template.type) {
+      // Otherwise use the template type
+      iconType = template.type;
+    }
+    
+    switch (iconType.toLowerCase()) {
       case 'boe':
         return <FileText className="h-6 w-6" />;
       case 'real-estate':
