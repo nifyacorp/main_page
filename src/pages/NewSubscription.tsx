@@ -149,7 +149,7 @@ const NewSubscription: React.FC = () => {
   };
 
   return (
-    <MainLayout>
+    <MainLayout hideNav={true}>
       <div className="container mx-auto py-8">
         <div className="flex items-center mb-6">
           <Button 

@@ -151,19 +151,30 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Ensure we're working with non-empty prompts
     const validPrompts = prompts.filter(p => p.trim());
+    
+    // Enhanced client-side validation
     if (validPrompts.length === 0) {
-      setError('Por favor, añade al menos un prompt');
+      const errorMsg = "Por favor, añade al menos un prompt";
+      setError(errorMsg);
       toast({
         title: "Error",
-        description: "Por favor, añade al menos un prompt",
+        description: errorMsg,
         variant: "destructive"
       });
       return;
     }
     
     if (mode === 'create' && !template && !typeId) {
-      setError('No se ha seleccionado ninguna plantilla');
+      const errorMsg = "No se ha seleccionado ninguna plantilla";
+      setError(errorMsg);
+      toast({
+        title: "Error", 
+        description: errorMsg,
+        variant: "destructive"
+      });
       return;
     }
 
@@ -176,6 +187,7 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
           prompts: validPrompts,
           frequency,
         });
+        
         if (response.error) throw new Error(response.error);
         
         toast({
@@ -185,6 +197,8 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
         });
       } else if (template) {
         // Create directly instead of subscribing to template to avoid undefined ID issues
+        console.log('Creating subscription with prompts:', validPrompts);
+        
         const createResponse = await subscriptions.create({
           type: template.type || 'boe', // Use template.type for backend compatibility
           typeId: template.id, // Keep typeId for reference
@@ -302,7 +316,7 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
           </CardHeader>
         </Card>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="mt-6" id="subscription-form">
           <Card className="mb-6">
             <CardHeader>
               <CardTitle className="text-lg">¿Qué quieres monitorizar? ({prompts.length}/3)</CardTitle>
@@ -425,11 +439,17 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
                   type="submit"
                   className="w-full sm:w-auto"
                   disabled={submitting}
+                  data-testid="create-subscription-button"
+                  id="create-subscription-button"
                 >
-                  {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {submitting 
-                    ? (mode === 'edit' ? 'Guardando...' : 'Creando...') 
-                    : (mode === 'edit' ? 'Guardar cambios' : `Crear ${prompts.length > 1 ? 'Suscripciones' : 'Suscripción'}`)}
+                  {submitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {mode === 'edit' ? 'Actualizando...' : 'Creando...'}
+                    </>
+                  ) : (
+                    mode === 'edit' ? 'Actualizar Suscripción' : 'Crear Suscripción'
+                  )}
                 </Button>
               </div>
             </CardContent>
