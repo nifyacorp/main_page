@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Clock, FileText, Play, Edit, Trash, Bell, Loader2, AlertTriangle } from 'lucide-react';
+import { Plus, Clock, FileText, Play, Edit, Trash, Bell, Loader2, AlertTriangle, RefreshCcw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useSubscriptions } from '../hooks/use-subscriptions';
 import { useToast } from '../components/ui/use-toast';
@@ -36,6 +36,8 @@ export default function Subscriptions() {
   const { 
     subscriptions, 
     isLoadingSubscriptions,
+    error: subscriptionsError,
+    refetch: refetchSubscriptions,
     processSubscription,
     deleteSubscription
   } = useSubscriptions();
@@ -113,10 +115,6 @@ export default function Subscriptions() {
       
       // Reset deleting state
       setDeletingId(null);
-      
-      // Refetch subscriptions to update the list
-      queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
-      queryClient.invalidateQueries({ queryKey: ['subscriptionStats'] });
     } catch (error) {
       // Reset deleting state and show error
       setDeletingId(null);
@@ -128,6 +126,58 @@ export default function Subscriptions() {
       });
     }
   };
+
+  // Render error state
+  const renderErrorState = () => (
+    <Card className="mb-8">
+      <CardHeader className="bg-destructive/5">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="h-6 w-6 text-destructive flex-shrink-0 mt-1" />
+          <div>
+            <CardTitle className="text-destructive">Error Loading Subscriptions</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              {subscriptionsError || "There was a problem loading your subscriptions. The service might be temporarily unavailable."}
+            </p>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-6">
+        <div className="flex flex-col sm:flex-row gap-3 items-center">
+          <Button variant="outline" onClick={() => refetchSubscriptions()} className="w-full sm:w-auto">
+            <RefreshCcw className="mr-2 h-4 w-4" />
+            Try Again
+          </Button>
+          <Button asChild className="w-full sm:w-auto">
+            <Link to="/subscriptions/new" className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              <span>Create New Subscription</span>
+            </Link>
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  // Empty state
+  const renderEmptyState = () => (
+    <Card className="mb-8 bg-muted/20">
+      <CardContent className="flex flex-col items-center justify-center py-12">
+        <div className="flex items-center justify-center rounded-full bg-primary/10 p-3 mb-4">
+          <Bell className="h-8 w-8 text-primary" />
+        </div>
+        <h3 className="text-xl font-semibold mb-2">No subscriptions yet</h3>
+        <p className="text-muted-foreground text-center max-w-md mb-6">
+          Create your first subscription to start receiving notifications about topics that interest you.
+        </p>
+        <Button asChild size="lg">
+          <Link to="/subscriptions/new" className="flex items-center gap-2">
+            <Plus className="h-5 w-5" />
+            <span>Create Subscription</span>
+          </Link>
+        </Button>
+      </CardContent>
+    </Card>
+  );
 
   return (
     <div className="container max-w-7xl mx-auto p-6">
@@ -144,6 +194,10 @@ export default function Subscriptions() {
         </Button>
       </div>
 
+      {/* Error state */}
+      {subscriptionsError && renderErrorState()}
+
+      {/* Search & Filter */}
       <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="md:col-span-3">
           <Input
@@ -154,153 +208,130 @@ export default function Subscriptions() {
             className="w-full"
           />
         </div>
-        
-        <div className="flex gap-2">
-          <Button 
-            variant={filterSource === 'all' ? "default" : "outline"}
-            onClick={() => setFilterSource('all')}
-            className="flex-1"
-            size="sm"
+        <div>
+          <select
+            value={filterSource}
+            onChange={(e) => setFilterSource(e.target.value)}
+            className="w-full px-3 py-2 bg-background border rounded-md"
           >
-            Todas
-          </Button>
-          <Button 
-            variant={filterSource === 'BOE' ? "default" : "outline"}
-            onClick={() => setFilterSource('BOE')}
-            className="flex-1"
-            size="sm"
-          >
-            BOE
-          </Button>
-          <Button 
-            variant={filterSource === 'DOGA' ? "default" : "outline"}
-            onClick={() => setFilterSource('DOGA')}
-            className="flex-1"
-            size="sm"
-          >
-            DOGA
-          </Button>
+            <option value="all">Todas las fuentes</option>
+            <option value="boe">BOE</option>
+            <option value="doga">DOGA</option>
+            <option value="other">Otras</option>
+          </select>
         </div>
       </div>
 
-      {isLoadingSubscriptions ? (
-        <div className="flex justify-center items-center p-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          <span className="ml-2 text-muted-foreground">Cargando subscripciones...</span>
+      {/* Loading State */}
+      {isLoadingSubscriptions && (
+        <div className="flex justify-center items-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-3 text-lg">Cargando subscripciones...</span>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      )}
+
+      {/* Empty State */}
+      {!isLoadingSubscriptions && !subscriptionsError && filteredSubscriptions.length === 0 && renderEmptyState()}
+
+      {/* Subscription List */}
+      {!isLoadingSubscriptions && !subscriptionsError && filteredSubscriptions.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredSubscriptions.map((subscription) => (
             <Card key={subscription.id} className="overflow-hidden">
-              <CardHeader className="pb-3">
-                <div className="flex justify-between items-start">
-                  <CardTitle className="text-lg font-semibold">{subscription.name}</CardTitle>
-                  <Badge variant={subscription.source === 'BOE' ? "default" : "secondary"}>
-                    {subscription.source}
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-start mb-2">
+                  <Badge variant={subscription.isActive ? "default" : "outline"}>
+                    {subscription.isActive ? "Activa" : "Inactiva"}
                   </Badge>
+                  <Badge variant="secondary">{subscription.source}</Badge>
                 </div>
+                <Link to={`/subscriptions/${subscription.id}`}>
+                  <CardTitle className="text-lg hover:text-primary transition-colors">
+                    {subscription.name}
+                  </CardTitle>
+                </Link>
+                {subscription.description && (
+                  <p className="text-muted-foreground text-sm mt-1 line-clamp-2">
+                    {subscription.description}
+                  </p>
+                )}
               </CardHeader>
-              
-              <CardContent className="pb-3">
-                <p className="text-sm text-muted-foreground mb-4">
-                  {subscription.description || "No description provided"}
-                </p>
-                
-                <div className="flex flex-wrap gap-1 mb-4">
-                  {subscription.keywords && Array.isArray(subscription.keywords) && subscription.keywords.map((keyword, idx) => (
-                    <Badge key={idx} variant="outline" className="text-xs">
+              <CardContent className="pb-2">
+                <div className="flex gap-1 flex-wrap">
+                  {subscription.keywords.slice(0, 3).map((keyword, i) => (
+                    <Badge key={i} variant="outline" className="bg-secondary/10">
                       {keyword}
                     </Badge>
                   ))}
+                  {subscription.keywords.length > 3 && (
+                    <Badge variant="outline" className="bg-secondary/10">
+                      +{subscription.keywords.length - 3}
+                    </Badge>
+                  )}
                 </div>
-                
-                <div className="flex justify-between items-center text-sm text-muted-foreground">
-                  <div className="flex items-center">
-                    <Clock className="h-4 w-4 mr-1" />
-                    {subscription.frequency || "Immediate"}
-                  </div>
-                  <div className="flex items-center">
-                    <Bell className="h-4 w-4 mr-1" />
-                    {subscription.notifications || "0"}
-                  </div>
+                <div className="flex items-center mt-3 text-sm text-muted-foreground">
+                  <Clock className="h-4 w-4 mr-1" />
+                  <span>
+                    {subscription.frequency === 'realtime' ? 'Tiempo real' :
+                     subscription.frequency === 'daily' ? 'Diaria' :
+                     subscription.frequency === 'weekly' ? 'Semanal' : 'Mensual'}
+                  </span>
                 </div>
               </CardContent>
-              
-              <Separator />
-              
-              <CardFooter className="pt-3 flex justify-between items-center">
+              <CardFooter className="flex justify-between pt-2">
                 <Button variant="ghost" size="sm" asChild>
-                  <Link to={`/subscriptions/${subscription.id}`} className="flex items-center">
-                    <FileText className="h-4 w-4 mr-2" />
-                    Ver Detalles
+                  <Link to={`/subscriptions/${subscription.id}`}>
+                    <FileText className="h-4 w-4 mr-1" /> Detalle
                   </Link>
                 </Button>
-                
-                <div className="flex gap-2">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
+                <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={processingIds[subscription.id]}
                     onClick={() => handleProcess(subscription.id)}
-                    disabled={
-                      processingIds[subscription.id] || 
-                      completedIds[subscription.id] || 
-                      deleteSubscription.isPending ||
-                      processSubscription.isPending
-                    }
-                    className={completedIds[subscription.id] ? "text-green-500" : ""}
-                    title={
-                      processingIds[subscription.id] ? "Procesando..." : 
-                      completedIds[subscription.id] ? "Procesado!" : 
-                      "Procesar suscripción"
-                    }
                   >
                     {processingIds[subscription.id] ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : completedIds[subscription.id] ? (
-                      <div className="text-xs font-medium">✓</div>
+                      <CheckCircle className="h-4 w-4 text-green-500" />
                     ) : (
                       <Play className="h-4 w-4" />
                     )}
                   </Button>
-                  
-                  <Button variant="ghost" size="icon" asChild disabled={deleteSubscription.isPending}>
+                  <Button size="sm" variant="ghost" asChild>
                     <Link to={`/subscriptions/${subscription.id}/edit`}>
                       <Edit className="h-4 w-4" />
                     </Link>
                   </Button>
-                  
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="text-destructive/70 hover:text-destructive"
-                        onClick={() => setDeletingId(subscription.id.toString())}
-                        disabled={deleteSubscription.isPending}
-                      >
+                      <Button size="sm" variant="ghost" className="text-destructive">
                         <Trash className="h-4 w-4" />
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                        <AlertDialogTitle>¿Eliminar subscripción?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Esta acción no se puede deshacer. Se eliminará permanentemente la suscripción 
-                          <span className="font-semibold"> {subscription.name}</span> y todos sus datos asociados.
+                          Esta acción no se puede deshacer. La subscripción será eliminada permanentemente.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setDeletingId(null)}>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction 
-                          onClick={() => handleDelete(subscription.id.toString())}
-                          className="bg-destructive hover:bg-destructive/90"
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={() => handleDelete(subscription.id)}
+                          disabled={deletingId === subscription.id}
                         >
-                          {deleteSubscription.isPending && deletingId === subscription.id.toString() ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          {deletingId === subscription.id ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Eliminando...
+                            </>
                           ) : (
-                            <Trash className="h-4 w-4 mr-2" />
+                            "Eliminar"
                           )}
-                          Eliminar
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -309,38 +340,6 @@ export default function Subscriptions() {
               </CardFooter>
             </Card>
           ))}
-        </div>
-      )}
-
-      {!isLoadingSubscriptions && filteredSubscriptions.length === 0 && (
-        <div className="text-center py-12 bg-card rounded-lg border">
-          <Bell className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          {searchTerm || filterSource !== 'all' ? (
-            <>
-              <h3 className="text-lg font-medium mb-1">No se encontraron subscripciones</h3>
-              <p className="text-muted-foreground mb-4">Prueba a ajustar tu búsqueda o filtros</p>
-              <Button 
-                variant="outline" 
-                onClick={() => {setSearchTerm(''); setFilterSource('all');}}
-              >
-                Limpiar filtros
-              </Button>
-            </>
-          ) : (
-            <>
-              <h3 className="text-lg font-medium mb-1">Aún no tienes suscripciones</h3>
-              <p className="text-muted-foreground mb-4">Crea tu primera suscripción para recibir notificaciones</p>
-              <Button 
-                variant="default" 
-                asChild
-              >
-                <Link to="/subscriptions/new" className="flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
-                  <span>Nueva Subscripción</span>
-                </Link>
-              </Button>
-            </>
-          )}
         </div>
       )}
     </div>

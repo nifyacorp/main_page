@@ -73,6 +73,19 @@ class SubscriptionService {
       return response.data;
     } catch (error) {
       console.error('Error fetching subscriptions:', error);
+      
+      // Extract error message from the response if available
+      let errorMessage = 'Unable to load subscriptions. Please try again later.';
+      
+      if (error.response && error.response.data) {
+        const { message, code } = error.response.data;
+        if (message) {
+          errorMessage = message;
+        } else if (code === 'SUBSCRIPTION_FETCH_ERROR') {
+          errorMessage = 'There was a problem fetching your subscriptions. The service might be temporarily unavailable.';
+        }
+      }
+      
       // Return a user-friendly error but with empty subscriptions array to prevent UI crashes
       return {
         subscriptions: [],
@@ -80,7 +93,7 @@ class SubscriptionService {
         page: params?.page || 1,
         limit: params?.limit || 10,
         totalPages: 0,
-        error: 'Unable to load subscriptions. Please try again later.'
+        error: errorMessage
       };
     }
   }
@@ -107,6 +120,15 @@ class SubscriptionService {
       return response.data;
     } catch (error) {
       console.error('Error creating subscription:', error);
+      
+      // Extract and throw more helpful error messages
+      if (error.response && error.response.data) {
+        const { message, code } = error.response.data;
+        if (message) {
+          throw new Error(message);
+        }
+      }
+      
       throw error;
     }
   }

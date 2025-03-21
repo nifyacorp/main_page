@@ -1,9 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Building2, Brain, ChevronRight, Search, Plus, Clock, Zap, Lock, Globe } from 'lucide-react';
+import { FileText, Building2, Brain, ChevronRight, Search, Plus, Clock, Zap, Lock, Globe, AlertTriangle } from 'lucide-react';
 import { templates } from '../lib/api';
 import type { Template } from '../lib/api/types';
 import type { IconType } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardHeader, CardFooter, CardTitle, CardDescription } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Badge } from '../components/ui/badge';
 
 interface PaginationInfo {
   page: number;
@@ -18,6 +22,40 @@ const iconMap: Record<string, IconType> = {
   Building2,
   Brain,
 };
+
+// Fallback templates to use when the API fails
+const fallbackTemplates: Template[] = [
+  {
+    id: 'boe-general',
+    name: 'BOE General',
+    description: 'Suscríbete a publicaciones oficiales del Boletín Oficial del Estado',
+    type: 'boe',
+    prompts: [],
+    icon: 'FileText',
+    logo: 'https://www.boe.es/favicon.ico',
+    isPublic: true,
+    metadata: {
+      category: 'government',
+      source: 'boe',
+    },
+    frequency: 'daily'
+  },
+  {
+    id: 'doga-general',
+    name: 'DOGA General',
+    description: 'Notificaciones del Diario Oficial de Galicia',
+    type: 'doga',
+    prompts: [],
+    icon: 'FileText',
+    logo: 'https://www.xunta.gal/favicon.ico',
+    isPublic: true,
+    metadata: {
+      category: 'government',
+      source: 'doga',
+    },
+    frequency: 'daily'
+  }
+];
 
 const SubscriptionCatalog = () => {
   const navigate = useNavigate();
@@ -43,21 +81,68 @@ const SubscriptionCatalog = () => {
     }
   });
   const [creating, setCreating] = useState(false);
+  const [useFallbackTemplates, setUseFallbackTemplates] = useState(false);
 
   useEffect(() => {
     const fetchTemplates = async () => {
       try {
         setLoading(true);
+        setError(null);
         const { data, error } = await templates.list(currentPage, itemsPerPage);
         
-        if (error) throw new Error(error);
+        if (error) {
+          throw new Error(error);
+        }
         
-        if (data) {
-          setTemplateList(data.templates);
+        if (data && data.templates && data.templates.length > 0) {
+          // Check if BOE templates are present
+          const hasBoeSub = data.templates.some(
+            template => template.type === 'boe' || template.name.toLowerCase().includes('boe')
+          );
+          
+          // If no BOE templates, merge with fallbacks
+          if (!hasBoeSub) {
+            console.log('No BOE template found in API response, adding fallback BOE template');
+            const boeTemplate = fallbackTemplates.find(t => t.type === 'boe');
+            if (boeTemplate) {
+              setTemplateList([...data.templates, boeTemplate]);
+            } else {
+              setTemplateList(data.templates);
+            }
+          } else {
+            setTemplateList(data.templates);
+          }
+          
           setPagination(data.pagination);
+          setUseFallbackTemplates(false);
+        } else {
+          // API returned empty list, use fallbacks
+          console.log('API returned empty template list, using fallback templates');
+          setTemplateList(fallbackTemplates);
+          setPagination({
+            page: 1,
+            limit: fallbackTemplates.length,
+            totalPages: 1,
+            totalCount: fallbackTemplates.length,
+            hasMore: false
+          });
+          setUseFallbackTemplates(true);
         }
       } catch (err) {
+        console.error('Error fetching templates:', err);
         setError(err instanceof Error ? err.message : 'Failed to load templates');
+        
+        // Use fallback templates
+        console.log('Using fallback templates due to API error');
+        setTemplateList(fallbackTemplates);
+        setPagination({
+          page: 1,
+          limit: fallbackTemplates.length,
+          totalPages: 1,
+          totalCount: fallbackTemplates.length,
+          hasMore: false
+        });
+        setUseFallbackTemplates(true);
       } finally {
         setLoading(false);
       }
@@ -77,7 +162,7 @@ const SubscriptionCatalog = () => {
   }, [searchQuery, templateList]);
 
   const handlePageChange = (newPage: number) => {
-    if (newPage >= 1 && (!pagination || newPage <= pagination.totalPages)) {
+    if (!useFallbackTemplates && newPage >= 1 && (!pagination || newPage <= pagination.totalPages)) {
       setCurrentPage(newPage);
     }
   };
@@ -105,9 +190,81 @@ const SubscriptionCatalog = () => {
     }
   };
 
+  const handleSelectTemplate = (templateId: string) => {
+    // If using fallback templates, we need to handle this case differently
+    if (useFallbackTemplates) {
+      const template = fallbackTemplates.find(t => t.id === templateId);
+      if (template && template.type === 'boe') {
+        // Navigate to BOE subscription creation page directly
+        navigate('/subscriptions/new/boe');
+        return;
+      }
+    }
+    
+    // Normal flow
+    navigate(`/subscriptions/new/${templateId}`);
+  };
+
+  const renderTemplate = (template: Template) => {
+    const Icon = iconMap[template.icon] || Brain;
+    
+    return (
+      <Card key={template.id} className="h-full flex flex-col hover:border-primary/50 transition-colors">
+        <CardHeader className="pb-3">
+          <div className="flex justify-between items-start mb-2">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Icon className="h-5 w-5 text-primary" />
+            </div>
+            <Badge variant={template.isPublic ? "secondary" : "outline"}>
+              {template.isPublic ? "Público" : "Privado"}
+            </Badge>
+          </div>
+          <CardTitle className="text-lg">{template.name}</CardTitle>
+          <CardDescription className="line-clamp-2">
+            {template.description}
+          </CardDescription>
+        </CardHeader>
+        
+        <CardContent className="pb-2 flex-grow">
+          <div className="flex items-center text-sm text-muted-foreground mb-3">
+            <Clock className="h-4 w-4 mr-1" />
+            <span>
+              {template.frequency === 'immediate' ? 'Tiempo real' : 
+               template.frequency === 'daily' ? 'Diaria' : 
+               template.frequency === 'weekly' ? 'Semanal' : 'Mensual'}
+            </span>
+          </div>
+          
+          <div className="flex gap-1 flex-wrap">
+            {template.metadata?.category && (
+              <Badge variant="outline" className="bg-secondary/10">
+                {template.metadata.category}
+              </Badge>
+            )}
+            {template.metadata?.source && (
+              <Badge variant="outline" className="bg-secondary/10">
+                {template.metadata.source}
+              </Badge>
+            )}
+          </div>
+        </CardContent>
+        
+        <CardFooter className="pt-2 mt-auto">
+          <Button 
+            className="w-full" 
+            onClick={() => handleSelectTemplate(template.id)}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Añadir Suscripción
+          </Button>
+        </CardFooter>
+      </Card>
+    );
+  };
+
   return (
     <div className="p-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold mb-2">Catálogo de Suscripciones</h1>
@@ -115,18 +272,32 @@ const SubscriptionCatalog = () => {
               Encuentra la suscripción perfecta para tus necesidades
             </p>
           </div>
-          <button
+          <Button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
+            className="flex items-center gap-2"
           >
             <Plus className="h-5 w-5" />
             <span>Crear Template</span>
-          </button>
+          </Button>
         </div>
 
-        {error && (
-          <div className="mb-6 p-4 bg-destructive/10 text-destructive rounded-lg">
-            {error}
+        {error && !useFallbackTemplates && (
+          <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium">Error cargando templates</p>
+              <p className="text-sm mt-1">{error}</p>
+            </div>
+          </div>
+        )}
+        
+        {useFallbackTemplates && (
+          <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 text-amber-700 rounded-lg flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium">Usando templates de respaldo</p>
+              <p className="text-sm mt-1">No se pudo conectar con el API de templates. Se muestran opciones básicas disponibles.</p>
+            </div>
           </div>
         )}
 
@@ -135,121 +306,76 @@ const SubscriptionCatalog = () => {
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search className="h-5 w-5 text-muted-foreground" />
           </div>
-          <input
+          <Input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar suscripción..."
-            className="w-full pl-10 pr-4 py-3 rounded-lg border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="w-full pl-10 pr-4 py-3"
           />
         </div>
 
         {/* Template Cards */}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {Array.from({ length: itemsPerPage }).map((_, i) => (
-              <div key={i} className="p-6 rounded-lg border bg-card animate-pulse">
-                <div className="flex items-start gap-4">
-                  <div className="p-3 rounded-full bg-primary/10">
-                    <div className="h-6 w-6 bg-primary/20 rounded" />
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 w-32 bg-muted rounded" />
-                    <div className="h-3 w-48 bg-muted rounded" />
-                  </div>
-                </div>
+              <div key={i} className="p-6 rounded-lg border bg-card animate-pulse h-64">
+                <div className="h-6 bg-muted rounded mb-4 w-1/3"></div>
+                <div className="h-4 bg-muted rounded mb-2 w-full"></div>
+                <div className="h-4 bg-muted rounded mb-2 w-5/6"></div>
+                <div className="h-4 bg-muted rounded mb-4 w-3/4"></div>
+                <div className="h-10 bg-muted rounded mt-auto"></div>
               </div>
             ))}
           </div>
+        ) : filteredTemplates.length === 0 ? (
+          <div className="text-center p-12 border rounded-lg bg-card">
+            <Search className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-1">No se encontraron resultados</h3>
+            <p className="text-muted-foreground">
+              No hay plantillas que coincidan con tu búsqueda
+            </p>
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={() => setSearchQuery('')}
+            >
+              Limpiar búsqueda
+            </Button>
+          </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredTemplates.map((template) => {
-              const Icon = iconMap[template.icon] || Brain;
-              
-              return (
-                <div
-                  key={template.id}
-                  className="p-6 rounded-lg border bg-card hover:bg-muted/50 transition-all group cursor-pointer"
-                  onClick={() => navigate(`/templates/${template.id}/configure`)}
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="p-3 rounded-full bg-primary/10">
-                      <Icon className="h-6 w-6 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{template.name}</h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {template.description}
-                      </p>
-                      <div className="flex items-center gap-2 mt-3">
-                        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-primary/10 text-primary">
-                          {template.frequency === 'immediate' ? (
-                            <>
-                              <Zap className="h-3 w-3" />
-                              Inmediata
-                            </>
-                          ) : (
-                            <>
-                              <Clock className="h-3 w-3" />
-                              Diaria
-                            </>
-                          )}
-                        </span>
-                        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-primary/10 text-primary">
-                          {template.prompts.length} {template.prompts.length === 1 ? 'prompt' : 'prompts'}
-                        </span>
-                        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-primary/10 text-primary">
-                          {template.isPublic ? (
-                            <>
-                              <Globe className="h-3 w-3" />
-                              Público
-                            </>
-                          ) : (
-                            <>
-                              <Lock className="h-3 w-3" />
-                              Privado
-                            </>
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                  </div>
-                </div>
-              );
-            })}
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredTemplates.map(template => renderTemplate(template))}
+            </div>
             
-            {filteredTemplates.length === 0 && (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">
-                  No se encontraron suscripciones que coincidan con tu búsqueda.
-                </p>
+            {/* Pagination */}
+            {!useFallbackTemplates && pagination && pagination.totalPages > 1 && (
+              <div className="flex justify-center mt-8">
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    disabled={currentPage <= 1}
+                    onClick={() => handlePageChange(currentPage - 1)}
+                  >
+                    &larr; Anterior
+                  </Button>
+                  
+                  <div className="flex items-center px-4 text-sm">
+                    Página {currentPage} de {pagination.totalPages}
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    disabled={currentPage >= pagination.totalPages}
+                    onClick={() => handlePageChange(currentPage + 1)}
+                  >
+                    Siguiente &rarr;
+                  </Button>
+                </div>
               </div>
             )}
-          </div>
-        )}
-
-        {/* Pagination */}
-        {pagination && pagination.totalPages > 1 && (
-          <div className="mt-8 flex items-center justify-center gap-2">
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="px-3 py-1 rounded border bg-card hover:bg-muted/50 transition-colors disabled:opacity-50"
-            >
-              Anterior
-            </button>
-            <span className="text-sm text-muted-foreground">
-              Página {currentPage} de {pagination.totalPages}
-            </span>
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === pagination.totalPages}
-              className="px-3 py-1 rounded border bg-card hover:bg-muted/50 transition-colors disabled:opacity-50"
-            >
-              Siguiente
-            </button>
-          </div>
+          </>
         )}
       </div>
 
