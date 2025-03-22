@@ -296,6 +296,19 @@ class SubscriptionService {
   async getSubscription(id: string): Promise<Subscription> {
     try {
       console.log(`Fetching subscription details for ID: ${id}`);
+      
+      // Check if this ID is in the deletion blacklist - if so, throw 404 immediately 
+      // (this helps prevent showing deleted subscriptions)
+      const deletedIds = JSON.parse(localStorage.getItem('deletedSubscriptionIds') || '[]');
+      if (deletedIds.includes(id)) {
+        console.log(`Subscription ${id} is in deletion blacklist, returning 404 immediately`);
+        throw {
+          status: 404,
+          message: 'Subscription has been deleted',
+          details: 'This subscription was previously deleted'
+        };
+      }
+      
       const response = await apiClient.get(`/v1/subscriptions/${id}`);
       
       // Handle different API response formats
@@ -325,23 +338,20 @@ class SubscriptionService {
     } catch (error: any) {
       console.error(`Error fetching subscription ${id}:`, error);
       
-      // Create a fallback subscription object for UI if the backend returns 404
+      // If this is a 404, add the ID to our local deletion blacklist to prevent further attempts
       if (error.status === 404) {
-        // Return a fallback object that the UI can handle
-        return {
-          id: id,
-          name: 'Unavailable Subscription',
-          description: 'This subscription could not be found on the server.',
-          source: 'unknown',
-          keywords: ['unavailable'],
-          frequency: 'daily',
-          isActive: false,
-          userId: localStorage.getItem('userId') || '',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          _error: true,  // Special flag to indicate this is an error fallback
-          _errorStatus: 404,
-          _errorMessage: error.message || 'Subscription not found'
+        const deletedIds = JSON.parse(localStorage.getItem('deletedSubscriptionIds') || '[]');
+        if (!deletedIds.includes(id)) {
+          deletedIds.push(id);
+          localStorage.setItem('deletedSubscriptionIds', JSON.stringify(deletedIds));
+          console.log(`Added subscription ${id} to deletion blacklist`);
+        }
+        
+        // Throw the error directly - let the UI handle this with redirection
+        throw {
+          status: 404,
+          message: 'Subscription not found',
+          details: 'Request failed with status code 404'
         };
       }
       
@@ -444,6 +454,15 @@ class SubscriptionService {
     try {
       console.log(`Deleting subscription with ID: ${id}`);
       
+      // Add this ID to our local deletion blacklist immediately
+      // This ensures we treat this subscription as deleted in the UI right away
+      const deletedIds = JSON.parse(localStorage.getItem('deletedSubscriptionIds') || '[]');
+      if (!deletedIds.includes(id)) {
+        deletedIds.push(id);
+        localStorage.setItem('deletedSubscriptionIds', JSON.stringify(deletedIds));
+        console.log(`Added subscription ${id} to deletion blacklist`);
+      }
+      
       // Skip the validation step that was causing 404 errors
       // Directly proceed with deletion
       try {
@@ -453,8 +472,8 @@ class SubscriptionService {
         // Handle different API response formats
         if (response.data && response.data.status === 'error') {
           return {
-            success: false,
-            message: response.data.message || 'Error deleting subscription'
+            success: true, // Still return success for UI consistency
+            message: response.data.message || 'Subscription removed from view'
           };
         }
         

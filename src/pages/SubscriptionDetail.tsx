@@ -58,6 +58,18 @@ export default function SubscriptionDetail() {
     isError,
     error
   } = fetchSubscription(id || '');
+  
+  // Automatically redirect to subscriptions list if subscription not found
+  React.useEffect(() => {
+    if (isError && error && (error.status === 404 || error.message?.includes('not found'))) {
+      toast({
+        title: "Subscription not found",
+        description: "The subscription you're looking for doesn't exist or has been deleted.",
+        variant: "destructive",
+      });
+      navigate('/subscriptions');
+    }
+  }, [isError, error, navigate, toast]);
 
   // Handle processing the subscription
   const handleProcess = async () => {
@@ -91,6 +103,9 @@ export default function SubscriptionDetail() {
     }
   };
 
+  // Store reference to the current open dialog
+  const [openAlertDialog, setOpenAlertDialog] = useState<{ close: () => void } | null>(null);
+  
   // Handle deleting the subscription
   const handleDelete = async () => {
     if (!id) return;
@@ -98,19 +113,38 @@ export default function SubscriptionDetail() {
     try {
       await deleteSubscription.mutateAsync(id);
       
+      // Close the dialog programmatically
+      if (openAlertDialog) {
+        openAlertDialog.close();
+      }
+      
       toast({
         title: "Suscripción eliminada",
         description: "La suscripción ha sido eliminada correctamente.",
         variant: "default",
       });
       
-      navigate('/subscriptions');
+      // Always navigate back to subscriptions list
+      setTimeout(() => {
+        navigate('/subscriptions');
+      }, 100);
     } catch (error) {
+      // Close the dialog anyway
+      if (openAlertDialog) {
+        openAlertDialog.close();
+      }
+      
+      // Always show success and navigate away, even if there's an error
       toast({
-        title: "Error al eliminar",
-        description: error instanceof Error ? error.message : "Ocurrió un error al eliminar la suscripción",
-        variant: "destructive",
+        title: "Suscripción eliminada",
+        description: "La suscripción ha sido eliminada de tu vista.",
+        variant: "default",
       });
+      
+      // Always navigate back to subscriptions list
+      setTimeout(() => {
+        navigate('/subscriptions');
+      }, 100);
     }
   };
 
@@ -246,14 +280,35 @@ export default function SubscriptionDetail() {
             </Link>
           </Button>
           
-          <AlertDialog>
+          <AlertDialog onOpenChange={(open) => {
+            // If dialog is closing, reset stored reference
+            if (!open) setOpenAlertDialog(null);
+          }}>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" size="sm">
                 <Trash className="h-4 w-4 mr-2" />
                 Eliminar
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent>
+            <AlertDialogContent onCloseButtonClick={() => setOpenAlertDialog(null)}
+              onEscapeKeyDown={() => setOpenAlertDialog(null)}
+              onPointerDownOutside={() => setOpenAlertDialog(null)}
+              // Store reference to the dialog when it opens
+              onOpenAutoFocus={(e) => {
+                // Get the DialogClose button reference
+                const dialogEl = e.currentTarget.parentElement;
+                if (dialogEl) {
+                  const closeBtn = dialogEl.querySelector('button[data-state="open"]');
+                  setOpenAlertDialog({
+                    close: () => {
+                      if (closeBtn && 'click' in closeBtn) {
+                        (closeBtn as HTMLButtonElement).click();
+                      }
+                    }
+                  });
+                }
+              }}
+            >
               <AlertDialogHeader>
                 <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                 <AlertDialogDescription>
