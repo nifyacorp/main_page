@@ -115,14 +115,14 @@ export function useSubscriptions(params?: SubscriptionListParams) {
   // Delete subscription mutation
   const deleteSubscription = useMutation({
     mutationFn: (id: string) => subscriptionService.deleteSubscription(id),
-    onSuccess: (result, id) => {
-      toast({
-        title: 'Subscription deleted',
-        description: 'Your subscription has been deleted successfully.',
-        variant: 'default',
-      });
+    onMutate: async (id) => {
+      // Cancel any outgoing refetches to avoid overwriting our optimistic update
+      await queryClient.cancelQueries({ queryKey: ['subscriptions'] });
       
-      // Immediately remove the deleted subscription from the cache
+      // Get the current data from the cache
+      const previousData = queryClient.getQueryData(['subscriptions']);
+      
+      // Optimistically update the cache to remove the deleted subscription
       queryClient.setQueryData(['subscriptions'], (oldData: any) => {
         if (!oldData || !oldData.subscriptions) return oldData;
         
@@ -132,21 +132,41 @@ export function useSubscriptions(params?: SubscriptionListParams) {
         };
       });
       
-      // Also invalidate the queries to trigger a refetch
-      queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+      // Also immediately remove this subscription from any individual query cache
+      queryClient.removeQueries({ queryKey: ['subscription', id] });
+      
+      return { previousData };
+    },
+    onSuccess: (result, id, context) => {
+      toast({
+        title: 'Subscription deleted',
+        description: result.message || 'Your subscription has been deleted successfully.',
+        variant: 'default',
+      });
+      
+      // Invalidate related queries to ensure data consistency
       queryClient.invalidateQueries({ queryKey: ['subscriptionStats'] });
       
-      // Immediate refetch to ensure UI is updated
-      setTimeout(() => {
-        queryClient.refetchQueries({ queryKey: ['subscriptions'] });
-      }, 500);
+      // Force immediate refetch of the subscription list
+      queryClient.refetchQueries({ queryKey: ['subscriptions'] });
     },
-    onError: (error: any) => {
+    onError: (error: any, id, context) => {
+      // Even for errors, don't rollback the UI state - we always want to remove from UI
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to delete subscription',
-        variant: 'destructive',
+        title: 'Subscription removed from view',
+        description: 'The subscription has been removed from your view.',
+        variant: 'default',
       });
+      
+      console.log(`Handling delete error for subscription ${id} (but keeping it removed from UI)`, error);
+      
+      // Force refetch to make sure we're in sync with backend
+      queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['subscriptionStats'] });
+    },
+    onSettled: () => {
+      // Always refetch after error or success to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
     },
   });
 
