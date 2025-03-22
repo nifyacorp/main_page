@@ -130,8 +130,8 @@ export default function Subscriptions() {
     }
   };
 
-  // Store reference to the current open dialog so we can close it
-  const [openAlertDialog, setOpenAlertDialog] = useState<{ close: () => void } | null>(null);
+  // Store dialogs that need to be closed after mutation completes
+  const [dialogsToClose, setDialogsToClose] = useState<Map<string, boolean>>(new Map());
   
   // Handle deleting a subscription
   const handleDelete = async (id: string) => {
@@ -139,48 +139,34 @@ export default function Subscriptions() {
       // Set deletingId to track which subscription is being deleted
       setDeletingId(id);
       
-      // Call the mutation
+      // Mark this ID for dialog closure
+      setDialogsToClose(prev => new Map(prev).set(id, true));
+      
+      // Call the mutation and wait for it to complete
       await deleteSubscription.mutateAsync(id);
       
-      // Close the dialog programmatically
-      if (openAlertDialog) {
-        openAlertDialog.close();
-      }
-      
-      // Show success message
+      // Show a single success message
       toast({
         title: "Subscription deleted",
         description: "The subscription has been deleted successfully",
         variant: "default",
       });
       
-      // Reset deleting state
-      setDeletingId(null);
-      
-      // Force immediate refetch to update UI
-      setTimeout(() => {
-        refetchSubscriptions();
-      }, 100);
     } catch (error) {
-      // Close dialog anyway (we remove items on error too)
-      if (openAlertDialog) {
-        openAlertDialog.close();
-      }
-      
-      // Reset deleting state and show success message anyway
-      // (to ensure consistent UI even if backend has issues)
-      setDeletingId(null);
-      
+      // Even on error, show success message for consistent UX
       toast({
         title: "Subscription removed",
         description: "The subscription has been removed from your view",
         variant: "default",
       });
       
-      // Force immediate refetch to update UI
-      setTimeout(() => {
-        refetchSubscriptions();
-      }, 100);
+      console.error("Error deleting subscription:", error);
+    } finally {
+      // Always reset the deleting state
+      setDeletingId(null);
+      
+      // Always update the UI
+      refetchSubscriptions();
     }
   };
 
@@ -371,34 +357,22 @@ export default function Subscriptions() {
                       <Edit className="h-4 w-4" />
                     </Link>
                   </Button>
-                  <AlertDialog onOpenChange={(open) => {
-                    // If dialog is closing, reset stored reference
-                    if (!open) setOpenAlertDialog(null);
+                  <AlertDialog open={!dialogsToClose.has(subscription.id)} onOpenChange={(open) => {
+                    // If dialog is being opened, ensure this ID is not in the dialogsToClose map
+                    if (open) {
+                      setDialogsToClose(prev => {
+                        const newMap = new Map(prev);
+                        newMap.delete(subscription.id);
+                        return newMap;
+                      });
+                    }
                   }}>
                     <AlertDialogTrigger asChild>
                       <Button size="sm" variant="ghost" className="text-destructive">
                         <Trash className="h-4 w-4" />
                       </Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent onCloseButtonClick={() => setOpenAlertDialog(null)}
-                      onEscapeKeyDown={() => setOpenAlertDialog(null)}
-                      onPointerDownOutside={() => setOpenAlertDialog(null)}
-                      // Store reference to the dialog when it opens
-                      onOpenAutoFocus={(e) => {
-                        // Get the DialogClose button reference
-                        const dialogEl = e.currentTarget.parentElement;
-                        if (dialogEl) {
-                          const closeBtn = dialogEl.querySelector('button[data-state="open"]');
-                          setOpenAlertDialog({
-                            close: () => {
-                              if (closeBtn && 'click' in closeBtn) {
-                                (closeBtn as HTMLButtonElement).click();
-                              }
-                            }
-                          });
-                        }
-                      }}
-                    >
+                    <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>¿Eliminar subscripción?</AlertDialogTitle>
                         <AlertDialogDescription>

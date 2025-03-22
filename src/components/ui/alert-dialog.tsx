@@ -184,11 +184,32 @@ export function AlertDialogAction({ className, children, ...props }: AlertDialog
         "h-10 px-4 py-2",
         className
       )}
-      onClick={(e) => {
-        if (props.onClick) props.onClick(e);
-        onOpenChange(false);
+      onClick={async (e) => {
+        try {
+          // First run the onClick handler (if any) and await it in case it's async
+          // This way we wait for the action to complete before closing the dialog
+          if (props.onClick) {
+            const result = props.onClick(e);
+            if (result instanceof Promise) {
+              await result;
+            }
+          }
+          
+          // Now close the dialog after the action succeeds
+          // We use setTimeout to ensure this happens after React's event loop cycle
+          setTimeout(() => {
+            onOpenChange(false);
+          }, 10);
+        } catch (error) {
+          console.error("Error in AlertDialogAction onClick handler:", error);
+          // Close dialog even if the action fails
+          setTimeout(() => {
+            onOpenChange(false);
+          }, 10);
+        }
       }}
-      {...props}
+      // Remove onClick from props so it doesn't get added twice
+      {...{ ...props, onClick: undefined }}
     >
       {children}
     </button>

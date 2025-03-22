@@ -138,11 +138,12 @@ export function useSubscriptions(params?: SubscriptionListParams) {
       return { previousData };
     },
     onSuccess: (result, id, context) => {
-      toast({
-        title: 'Subscription deleted',
-        description: result.message || 'Your subscription has been deleted successfully.',
-        variant: 'default',
-      });
+      // Avoid showing duplicate toast from component
+      // toast({
+      //   title: 'Subscription deleted',
+      //   description: result.message || 'Your subscription has been deleted successfully.',
+      //   variant: 'default',
+      // });
       
       // Invalidate related queries to ensure data consistency
       queryClient.invalidateQueries({ queryKey: ['subscriptionStats'] });
@@ -152,11 +153,12 @@ export function useSubscriptions(params?: SubscriptionListParams) {
     },
     onError: (error: any, id, context) => {
       // Even for errors, don't rollback the UI state - we always want to remove from UI
-      toast({
-        title: 'Subscription removed from view',
-        description: 'The subscription has been removed from your view.',
-        variant: 'default',
-      });
+      // Avoid showing duplicate toast from component
+      // toast({
+      //   title: 'Subscription removed from view',
+      //   description: 'The subscription has been removed from your view.',
+      //   variant: 'default',
+      // });
       
       console.log(`Handling delete error for subscription ${id} (but keeping it removed from UI)`, error);
       
