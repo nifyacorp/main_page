@@ -212,7 +212,7 @@ export const subscriptionService = {
     }).finally(() => console.groupEnd());
   },
   
-  processImmediately: (id: string): Promise<ApiResponse<{ message: string }>> => {
+  processImmediately: (id: string): Promise<ApiResponse<{ message: string; processingId?: string; subscription_id?: string }>> => {
     console.group('🔄 Process Subscription Immediately');
     console.log('Processing subscription:', id);
     
@@ -231,21 +231,76 @@ export const subscriptionService = {
       });
     }
     
+    console.log(`Sending process request to /api/v1/subscriptions/${id}/process`);
+    
+    // Use more robust error handling
     return backendClient({
       endpoint: `/api/v1/subscriptions/${id}/process`,
       method: 'POST',
       body: {}, // Empty body to satisfy content-type requirement
       headers: {
-        'Accept': 'application/json, text/plain, */*'
-      }
+        'Accept': 'application/json, text/plain, */*',
+        'Content-Type': 'application/json'
+      },
+      timeout: 15000 // Increase timeout for processing requests
     })
+      .then(response => {
+        console.log('Process subscription response:', response);
+        return response;
+      })
       .catch(error => {
         console.error('Error processing subscription:', error);
+        
+        // Check if it's a timeout error
+        if (error.code === 'ECONNABORTED') {
+          return { 
+            status: 202, // Accepted - this is expected for long-running operations
+            ok: true,
+            data: { 
+              message: 'Subscription processing initiated, but took longer than expected. Check notifications for results.',
+              processingId: 'timeout'
+            }
+          };
+        }
+        
+        // If the API returns a 404, try the direct subscription worker URL
+        if (error.status === 404 || (error.response && error.response.status === 404)) {
+          console.log('API returned 404, trying direct subscription worker...');
+          
+          return backendClient({
+            endpoint: `/api/subscriptions/process-subscription/${id}`,
+            method: 'POST',
+            body: {
+              subscription_id: id
+            },
+            headers: {
+              'Accept': 'application/json, text/plain, */*',
+              'Content-Type': 'application/json'
+            }
+          })
+          .then(directResponse => {
+            console.log('Direct subscription worker response:', directResponse);
+            return directResponse;
+          })
+          .catch(directError => {
+            console.error('Error with direct subscription worker:', directError);
+            return { 
+              status: 500,
+              ok: false,
+              error: 'Failed to process subscription through both API and worker',
+              data: { message: 'Subscription processing failed' }
+            };
+          });
+        }
+        
         return { 
-          status: 500,
+          status: error.status || 500,
           ok: false,
           error: error.message || 'Failed to process subscription',
-          data: { message: 'Failed to process subscription' }
+          data: { 
+            message: error.message || 'Failed to process subscription',
+            error: error.code || 'UNKNOWN_ERROR'
+          }
         };
       })
       .finally(() => console.groupEnd());

@@ -26,6 +26,22 @@
   force = true
   headers = {Access-Control-Allow-Origin = "*", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, PATCH, OPTIONS", Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-user-id", X-From = "Netlify"}
 
+# Special processing endpoint
+[[redirects]]
+  from = "/api/v1/subscriptions/*/process"
+  to = "https://backend-415554190254.us-central1.run.app/api/v1/subscriptions/:splat/process"
+  status = 200
+  force = true
+  headers = {Access-Control-Allow-Origin = "*", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, PATCH, OPTIONS", Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-user-id", X-From = "Netlify"}
+
+# Handle direct subscription worker access
+[[redirects]]
+  from = "/api/subscriptions/process-subscription/*"
+  to = "https://subscription-worker-415554190254.us-central1.run.app/subscriptions/process-subscription/:splat"
+  status = 200
+  force = true
+  headers = {Access-Control-Allow-Origin = "*", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, PATCH, OPTIONS", Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-user-id", X-From = "Netlify"}
+
 # Handle OPTIONS preflight requests for CORS
 [[redirects]]
   from = "/api/*"

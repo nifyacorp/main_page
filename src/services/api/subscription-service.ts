@@ -295,7 +295,26 @@ class SubscriptionService {
    */
   async getSubscription(id: string): Promise<Subscription> {
     try {
+      console.log(`Fetching subscription details for ID: ${id}`);
       const response = await apiClient.get(`/v1/subscriptions/${id}`);
+      
+      // Handle different API response formats
+      if (response.data && response.data.data && response.data.data.subscription) {
+        // Format: { status: 'success', data: { subscription: {...} } }
+        console.log('Subscription details response format 1:', response.data);
+        return response.data.data.subscription;
+      } else if (response.data && response.data.subscription) {
+        // Format: { subscription: {...} }
+        console.log('Subscription details response format 2:', response.data);
+        return response.data.subscription;
+      } else if (response.data && response.data.status === 'success') {
+        // Format: { status: 'success', data: {...} }
+        console.log('Subscription details response format 3:', response.data);
+        return response.data.data;
+      }
+      
+      // Default: return the entire data object
+      console.log('Subscription details raw response:', response.data);
       return response.data;
     } catch (error) {
       console.error(`Error fetching subscription ${id}:`, error);
@@ -358,7 +377,35 @@ class SubscriptionService {
    */
   async updateSubscription(id: string, data: SubscriptionFormData): Promise<Subscription> {
     try {
-      const response = await apiClient.put(`/v1/subscriptions/${id}`, data);
+      console.log(`Updating subscription with ID: ${id}`, data);
+      
+      // Format data for API - backend expects PATCH, not PUT
+      const formattedData = {
+        name: data.name,
+        description: data.description || '',
+        prompts: Array.isArray(data.keywords) ? data.keywords : [data.keywords],
+        frequency: data.frequency === 'realtime' ? 'immediate' : 
+                 data.frequency.toLowerCase() === 'weekly' ? 'daily' : 
+                 data.frequency.toLowerCase() === 'monthly' ? 'daily' : 
+                 data.frequency.toLowerCase(),
+      };
+      
+      // Use PATCH instead of PUT
+      const response = await apiClient.patch(`/v1/subscriptions/${id}`, formattedData);
+      
+      // Handle different API response formats
+      if (response.data && response.data.data && response.data.data.subscription) {
+        // Format: { status: 'success', data: { subscription: {...} } }
+        return response.data.data.subscription;
+      } else if (response.data && response.data.subscription) {
+        // Format: { subscription: {...} }
+        return response.data.subscription;
+      } else if (response.data && response.data.status === 'success') {
+        // Format: { status: 'success', data: {...} }
+        return response.data.data;
+      }
+      
+      // Default: return the entire data object
       return response.data;
     } catch (error) {
       console.error(`Error updating subscription ${id}:`, error);
@@ -371,7 +418,16 @@ class SubscriptionService {
    */
   async deleteSubscription(id: string): Promise<void> {
     try {
-      await apiClient.delete(`/v1/subscriptions/${id}`);
+      console.log(`Deleting subscription with ID: ${id}`);
+      const response = await apiClient.delete(`/v1/subscriptions/${id}`);
+      console.log('Delete subscription response:', response.data);
+      
+      // Handle different API response formats
+      if (response.data && response.data.status === 'error') {
+        throw new Error(response.data.message || 'Error deleting subscription');
+      }
+      
+      return;
     } catch (error) {
       console.error(`Error deleting subscription ${id}:`, error);
       throw error;
@@ -381,12 +437,39 @@ class SubscriptionService {
   /**
    * Process a subscription (manually trigger processing)
    */
-  async processSubscription(id: string): Promise<{ message: string; jobId?: string }> {
+  async processSubscription(id: string): Promise<{ message: string; jobId?: string; processingId?: string }> {
     try {
-      const response = await apiClient.post(`/v1/subscriptions/${id}/process`);
-      return response.data;
+      console.log(`Processing subscription with ID: ${id}`);
+      
+      const response = await apiClient.post(`/v1/subscriptions/${id}/process`, {
+        // Include empty body to prevent issues with some server configurations
+      });
+      
+      console.log('Process subscription response:', response.data);
+      
+      // Handle different response formats
+      if (response.data && response.data.data) {
+        // Format: { status: 'success', data: { message, processingId, jobId } }
+        return response.data.data;
+      } else if (response.data && response.data.message) {
+        // Format: { message, processingId, jobId }
+        return response.data;
+      }
+      
+      // If response format doesn't match expectations, return a default message
+      return { 
+        message: 'Subscription processing initiated',
+        processingId: response.data?.processingId || 'unknown',
+        jobId: response.data?.jobId || 'unknown'
+      };
     } catch (error) {
       console.error(`Error processing subscription ${id}:`, error);
+      
+      // Return a user-friendly error message
+      if (error.response && error.response.status === 404) {
+        throw new Error('The subscription processing endpoint was not found. This might be due to a configuration issue.');
+      }
+      
       throw error;
     }
   }
