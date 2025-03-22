@@ -39,8 +39,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       try {
         // Check if user is authenticated via the new API client system
         const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-        const accessToken = localStorage.getItem('accessToken');
-        const userId = localStorage.getItem('userId');
+        let accessToken = localStorage.getItem('accessToken');
+        let userId = localStorage.getItem('userId');
         const userEmail = localStorage.getItem('email');
         
         console.log('AuthContext: Checking auth state', { 
@@ -49,6 +49,30 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           userId,
           email: userEmail
         });
+        
+        // Fix token format if needed - ensure it has Bearer prefix
+        if (accessToken && !accessToken.startsWith('Bearer ')) {
+          accessToken = `Bearer ${accessToken}`;
+          localStorage.setItem('accessToken', accessToken);
+          console.log('AuthContext: Fixed token format to include Bearer prefix');
+        }
+        
+        // Extract userId from token if it's missing
+        if (!userId && accessToken) {
+          try {
+            const tokenParts = accessToken.replace('Bearer ', '').split('.');
+            if (tokenParts.length >= 2) {
+              const payload = JSON.parse(atob(tokenParts[1]));
+              if (payload.sub) {
+                userId = payload.sub;
+                localStorage.setItem('userId', userId);
+                console.log('AuthContext: Extracted userId from token:', userId);
+              }
+            }
+          } catch (tokenError) {
+            console.error('Failed to extract userId from token:', tokenError);
+          }
+        }
         
         if (isAuthenticated && accessToken) {
           try {
@@ -95,15 +119,31 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   
   const login = async (token: string) => {
     try {
-      // This function is for backward compatibility
-      // New logins should go through the API client which sets localStorage
-      localStorage.setItem('accessToken', token);
+      // Ensure token has Bearer prefix
+      const formattedToken = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+      
+      console.log('AuthContext: Storing authentication token');
+      localStorage.setItem('accessToken', formattedToken);
       localStorage.setItem('isAuthenticated', 'true');
+      
+      // Try to extract user ID from token
+      try {
+        const tokenParts = formattedToken.replace('Bearer ', '').split('.');
+        if (tokenParts.length >= 2) {
+          const payload = JSON.parse(atob(tokenParts[1]));
+          if (payload.sub) {
+            localStorage.setItem('userId', payload.sub);
+            console.log('AuthContext: Extracted userId from login token:', payload.sub);
+          }
+        }
+      } catch (tokenError) {
+        console.error('Failed to extract userId from login token:', tokenError);
+      }
       
       // Mock user data for now, this will be replaced by API call in useEffect
       const email = localStorage.getItem('email') || 'user@example.com';
       setUser({
-        id: '00000000-0000-0000-0000-000000000001',
+        id: localStorage.getItem('userId') || '00000000-0000-0000-0000-000000000001',
         email: email
       });
     } catch (error) {

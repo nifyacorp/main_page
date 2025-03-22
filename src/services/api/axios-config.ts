@@ -35,9 +35,23 @@ const apiClient: AxiosInstance = axios.create({
 // Request interceptor for adding auth token
 apiClient.interceptors.request.use(
   (config: AxiosRequestConfig): AxiosRequestConfig => {
+    // Log authentication state for debugging
+    console.log('AuthContext: Checking auth state', {
+      isAuthenticated: localStorage.getItem('isAuthenticated') === 'true',
+      hasAccessToken: !!localStorage.getItem('accessToken'),
+      userId: localStorage.getItem('userId'),
+      email: localStorage.getItem('userEmail')
+    });
+    
+    // Get auth token with fallbacks
     const token = localStorage.getItem('accessToken') || localStorage.getItem(AUTH_TOKEN_KEY);
     const userId = localStorage.getItem('userId');
     
+    if (!token) {
+      console.log('AuthContext: No valid auth tokens found');
+    }
+    
+    // Add auth headers if token exists
     if (token && config.headers) {
       // Ensure proper Bearer format and maintain case sensitivity
       // Remove 'Bearer ' prefix if it exists in the token to prevent duplication
@@ -53,23 +67,27 @@ apiClient.interceptors.request.use(
     }
     
     console.log('Request details:', {
-      url: config.url,
       method: config.method,
-      baseURL: config.baseURL
+      endpoint: config.url,
+      headers: config.headers ? 'Headers present' : 'No headers'
     });
     
     console.log('Auth headers:', {
-      Authorization: config.headers?.Authorization ? 'Bearer [token]' : 'None',
-      userId: userId || 'None'
+      hasAccessToken: !!config.headers?.Authorization,
+      hasUserId: !!userId,
+      tokenFormat: config.headers?.Authorization ? 
+                  config.headers.Authorization.startsWith('Bearer ') ? 'Bearer' : 'other' : 
+                  'none'
     });
     
     console.log('Final request options:', {
-      url: config.url,
-      baseURL: config.baseURL,
-      hasAuth: !!config.headers?.Authorization,
-      hasUserId: !!userId,
-      method: config.method
+      method: config.method,
+      headers: config.headers ? 'Headers present' : 'No headers',
+      credentials: 'include'  // Ensure cookies are sent with requests
     });
+    
+    // Ensure credentials are included for CORS requests
+    config.withCredentials = true;
     
     return config;
   },

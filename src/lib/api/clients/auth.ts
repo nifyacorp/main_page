@@ -95,6 +95,7 @@ export async function authClient<T>({
         data.accessToken : 
         `Bearer ${data.accessToken}`;
       
+      console.log('Storing auth token with proper Bearer format');
       localStorage.setItem('accessToken', token);
       
       if (data.refreshToken) {
@@ -105,18 +106,26 @@ export async function authClient<T>({
       localStorage.setItem('isAuthenticated', 'true');
       
       try {
-        // Parse user ID from token and store it
-        const [, payload] = token.replace('Bearer ', '').split('.');
-        if (payload) {
+        // Parse token - split by dots and get the payload part
+        const tokenParts = token.replace('Bearer ', '').split('.');
+        if (tokenParts.length >= 2) {
+          const payload = tokenParts[1];
           try {
+            // Base64 decode and parse as JSON
             const decodedPayload = JSON.parse(atob(payload));
+            
             if (decodedPayload.sub) {
               console.log('Extracted user ID from token:', decodedPayload.sub);
               localStorage.setItem('userId', decodedPayload.sub);
+              
+              // Store email if available in token
+              if (decodedPayload.email) {
+                console.log('Extracted email from token:', decodedPayload.email);
+                localStorage.setItem('email', decodedPayload.email);
+              }
             } else {
               console.warn('Token payload does not contain sub field:', decodedPayload);
               // If we can't get a user ID, auth will fail later, but we set a placeholder
-              // This helps identify the issue in logs when API calls fail
               localStorage.setItem('userId', 'invalid-token-no-sub');
             }
           } catch (parseError) {
