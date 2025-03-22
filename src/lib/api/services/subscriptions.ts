@@ -263,36 +263,6 @@ export const subscriptionService = {
           };
         }
         
-        // If the API returns a 404, try the direct subscription worker URL
-        if (error.status === 404 || (error.response && error.response.status === 404)) {
-          console.log('API returned 404, trying direct subscription worker...');
-          
-          return backendClient({
-            endpoint: `/api/subscriptions/process-subscription/${id}`,
-            method: 'POST',
-            body: {
-              subscription_id: id
-            },
-            headers: {
-              'Accept': 'application/json, text/plain, */*',
-              'Content-Type': 'application/json'
-            }
-          })
-          .then(directResponse => {
-            console.log('Direct subscription worker response:', directResponse);
-            return directResponse;
-          })
-          .catch(directError => {
-            console.error('Error with direct subscription worker:', directError);
-            return { 
-              status: 500,
-              ok: false,
-              error: 'Failed to process subscription through both API and worker',
-              data: { message: 'Subscription processing failed' }
-            };
-          });
-        }
-        
         return { 
           status: error.status || 500,
           ok: false,

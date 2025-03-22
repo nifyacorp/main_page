@@ -327,22 +327,19 @@ class SubscriptionService {
    */
   async createSubscription(data: SubscriptionFormData): Promise<Subscription> {
     try {
-      // Format data to match backend API schema without 'type' field
-      // Backend doesn't have a 'type' column in the database
+      // Format data to match backend API schema
       const formattedData = {
         name: data.name,
         description: data.description || '',
-        // Don't send 'type' field to avoid database error
-        // Instead use 'source' field which the backend expects
-        source: data.source.toLowerCase(),
+        // Map source to type field for backend compatibility
+        type: data.source.toLowerCase(),
+        typeId: data.typeId,
         prompts: Array.isArray(data.keywords) ? data.keywords : [data.keywords],
         logo: data.logo || 'https://nifya.com/assets/logo.png',
         frequency: data.frequency === 'realtime' ? 'immediate' : 
                    data.frequency.toLowerCase() === 'weekly' ? 'daily' : 
                    data.frequency.toLowerCase() === 'monthly' ? 'daily' : 
-                   data.frequency.toLowerCase(),
-        // Add any other required fields
-        typeId: data.typeId
+                   data.frequency.toLowerCase()
       };
 
       console.log('Formatted subscription data for API:', formattedData);
@@ -437,7 +434,7 @@ class SubscriptionService {
   /**
    * Process a subscription (manually trigger processing)
    */
-  async processSubscription(id: string): Promise<{ message: string; jobId?: string; processingId?: string }> {
+  async processSubscription(id: string): Promise<{ message: string; jobId?: string; processingId?: string; subscription_id?: string }> {
     try {
       console.log(`Processing subscription with ID: ${id}`);
       
@@ -459,15 +456,19 @@ class SubscriptionService {
       // If response format doesn't match expectations, return a default message
       return { 
         message: 'Subscription processing initiated',
-        processingId: response.data?.processingId || 'unknown',
-        jobId: response.data?.jobId || 'unknown'
+        processingId: response.data?.processingId || response.data?.processing_id || 'unknown',
+        subscription_id: id
       };
     } catch (error) {
       console.error(`Error processing subscription ${id}:`, error);
       
       // Return a user-friendly error message
       if (error.response && error.response.status === 404) {
-        throw new Error('The subscription processing endpoint was not found. This might be due to a configuration issue.');
+        throw new Error('The subscription processing endpoint was not found. Please contact support.');
+      } else if (error.response && error.response.status === 429) {
+        throw new Error('Too many processing requests. Please wait a moment and try again.');
+      } else if (error.response && error.response.data && error.response.data.message) {
+        throw new Error(error.response.data.message);
       }
       
       throw error;
