@@ -115,14 +115,31 @@ export function useSubscriptions(params?: SubscriptionListParams) {
   // Delete subscription mutation
   const deleteSubscription = useMutation({
     mutationFn: (id: string) => subscriptionService.deleteSubscription(id),
-    onSuccess: () => {
+    onSuccess: (result, id) => {
       toast({
         title: 'Subscription deleted',
         description: 'Your subscription has been deleted successfully.',
         variant: 'default',
       });
+      
+      // Immediately remove the deleted subscription from the cache
+      queryClient.setQueryData(['subscriptions'], (oldData: any) => {
+        if (!oldData || !oldData.subscriptions) return oldData;
+        
+        return {
+          ...oldData,
+          subscriptions: oldData.subscriptions.filter((sub: any) => sub.id !== id)
+        };
+      });
+      
+      // Also invalidate the queries to trigger a refetch
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
       queryClient.invalidateQueries({ queryKey: ['subscriptionStats'] });
+      
+      // Immediate refetch to ensure UI is updated
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ['subscriptions'] });
+      }, 500);
     },
     onError: (error: any) => {
       toast({
