@@ -311,13 +311,40 @@ class SubscriptionService {
         // Format: { status: 'success', data: {...} }
         console.log('Subscription details response format 3:', response.data);
         return response.data.data;
+      } else if (response.data && typeof response.data === 'object') {
+        // Check if the response data itself looks like a subscription object
+        if (response.data.id && response.data.name) {
+          console.log('Subscription details direct object format:', response.data);
+          return response.data;
+        }
       }
       
       // Default: return the entire data object
       console.log('Subscription details raw response:', response.data);
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Error fetching subscription ${id}:`, error);
+      
+      // Create a fallback subscription object for UI if the backend returns 404
+      if (error.status === 404) {
+        // Return a fallback object that the UI can handle
+        return {
+          id: id,
+          name: 'Unavailable Subscription',
+          description: 'This subscription could not be found on the server.',
+          source: 'unknown',
+          keywords: ['unavailable'],
+          frequency: 'daily',
+          isActive: false,
+          userId: localStorage.getItem('userId') || '',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          _error: true,  // Special flag to indicate this is an error fallback
+          _errorStatus: 404,
+          _errorMessage: error.message || 'Subscription not found'
+        };
+      }
+      
       throw error;
     }
   }
@@ -413,21 +440,53 @@ class SubscriptionService {
   /**
    * Delete a subscription
    */
-  async deleteSubscription(id: string): Promise<void> {
+  async deleteSubscription(id: string): Promise<{ success: boolean; message?: string }> {
     try {
       console.log(`Deleting subscription with ID: ${id}`);
+      
+      // Validate that the subscription exists first
+      try {
+        await this.getSubscription(id);
+      } catch (checkError: any) {
+        // If subscription doesn't exist in backend but exists in UI, 
+        // return success to let the UI remove it anyway
+        if (checkError.status === 404) {
+          console.log(`Subscription ${id} not found in backend but exists in UI, treating as already deleted`);
+          return { 
+            success: true, 
+            message: 'Subscription already removed or not found in backend'
+          };
+        }
+      }
+      
+      // Proceed with actual deletion
       const response = await apiClient.delete(`/v1/subscriptions/${id}`);
       console.log('Delete subscription response:', response.data);
       
       // Handle different API response formats
       if (response.data && response.data.status === 'error') {
-        throw new Error(response.data.message || 'Error deleting subscription');
+        return {
+          success: false,
+          message: response.data.message || 'Error deleting subscription'
+        };
       }
       
-      return;
-    } catch (error) {
+      return { success: true };
+    } catch (error: any) {
       console.error(`Error deleting subscription ${id}:`, error);
-      throw error;
+      
+      // Special case: If not found error, consider it successfully deleted
+      if (error.status === 404) {
+        return { 
+          success: true, 
+          message: 'Subscription already removed or not found'
+        };
+      }
+      
+      return {
+        success: false,
+        message: error.message || 'Failed to delete subscription'
+      };
     }
   }
 
