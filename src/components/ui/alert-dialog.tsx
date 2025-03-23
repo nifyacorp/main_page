@@ -186,26 +186,42 @@ export function AlertDialogAction({ className, children, ...props }: AlertDialog
       )}
       onClick={async (e) => {
         try {
+          console.log(`AlertDialogAction: Starting click handler`);
+          
           // First run the onClick handler (if any) and await it in case it's async
           // This way we wait for the action to complete before closing the dialog
           if (props.onClick) {
-            const result = props.onClick(e);
-            if (result instanceof Promise) {
-              await result;
+            console.log(`AlertDialogAction: Executing onClick handler`);
+            try {
+              const result = props.onClick(e);
+              if (result instanceof Promise) {
+                console.log(`AlertDialogAction: Awaiting async onClick result`);
+                await result;
+                console.log(`AlertDialogAction: onClick promise resolved`);
+              } else {
+                console.log(`AlertDialogAction: onClick handler completed (sync)`);
+              }
+            } catch (clickError) {
+              console.error(`AlertDialogAction: Error in onClick handler:`, clickError);
+              throw clickError; // Re-throw to be caught by outer try-catch
             }
           }
           
           // Now close the dialog after the action succeeds
           // We use setTimeout to ensure this happens after React's event loop cycle
-          setTimeout(() => {
+          console.log(`AlertDialogAction: Scheduling dialog close`);
+          window.setTimeout(() => {
+            console.log(`AlertDialogAction: Closing dialog`);
             onOpenChange(false);
-          }, 10);
+          }, 100);
         } catch (error) {
           console.error("Error in AlertDialogAction onClick handler:", error);
           // Close dialog even if the action fails
-          setTimeout(() => {
+          console.log(`AlertDialogAction: Scheduling dialog close after error`);
+          window.setTimeout(() => {
+            console.log(`AlertDialogAction: Closing dialog after error`);
             onOpenChange(false);
-          }, 10);
+          }, 100);
         }
       }}
       // Remove onClick from props so it doesn't get added twice

@@ -144,7 +144,52 @@ export default function Subscriptions() {
       // Mark this ID for dialog closure
       setDialogsToClose(prev => new Map(prev).set(id, true));
       
-      // Call the mutation and wait for it to complete
+      // DIRECT FETCH - bypassing React Query to verify API works
+      console.log(`DIRECT FETCH: Attempting DELETE for subscription ${id}`);
+      
+      try {
+        // First add to blacklist
+        const deletedIds = JSON.parse(localStorage.getItem('deletedSubscriptionIds') || '[]');
+        if (!deletedIds.includes(id)) {
+          deletedIds.push(id);
+          localStorage.setItem('deletedSubscriptionIds', JSON.stringify(deletedIds));
+          console.log(`Added subscription ${id} to deletion blacklist`);
+        }
+        
+        // Direct API call to ensure it reaches the backend
+        const token = localStorage.getItem('accessToken');
+        const response = await fetch(`/api/v1/subscriptions/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        console.log(`DIRECT FETCH RESPONSE:`, {
+          status: response.status,
+          statusText: response.statusText
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log(`DIRECT FETCH SUCCESS:`, data);
+        } else {
+          console.log(`DIRECT FETCH ERROR - Status: ${response.status}`);
+          if (response.status !== 404) { // 404 is fine - already deleted
+            try {
+              const errorData = await response.json();
+              console.log(`Error details:`, errorData);
+            } catch (e) {
+              console.log(`Could not parse error response`);
+            }
+          }
+        }
+      } catch (directFetchError) {
+        console.error(`DIRECT FETCH ERROR:`, directFetchError);
+      }
+      
+      // Also use the mutation to update the React Query cache
       console.log(`Calling deleteSubscription.mutateAsync for ID: ${id}`);
       const result = await deleteSubscription.mutateAsync(id);
       console.log(`Delete mutation completed with result:`, result);
@@ -171,7 +216,10 @@ export default function Subscriptions() {
       
       // Always update the UI - force a refetch to ensure UI is synchronized
       console.log(`Refetching subscriptions after deletion attempt for ID: ${id}`);
-      setTimeout(() => refetchSubscriptions(), 500);
+      window.setTimeout(() => {
+        console.log(`Executing refetch`);
+        refetchSubscriptions();
+      }, 1000);
     }
   };
 
