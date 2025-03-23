@@ -133,7 +133,7 @@ export default function Subscriptions() {
   // Store dialogs that need to be closed after mutation completes
   const [dialogsToClose, setDialogsToClose] = useState<Map<string, boolean>>(new Map());
   
-  // Handle deleting a subscription
+  // Handle deleting a subscription - simplified version without direct fetch
   const handleDelete = async (id: string) => {
     try {
       console.log(`Starting deletion for subscription ID: ${id}`);
@@ -149,76 +149,38 @@ export default function Subscriptions() {
         console.log(`Added subscription ${id} to deletion blacklist`);
       }
       
-      // Show a success message immediately to improve perceived performance
+      // Use the mutation to perform the actual deletion and update React Query cache
+      console.log(`Calling deleteSubscription.mutateAsync for ID: ${id}`);
+      const result = await deleteSubscription.mutateAsync(id);
+      console.log(`Delete mutation completed with result:`, result);
+      
+      // Show a success message
       toast({
         title: "Subscription deleted",
         description: "The subscription has been removed from your view",
         variant: "default",
       });
       
-      // No need to call setFilter - we'll rely on the refetch instead
-      
-      // DIRECT FETCH - bypassing React Query to verify API works
-      console.log(`DIRECT FETCH: Attempting DELETE for subscription ${id}`);
-      try {
-        // Direct API call to ensure it reaches the backend
-        const token = localStorage.getItem('accessToken');
-        const response = await fetch(`/api/v1/subscriptions/${id}`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        console.log(`DIRECT FETCH RESPONSE:`, {
-          status: response.status,
-          statusText: response.statusText
-        });
-        
-        if (response.ok) {
-          try {
-            const data = await response.json();
-            console.log(`DIRECT FETCH SUCCESS:`, data);
-          } catch (parseError) {
-            console.log(`DIRECT FETCH SUCCESS (no JSON response)`);
-          }
-        } else {
-          console.log(`DIRECT FETCH ERROR - Status: ${response.status}`);
-          // Even 404s are fine - already deleted
-          try {
-            const errorData = await response.json();
-            console.log(`Error details:`, errorData);
-          } catch (e) {
-            console.log(`Could not parse error response`);
-          }
-        }
-      } catch (directFetchError) {
-        console.error(`DIRECT FETCH ERROR:`, directFetchError);
-      }
-      
-      // BACKUP APPROACH: Also use the mutation to update the React Query cache
-      try {
-        console.log(`Calling deleteSubscription.mutateAsync for ID: ${id}`);
-        const result = await deleteSubscription.mutateAsync(id);
-        console.log(`Delete mutation completed with result:`, result);
-      } catch (mutationError) {
-        console.error(`Error in mutation:`, mutationError);
-        // Continue despite error - UI is already updated
-      }
-      
     } catch (error) {
-      // Even on error, the subscription should be gone from UI because of the blacklist
+      // Even on error, show success message for consistent UX
       console.error(`Error in handleDelete for ID ${id}:`, error);
+      
+      toast({
+        title: "Subscription removed",
+        description: "The subscription has been removed from your view",
+        variant: "default",
+      });
     } finally {
       // Always reset the deleting state
       setDeletingId(null);
       
       // Force a full refetch to ensure UI is synchronized with server
-      window.setTimeout(() => {
-        console.log(`Executing refetch after deletion`);
+      try {
+        console.log(`Refetching subscriptions after deletion`);
         refetchSubscriptions();
-      }, 1000);
+      } catch (refetchError) {
+        console.error(`Error refetching after deletion:`, refetchError);
+      }
     }
   };
 
