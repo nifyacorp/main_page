@@ -168,28 +168,6 @@ const Dashboard: React.FC = () => {
     const activityByDay = activityData?.activityByDay || [];
     const sources = activityData?.sources || [];
     
-    // Placeholder for upcoming events (these would come from a calendar API in a real app)
-    const upcomingEvents = [
-      {
-        id: 1,
-        title: 'Visita inmueble Calle Gran Vía',
-        description: 'Visita con el agente inmobiliario',
-        date: 'Mañana, 17:00'
-      },
-      {
-        id: 2,
-        title: 'Publicación BOE trimestral',
-        description: 'Publicación programada de interés',
-        date: '23 Marzo, 08:00'
-      },
-      {
-        id: 3,
-        title: 'Renovación suscripción',
-        description: 'Vencimiento de periodo de prueba',
-        date: '30 Marzo, 00:00'
-      }
-    ];
-    
     // Update stats state
     setStats({
       notifications: {
@@ -206,7 +184,7 @@ const Dashboard: React.FC = () => {
       sources,
       activityByDay,
       recentNotifications,
-      upcomingEvents
+      upcomingEvents: []
     });
   };
 
@@ -261,7 +239,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Stats row */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
         <Card className="border-2 shadow-md">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg font-bold flex items-center">
@@ -337,48 +315,10 @@ const Dashboard: React.FC = () => {
             </Button>
           </CardFooter>
         </Card>
-        
-        <Card className="border-2 shadow-md md:col-span-2 lg:col-span-1">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg font-bold flex items-center">
-              <Sparkles className="h-5 w-5 mr-2 text-primary" />
-              Acciones rápidas
-            </CardTitle>
-            <CardDescription>Operaciones comunes</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-3">
-              <Button variant="outline" className="flex items-center justify-start h-auto py-3" asChild>
-                <Link to="/subscriptions/new">
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  <div className="text-left">
-                    <div className="text-sm font-medium">Nueva suscripción</div>
-                    <div className="text-xs text-muted-foreground">Añadir nueva fuente</div>
-                  </div>
-                </Link>
-              </Button>
-              <Button variant="outline" className="flex items-center justify-start h-auto py-3" asChild>
-                <Link to="/settings/notifications">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  <div className="text-left">
-                    <div className="text-sm font-medium">Configurar</div>
-                    <div className="text-xs text-muted-foreground">Preferencias</div>
-                  </div>
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-          <CardFooter className="pt-2">
-            <Button size="sm" variant="outline" className="w-full" onClick={refreshData} disabled={isRefreshing}>
-              {isRefreshing ? 'Actualizando...' : 'Actualizar datos'} 
-              <RefreshCw className={`h-4 w-4 ml-1 ${isRefreshing ? 'animate-spin' : ''}`} />
-            </Button>
-          </CardFooter>
-        </Card>
       </div>
 
       {/* Content Row */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
         {/* Recent Notifications */}
         <Card className="border-2 shadow-md md:col-span-1">
           <CardHeader className="pb-2">
@@ -463,37 +403,6 @@ const Dashboard: React.FC = () => {
                 <p className="text-sm text-muted-foreground">No hay datos de fuentes disponibles</p>
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Upcoming events */}
-        <Card className="border-2 shadow-md md:col-span-2 lg:col-span-1">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg font-bold">Próximos eventos</CardTitle>
-            <CardDescription>Calendario y recordatorios</CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <ScrollArea className="h-[400px] px-6">
-              <div className="space-y-4 pt-2">
-                {stats.upcomingEvents.map((event) => (
-                  <div key={event.id} className="flex flex-col space-y-1 border-b pb-3 last:border-0">
-                    <div className="flex justify-between items-start">
-                      <h4 className="text-sm font-semibold">{event.title}</h4>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{event.description}</p>
-                    <div className="flex justify-between items-center mt-1">
-                      <div className="flex items-center">
-                        <Calendar className="h-3 w-3 mr-1 text-primary" />
-                        <span className="text-xs font-medium">{event.date}</span>
-                      </div>
-                      <Button size="sm" variant="ghost" className="h-6 text-xs">
-                        Detalles
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
           </CardContent>
           <CardFooter className="pt-2 text-center text-xs text-muted-foreground">
             <div className="w-full">

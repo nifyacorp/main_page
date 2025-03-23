@@ -357,7 +357,7 @@ export default function Subscriptions() {
                       <Edit className="h-4 w-4" />
                     </Link>
                   </Button>
-                  <AlertDialog open={!dialogsToClose.has(subscription.id)} onOpenChange={(open) => {
+                  <AlertDialog open={dialogsToClose.has(subscription.id) ? false : undefined} onOpenChange={(open) => {
                     // If dialog is being opened, ensure this ID is not in the dialogsToClose map
                     if (open) {
                       setDialogsToClose(prev => {
