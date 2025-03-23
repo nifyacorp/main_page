@@ -136,6 +136,8 @@ export default function Subscriptions() {
   // Handle deleting a subscription
   const handleDelete = async (id: string) => {
     try {
+      console.log(`Starting deletion for subscription ID: ${id}`);
+      
       // Set deletingId to track which subscription is being deleted
       setDeletingId(id);
       
@@ -143,7 +145,9 @@ export default function Subscriptions() {
       setDialogsToClose(prev => new Map(prev).set(id, true));
       
       // Call the mutation and wait for it to complete
-      await deleteSubscription.mutateAsync(id);
+      console.log(`Calling deleteSubscription.mutateAsync for ID: ${id}`);
+      const result = await deleteSubscription.mutateAsync(id);
+      console.log(`Delete mutation completed with result:`, result);
       
       // Show a single success message
       toast({
@@ -154,19 +158,20 @@ export default function Subscriptions() {
       
     } catch (error) {
       // Even on error, show success message for consistent UX
+      console.error(`Error in handleDelete for ID ${id}:`, error);
+      
       toast({
         title: "Subscription removed",
         description: "The subscription has been removed from your view",
         variant: "default",
       });
-      
-      console.error("Error deleting subscription:", error);
     } finally {
       // Always reset the deleting state
       setDeletingId(null);
       
-      // Always update the UI
-      refetchSubscriptions();
+      // Always update the UI - force a refetch to ensure UI is synchronized
+      console.log(`Refetching subscriptions after deletion attempt for ID: ${id}`);
+      setTimeout(() => refetchSubscriptions(), 500);
     }
   };
 

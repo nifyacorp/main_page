@@ -114,8 +114,12 @@ export function useSubscriptions(params?: SubscriptionListParams) {
 
   // Delete subscription mutation
   const deleteSubscription = useMutation({
-    mutationFn: (id: string) => subscriptionService.deleteSubscription(id),
+    mutationFn: (id: string) => {
+      console.log(`Mutation starting for delete subscription: ${id}`);
+      return subscriptionService.deleteSubscription(id);
+    },
     onMutate: async (id) => {
+      console.log(`onMutate handling for delete subscription: ${id}`);
       // Cancel any outgoing refetches to avoid overwriting our optimistic update
       await queryClient.cancelQueries({ queryKey: ['subscriptions'] });
       
@@ -126,6 +130,7 @@ export function useSubscriptions(params?: SubscriptionListParams) {
       queryClient.setQueryData(['subscriptions'], (oldData: any) => {
         if (!oldData || !oldData.subscriptions) return oldData;
         
+        console.log(`Optimistically removing subscription ${id} from UI`);
         return {
           ...oldData,
           subscriptions: oldData.subscriptions.filter((sub: any) => sub.id !== id)
@@ -138,6 +143,8 @@ export function useSubscriptions(params?: SubscriptionListParams) {
       return { previousData };
     },
     onSuccess: (result, id, context) => {
+      console.log(`onSuccess: Subscription ${id} deleted with result:`, result);
+      
       // Avoid showing duplicate toast from component
       // toast({
       //   title: 'Subscription deleted',
@@ -149,9 +156,14 @@ export function useSubscriptions(params?: SubscriptionListParams) {
       queryClient.invalidateQueries({ queryKey: ['subscriptionStats'] });
       
       // Force immediate refetch of the subscription list
-      queryClient.refetchQueries({ queryKey: ['subscriptions'] });
+      setTimeout(() => {
+        console.log(`Refetching subscriptions after successful deletion`);
+        queryClient.refetchQueries({ queryKey: ['subscriptions'] });
+      }, 300);
     },
     onError: (error: any, id, context) => {
+      console.error(`onError: Error deleting subscription ${id}:`, error);
+      
       // Even for errors, don't rollback the UI state - we always want to remove from UI
       // Avoid showing duplicate toast from component
       // toast({
@@ -160,15 +172,17 @@ export function useSubscriptions(params?: SubscriptionListParams) {
       //   variant: 'default',
       // });
       
-      console.log(`Handling delete error for subscription ${id} (but keeping it removed from UI)`, error);
-      
       // Force refetch to make sure we're in sync with backend
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
       queryClient.invalidateQueries({ queryKey: ['subscriptionStats'] });
     },
-    onSettled: () => {
+    onSettled: (data, error, variables) => {
+      console.log(`onSettled: Mutation settled for subscription ${variables}`);
+      
       // Always refetch after error or success to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+      }, 500);
     },
   });
 

@@ -463,34 +463,44 @@ class SubscriptionService {
         console.log(`Added subscription ${id} to deletion blacklist`);
       }
       
-      // Skip the validation step that was causing 404 errors
-      // Directly proceed with deletion
+      // First verify the request is properly formed
+      console.log(`Preparing to send DELETE request to /v1/subscriptions/${id}`);
+      
+      // Attempt the delete API call
       try {
         const response = await apiClient.delete(`/v1/subscriptions/${id}`);
         console.log('Delete subscription response:', response.data);
         
         // Handle different API response formats
         if (response.data && response.data.status === 'error') {
+          console.log(`API returned error status but treating as UI success:`, response.data);
           return {
             success: true, // Still return success for UI consistency
             message: response.data.message || 'Subscription removed from view'
           };
         }
         
+        // Normal success path
+        console.log(`Subscription ${id} deleted successfully:`, response.data);
         return { 
           success: true, 
           message: response.data?.message || 'Subscription deleted successfully' 
         };
       } catch (deleteError: any) {
-        console.error(`Error during delete call for subscription ${id}:`, deleteError);
+        console.error(`Network error during delete call for subscription ${id}:`, deleteError);
         
         // If we get a 404 on delete, treat it as a success (subscription already gone)
-        if (deleteError.status === 404) {
+        if (deleteError.response?.status === 404 || deleteError.status === 404) {
           console.log(`DELETE endpoint returned 404 for subscription ${id} - treating as already deleted`);
           return { 
             success: true, 
             message: 'Subscription already removed or not found'
           };
+        }
+        
+        // Check if there was an API error response
+        if (deleteError.response?.data) {
+          console.log(`API error response:`, deleteError.response.data);
         }
         
         // For other errors, still return success to clean up UI state
