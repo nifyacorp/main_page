@@ -141,21 +141,27 @@ export default function Subscriptions() {
       // Set deletingId to track which subscription is being deleted
       setDeletingId(id);
       
-      // Mark this ID for dialog closure
-      setDialogsToClose(prev => new Map(prev).set(id, true));
+      // First add to blacklist to immediately hide from UI regardless of API result
+      const deletedIds = JSON.parse(localStorage.getItem('deletedSubscriptionIds') || '[]');
+      if (!deletedIds.includes(id)) {
+        deletedIds.push(id);
+        localStorage.setItem('deletedSubscriptionIds', JSON.stringify(deletedIds));
+        console.log(`Added subscription ${id} to deletion blacklist`);
+      }
+      
+      // Show a success message immediately to improve perceived performance
+      toast({
+        title: "Subscription deleted",
+        description: "The subscription has been removed from your view",
+        variant: "default",
+      });
+      
+      // Clean up the UI immediately with optimistic update
+      setFilter(prev => ({ ...prev })); // Trigger a re-filter
       
       // DIRECT FETCH - bypassing React Query to verify API works
       console.log(`DIRECT FETCH: Attempting DELETE for subscription ${id}`);
-      
       try {
-        // First add to blacklist
-        const deletedIds = JSON.parse(localStorage.getItem('deletedSubscriptionIds') || '[]');
-        if (!deletedIds.includes(id)) {
-          deletedIds.push(id);
-          localStorage.setItem('deletedSubscriptionIds', JSON.stringify(deletedIds));
-          console.log(`Added subscription ${id} to deletion blacklist`);
-        }
-        
         // Direct API call to ensure it reaches the backend
         const token = localStorage.getItem('accessToken');
         const response = await fetch(`/api/v1/subscriptions/${id}`, {
@@ -172,52 +178,46 @@ export default function Subscriptions() {
         });
         
         if (response.ok) {
-          const data = await response.json();
-          console.log(`DIRECT FETCH SUCCESS:`, data);
+          try {
+            const data = await response.json();
+            console.log(`DIRECT FETCH SUCCESS:`, data);
+          } catch (parseError) {
+            console.log(`DIRECT FETCH SUCCESS (no JSON response)`);
+          }
         } else {
           console.log(`DIRECT FETCH ERROR - Status: ${response.status}`);
-          if (response.status !== 404) { // 404 is fine - already deleted
-            try {
-              const errorData = await response.json();
-              console.log(`Error details:`, errorData);
-            } catch (e) {
-              console.log(`Could not parse error response`);
-            }
+          // Even 404s are fine - already deleted
+          try {
+            const errorData = await response.json();
+            console.log(`Error details:`, errorData);
+          } catch (e) {
+            console.log(`Could not parse error response`);
           }
         }
       } catch (directFetchError) {
         console.error(`DIRECT FETCH ERROR:`, directFetchError);
       }
       
-      // Also use the mutation to update the React Query cache
-      console.log(`Calling deleteSubscription.mutateAsync for ID: ${id}`);
-      const result = await deleteSubscription.mutateAsync(id);
-      console.log(`Delete mutation completed with result:`, result);
-      
-      // Show a single success message
-      toast({
-        title: "Subscription deleted",
-        description: "The subscription has been deleted successfully",
-        variant: "default",
-      });
+      // BACKUP APPROACH: Also use the mutation to update the React Query cache
+      try {
+        console.log(`Calling deleteSubscription.mutateAsync for ID: ${id}`);
+        const result = await deleteSubscription.mutateAsync(id);
+        console.log(`Delete mutation completed with result:`, result);
+      } catch (mutationError) {
+        console.error(`Error in mutation:`, mutationError);
+        // Continue despite error - UI is already updated
+      }
       
     } catch (error) {
-      // Even on error, show success message for consistent UX
+      // Even on error, the subscription should be gone from UI because of the blacklist
       console.error(`Error in handleDelete for ID ${id}:`, error);
-      
-      toast({
-        title: "Subscription removed",
-        description: "The subscription has been removed from your view",
-        variant: "default",
-      });
     } finally {
       // Always reset the deleting state
       setDeletingId(null);
       
-      // Always update the UI - force a refetch to ensure UI is synchronized
-      console.log(`Refetching subscriptions after deletion attempt for ID: ${id}`);
+      // Force a full refetch to ensure UI is synchronized with server
       window.setTimeout(() => {
-        console.log(`Executing refetch`);
+        console.log(`Executing refetch after deletion`);
         refetchSubscriptions();
       }, 1000);
     }
@@ -410,47 +410,24 @@ export default function Subscriptions() {
                       <Edit className="h-4 w-4" />
                     </Link>
                   </Button>
-                  <AlertDialog open={dialogsToClose.has(subscription.id) ? false : undefined} onOpenChange={(open) => {
-                    // If dialog is being opened, ensure this ID is not in the dialogsToClose map
-                    if (open) {
-                      setDialogsToClose(prev => {
-                        const newMap = new Map(prev);
-                        newMap.delete(subscription.id);
-                        return newMap;
-                      });
-                    }
-                  }}>
-                    <AlertDialogTrigger asChild>
-                      <Button size="sm" variant="ghost" className="text-destructive">
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>¿Eliminar subscripción?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Esta acción no se puede deshacer. La subscripción será eliminada permanentemente.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          onClick={() => handleDelete(subscription.id)}
-                          disabled={deletingId === subscription.id}
-                        >
-                          {deletingId === subscription.id ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Eliminando...
-                            </>
-                          ) : (
-                            "Eliminar"
-                          )}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  {/* Simplified Delete Button - Direct action without AlertDialog */}
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="text-destructive"
+                    onClick={() => {
+                      if (confirm("¿Eliminar esta subscripción? Esta acción no se puede deshacer.")) {
+                        handleDelete(subscription.id);
+                      }
+                    }}
+                    disabled={deletingId === subscription.id}
+                  >
+                    {deletingId === subscription.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash className="h-4 w-4" />
+                    )}
+                  </Button>
                 </div>
               </CardFooter>
             </Card>
