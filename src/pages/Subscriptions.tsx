@@ -156,8 +156,7 @@ export default function Subscriptions() {
         variant: "default",
       });
       
-      // Clean up the UI immediately with optimistic update
-      setFilter(prev => ({ ...prev })); // Trigger a re-filter
+      // No need to call setFilter - we'll rely on the refetch instead
       
       // DIRECT FETCH - bypassing React Query to verify API works
       console.log(`DIRECT FETCH: Attempting DELETE for subscription ${id}`);
