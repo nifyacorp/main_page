@@ -657,6 +657,75 @@ class SubscriptionService {
       };
     }
   }
+
+  /**
+   * Get the processing status of a subscription
+   */
+  async getProcessingStatus(id: string): Promise<{
+    status: 'pending' | 'processing' | 'completed' | 'failed' | 'unknown';
+    last_run_at?: string;
+    next_run_at?: string;
+    error?: string;
+    processing_id?: string;
+    metadata?: any;
+  }> {
+    try {
+      console.log(`Fetching processing status for subscription ID: ${id}`);
+      
+      // Try to get processing status from the API
+      const response = await apiClient.get(`/v1/subscriptions/${id}/status`);
+      console.log('Processing status response:', response.data);
+      
+      // Handle different response formats
+      if (response.data && response.data.processing) {
+        return response.data.processing;
+      } else if (response.data && response.data.status) {
+        return {
+          status: response.data.status,
+          last_run_at: response.data.last_run_at,
+          next_run_at: response.data.next_run_at,
+          error: response.data.error,
+          processing_id: response.data.processing_id || response.data.id,
+          metadata: response.data.metadata
+        };
+      }
+      
+      // If response doesn't match expected format, return unknown status
+      return {
+        status: 'unknown',
+        error: 'Unexpected response format from server'
+      };
+    } catch (error) {
+      console.error(`Error fetching processing status for subscription ${id}:`, error);
+      
+      // Try a fallback API path
+      try {
+        const fallbackResponse = await apiClient.get(`/v1/subscription-processing/${id}`);
+        console.log('Fallback processing status response:', fallbackResponse.data);
+        
+        if (fallbackResponse.data && fallbackResponse.data.processing) {
+          return fallbackResponse.data.processing;
+        } else if (fallbackResponse.data && fallbackResponse.data.status) {
+          return {
+            status: fallbackResponse.data.status,
+            last_run_at: fallbackResponse.data.last_run_at,
+            next_run_at: fallbackResponse.data.next_run_at,
+            error: fallbackResponse.data.error,
+            processing_id: fallbackResponse.data.processing_id || fallbackResponse.data.id,
+            metadata: fallbackResponse.data.metadata
+          };
+        }
+      } catch (fallbackError) {
+        console.log('Fallback API path also failed:', fallbackError);
+      }
+      
+      // Return a default status indicating we couldn't fetch the data
+      return {
+        status: 'unknown',
+        error: 'Failed to fetch processing status'
+      };
+    }
+  }
 }
 
 export default new SubscriptionService();

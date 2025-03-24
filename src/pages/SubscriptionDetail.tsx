@@ -32,9 +32,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "../components/ui/alert-dialog";
+import { ProcessingStatusTracker } from '../components/subscription/ProcessingStatusTracker';
+import { ProcessSubscriptionButton } from '../components/subscription/ProcessSubscriptionButton';
 
 // Hooks
 import { useSubscriptions } from '../hooks/use-subscriptions';
+import { useSubscriptionStatus } from '../hooks/use-subscription-status';
 import { useToast } from '../components/ui/use-toast';
 
 export default function SubscriptionDetail() {
@@ -256,22 +259,11 @@ export default function SubscriptionDetail() {
             {subscription.status === 'active' ? 'Desactivar' : 'Activar'}
           </Button>
           
-          <Button 
-            variant="outline" 
+          <ProcessSubscriptionButton
+            subscriptionId={subscription.id}
+            variant="outline"
             size="sm"
-            onClick={handleProcess}
-            disabled={isProcessing || isCompleted || processSubscription.isPending}
-            className={isCompleted ? "text-green-500" : ""}
-          >
-            {isProcessing || processSubscription.isPending ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : isCompleted ? (
-              <span className="mr-2 font-medium">✓</span>
-            ) : (
-              <Play className="h-4 w-4 mr-2" />
-            )}
-            Procesar
-          </Button>
+          />
           
           <Button variant="outline" size="sm" asChild>
             <Link to={`/subscriptions/${subscription.id}/edit`}>
@@ -423,6 +415,22 @@ export default function SubscriptionDetail() {
               </CardContent>
             </Card>
           )}
+          
+          {/* Processing Status */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Estado de Procesamiento</CardTitle>
+              <CardDescription>
+                Monitoriza el estado actual del procesamiento de esta suscripción
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ProcessingStatusTracker
+                subscriptionId={subscription.id}
+                showDetails={true}
+              />
+            </CardContent>
+          </Card>
         </div>
         
         {/* Sidebar with stats and metadata */}
