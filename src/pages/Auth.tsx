@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Mail, Lock, Eye, EyeOff, User, Check, X, AlertCircle } from 'lucide-react';
 import { auth } from '../lib/api/index';
 
@@ -28,6 +28,7 @@ interface ResetPasswordData {
 
 const Auth: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(location.state?.isLogin ?? true);
   const [signingIn, setSigningIn] = useState(false);
   const [googleSigningIn, setGoogleSigningIn] = useState(false);
@@ -110,7 +111,8 @@ const Auth: React.FC = () => {
         }
         localStorage.setItem('isAuthenticated', 'true');
         
-        window.location.href = '/dashboard';
+        // Use history API instead of location for smoother navigation
+        navigate('/dashboard');
       } else {
         console.group('📝 Signup Process');
         console.log('Attempting signup with:', {

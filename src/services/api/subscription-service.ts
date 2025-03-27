@@ -297,16 +297,26 @@ class SubscriptionService {
     try {
       console.log(`Fetching subscription details for ID: ${id}`);
       
-      // Check if this ID is in the deletion blacklist - if so, throw 404 immediately 
-      // (this helps prevent showing deleted subscriptions)
+      // Check if this ID is in the deletion blacklist - but allow forcing fetch with a URL param
+      // This allows us to still edit subscriptions that may have been incorrectly blacklisted
       const deletedIds = JSON.parse(localStorage.getItem('deletedSubscriptionIds') || '[]');
-      if (deletedIds.includes(id)) {
+      
+      // Only check blacklist if not in forced mode
+      if (deletedIds.includes(id) && !window.location.search.includes('force=true')) {
         console.log(`Subscription ${id} is in deletion blacklist, returning 404 immediately`);
+        console.log(`To force fetch this subscription, use ?force=true in the URL`);
         throw {
           status: 404,
           message: 'Subscription has been deleted',
-          details: 'This subscription was previously deleted'
+          details: 'This subscription was previously deleted. Add ?force=true to URL to override.'
         };
+      }
+      
+      // If force=true is in URL and subscription is in blacklist, remove it from blacklist
+      if (deletedIds.includes(id) && window.location.search.includes('force=true')) {
+        console.log(`Force mode enabled, removing subscription ${id} from deletion blacklist`);
+        const newDeletedIds = deletedIds.filter(deletedId => deletedId !== id);
+        localStorage.setItem('deletedSubscriptionIds', JSON.stringify(newDeletedIds));
       }
       
       const response = await apiClient.get(`/v1/subscriptions/${id}`);
@@ -339,7 +349,8 @@ class SubscriptionService {
       console.error(`Error fetching subscription ${id}:`, error);
       
       // If this is a 404, add the ID to our local deletion blacklist to prevent further attempts
-      if (error.status === 404) {
+      // But don't do this if we're in force mode
+      if (error.status === 404 && !window.location.search.includes('force=true')) {
         const deletedIds = JSON.parse(localStorage.getItem('deletedSubscriptionIds') || '[]');
         if (!deletedIds.includes(id)) {
           deletedIds.push(id);

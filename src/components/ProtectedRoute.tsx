@@ -16,7 +16,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     // Only redirect if auth check is complete and user is not authenticated
     if (!isLoading && !isAuthenticated) {
       console.log('User not authenticated, redirecting to login');
-      navigate('/auth', { state: { isLogin: true } });
+      // Use /auth path instead of /login - this is the correct route for authentication
+      navigate('/auth', { state: { isLogin: true }, replace: true });
     }
   }, [isAuthenticated, isLoading, navigate]);
 
