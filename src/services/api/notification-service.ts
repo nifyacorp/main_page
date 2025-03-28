@@ -4,15 +4,24 @@ import apiClient, { ApiError } from './axios-config';
 export interface Notification {
   id: string;
   title: string;
-  message: string;
-  type: 'success' | 'info' | 'warning' | 'error';
-  isRead: boolean;
-  source: string;
+  content?: string;  // Raw notification content
+  message?: string;  // For backward compatibility
+  type?: 'success' | 'info' | 'warning' | 'error';
+  entity_type?: string;  // For BOE/DOGA notifications
+  isRead?: boolean;  // Frontend property
+  read?: boolean;    // Backend property 
+  sourceUrl?: string; // Backend property
+  source?: string;   // Legacy property
   subscriptionId?: string;
+  subscription_id?: string; // Backend property
   subscriptionName?: string;
-  data?: any;
-  createdAt: string;
-  userId: string;
+  subscription_name?: string; // Backend property
+  metadata?: any;    // Additional data
+  data?: any;        // Legacy additional data
+  createdAt?: string;
+  created_at?: string; // Backend property
+  userId?: string;
+  user_id?: string;  // Backend property
 }
 
 export interface NotificationListParams {
@@ -53,18 +62,66 @@ class NotificationService {
         status: response.status
       });
       
-      console.log('Raw API response received:', {
-        status: response.status,
-        hasData: !!response.data
-      });
+      // If we have notifications data, normalize it
+      if (response.data?.notifications && Array.isArray(response.data.notifications)) {
+        // Process each notification to normalize field names
+        response.data.notifications = response.data.notifications.map(notification => {
+          // Create a normalized notification object
+          const normalizedNotification: Notification = {
+            id: notification.id,
+            title: notification.title || 'Notification',
+            // Handle message vs content field
+            message: notification.message || notification.content || '',
+            content: notification.content || notification.message || '',
+            // Handle isRead vs read field
+            isRead: notification.isRead !== undefined ? notification.isRead : 
+                   notification.read !== undefined ? notification.read : false,
+            read: notification.read !== undefined ? notification.read : 
+                 notification.isRead !== undefined ? notification.isRead : false,
+            // Handle source vs sourceUrl field
+            source: notification.source || notification.sourceUrl || '',
+            sourceUrl: notification.sourceUrl || notification.source || '',
+            // Handle subscription fields
+            subscriptionId: notification.subscriptionId || notification.subscription_id || '',
+            subscription_id: notification.subscription_id || notification.subscriptionId || '',
+            subscriptionName: notification.subscriptionName || notification.subscription_name || '',
+            subscription_name: notification.subscription_name || notification.subscriptionName || '',
+            // Handle timestamp fields
+            createdAt: notification.createdAt || notification.created_at || new Date().toISOString(),
+            created_at: notification.created_at || notification.createdAt || new Date().toISOString(),
+            // Handle user fields
+            userId: notification.userId || notification.user_id || '',
+            user_id: notification.user_id || notification.userId || '',
+            // Handle additional data
+            data: notification.data || notification.metadata || {},
+            metadata: notification.metadata || notification.data || {},
+            // Handle type and entity_type
+            type: notification.type || 'info',
+            entity_type: notification.entity_type || ''
+          };
+          
+          return normalizedNotification;
+        });
+      }
       
       console.log('Processed notifications:', {
         count: response.data?.notifications?.length,
-        total: response.data?.total
+        total: response.data?.total,
+        sample: response.data?.notifications?.length > 0 ? {
+          id: response.data.notifications[0].id,
+          title: response.data.notifications[0].title
+        } : 'none'
       });
       
-      console.log('Returning processed notifications response');
-      return response.data;
+      // Make sure we return a valid response
+      return {
+        notifications: response.data?.notifications || [],
+        total: response.data?.total || 0,
+        page: response.data?.page || 1,
+        limit: response.data?.limit || 10,
+        totalPages: response.data?.totalPages || 1,
+        unreadCount: response.data?.unread || 0
+      };
     } catch (error) {
       console.error('Error fetching notifications:', error);
       throw error;
