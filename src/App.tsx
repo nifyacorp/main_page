@@ -2,6 +2,7 @@ import React, { lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Bell, ClipboardCheck, PieChart } from 'lucide-react';
 import ErrorBoundary from './components/ErrorBoundary';
+import AuthErrorHandler from './components/App';
 import Auth from './pages/Auth';
 import Subscriptions from './pages/Subscriptions';
 import Dashboard from './pages/Dashboard';
@@ -87,9 +88,10 @@ export default function App() {
       <ThemeProvider defaultTheme="system" storageKey="nifya-ui-theme">
         <AuthProvider>
           <NotificationProvider>
-            <div className="min-h-screen bg-background text-foreground">
-              <Header />
-              <main>
+            <AuthErrorHandler>
+              <div className="min-h-screen bg-background text-foreground">
+                <Header />
+                <main>
                 <Routes>
                 <Route 
                   path="/" 
@@ -225,6 +227,7 @@ export default function App() {
             </main>
             <Toaster />
           </div>
+            </AuthErrorHandler>
           </NotificationProvider>
         </AuthProvider>
       </ThemeProvider>
