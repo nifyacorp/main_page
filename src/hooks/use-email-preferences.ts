@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { API } from '@/lib/api';
+import { backendClientWithMethods as API } from '@/lib/api/clients/backend';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface EmailPreference {
