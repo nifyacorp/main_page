@@ -292,24 +292,35 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
         id: notification.id,
         hasTitle: !!notification.title,
         isUntitled: notification.title === 'Untitled Notification',
-        hasContent: !!notification.content
+        hasContent: !!notification.content,
+        keys: Object.keys(notification)
       });
     }
 
     // Step 1: Check if we have a real title that's not the default "Untitled Notification"
     if (notification.title && notification.title !== 'Untitled Notification') {
+      // Check for truncated titles and attempt to restore them
+      if (notification.title.endsWith('...') && notification.metadata?.original_title) {
+        return notification.metadata.original_title || notification.title;
+      }
       return notification.title;
     }
     
-    // Step 2: If no title or default title, but we have content, use content as title
+    // Step 2: If no title or default title, but we have subscription name, use that for context
+    if (notification.subscription_name || notification.subscriptionName) {
+      const name = notification.subscription_name || notification.subscriptionName;
+      return `Notification from ${name}`;
+    }
+    
+    // Step 3: If no title or default title, but we have content, use content as title
     if (notification.content) {
-      const truncatedContent = notification.content.length > 50 
+      const truncatedContent = typeof notification.content === 'string' && notification.content.length > 50 
         ? `${notification.content.substring(0, 47)}...` 
-        : notification.content;
+        : typeof notification.content === 'string' ? notification.content : 'Notification';
       return truncatedContent;
     }
     
-    // Step 3: Check if title might be in metadata
+    // Step 4: Check if title might be in metadata
     if (notification.metadata) {
       const metadataTitle = notification.metadata.title || 
                             notification.metadata.subject || 
@@ -319,10 +330,23 @@ export const NotificationList: React.FC<NotificationListProps> = ({ className })
       if (metadataTitle) {
         return typeof metadataTitle === 'string' ? metadataTitle : String(metadataTitle);
       }
+      
+      // For BOE notifications, look deeper in metadata
+      if (notification.metadata.document_type === 'boe_document' || 
+          notification.entity_type?.includes('boe')) {
+        return notification.metadata.original_title || 
+               'BOE Document Notification';
+      }
     }
     
-    // Step 4: Last resort fallback
-    return 'Untitled Notification';
+    // Step 5: If we have entity_type, use that for context
+    if (notification.entity_type) {
+      const type = notification.entity_type.split(':').pop() || notification.entity_type;
+      return `New ${type.replace(/_/g, ' ')} notification`;
+    }
+    
+    // Step 6: Last resort fallback
+    return 'Notification';
   };
 
   if (loading) {

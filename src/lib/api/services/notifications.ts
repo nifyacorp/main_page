@@ -335,6 +335,23 @@ export const notificationService = {
     } catch (error) {
       console.error('Error fetching notifications:', error);
       console.groupEnd();
+      
+      // Try to recover from auth errors
+      if (error && (error.status === 401 || (typeof error === 'object' && error.error === 'MISSING_HEADERS'))) {
+        console.log('Authentication error detected, attempting recovery...');
+        
+        // Import auth recovery utilities dynamically
+        const { recoverFromAuthError } = await import('../../utils/auth-recovery');
+        
+        // Attempt to recover
+        const recovered = await recoverFromAuthError(error);
+        
+        if (recovered) {
+          console.log('Auth recovered, retrying notifications request');
+          return this.list(options);
+        }
+      }
+      
       throw error;
     }
   },
