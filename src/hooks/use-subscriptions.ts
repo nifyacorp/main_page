@@ -127,6 +127,7 @@ export function useSubscriptions(params?: SubscriptionListParams) {
       const previousData = queryClient.getQueryData(['subscriptions']);
       
       // Optimistically update the cache to remove the deleted subscription
+      // But don't add to deletion blacklist yet - wait for backend confirmation
       queryClient.setQueryData(['subscriptions'], (oldData: any) => {
         if (!oldData || !oldData.subscriptions) return oldData;
         
@@ -140,13 +141,21 @@ export function useSubscriptions(params?: SubscriptionListParams) {
       // Also immediately remove this subscription from any individual query cache
       queryClient.removeQueries({ queryKey: ['subscription', id] });
       
-      // Clear any filters to make sure we see full list after deletion
-      queryClient.invalidateQueries();
-      
       return { previousData };
     },
     onSuccess: (result, id, context) => {
       console.log(`onSuccess: Subscription ${id} deleted with result:`, result);
+      
+      // Check if the subscription was actually deleted in the backend
+      const actuallyDeleted = result.actuallyDeleted !== false;
+      
+      if (actuallyDeleted) {
+        console.log(`Subscription ${id} was confirmed deleted in the backend`);
+        // The service has already updated the deletion blacklist if needed
+      } else {
+        console.log(`Subscription ${id} might not have been completely deleted in the backend`);
+        // Ensure we refetch to get the latest status
+      }
       
       // IMPORTANT: Force reset query cache
       queryClient.resetQueries({ queryKey: ['subscriptions'] });
@@ -157,10 +166,16 @@ export function useSubscriptions(params?: SubscriptionListParams) {
       
       // Force immediate refetch of the subscription list
       setTimeout(() => {
-        console.log(`Refetching subscriptions after successful deletion`);
+        console.log(`Refetching subscriptions after deletion (success: ${actuallyDeleted})`);
         queryClient.removeQueries({ queryKey: ['subscriptions'] });
         queryClient.refetchQueries({ queryKey: ['subscriptions'] });
       }, 300);
+      
+      // Run the cleanup function to ensure deletion blacklist is accurate
+      setTimeout(() => {
+        console.log('Running cleanup on deletion blacklist after delete operation');
+        subscriptionService.cleanupDeletionBlacklist();
+      }, 1000);
     },
     onError: (error: any, id, context) => {
       console.error(`onError: Error deleting subscription ${id}:`, error);
@@ -179,6 +194,12 @@ export function useSubscriptions(params?: SubscriptionListParams) {
         queryClient.removeQueries({ queryKey: ['subscriptions'] });
         queryClient.refetchQueries({ queryKey: ['subscriptions'] });
       }, 300);
+      
+      // Run the cleanup function to ensure deletion blacklist is accurate
+      setTimeout(() => {
+        console.log('Running cleanup on deletion blacklist after delete error');
+        subscriptionService.cleanupDeletionBlacklist();
+      }, 1000);
     },
     onSettled: (data, error, variables) => {
       console.log(`onSettled: Mutation settled for subscription ${variables}`);

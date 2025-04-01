@@ -62,17 +62,57 @@ export default function SubscriptionDetail() {
     error
   } = fetchSubscription(id || '');
   
-  // Automatically redirect to subscriptions list if subscription not found
+  // Handle error states more intelligently - try to verify if blacklisted subscription still exists
   React.useEffect(() => {
     if (isError && error && (error.status === 404 || error.message?.includes('not found'))) {
-      toast({
-        title: "Subscription not found",
-        description: "The subscription you're looking for doesn't exist or has been deleted.",
-        variant: "destructive",
-      });
-      navigate('/subscriptions');
+      // Check if this might be a false positive in the deletion blacklist
+      const deletedIds = JSON.parse(localStorage.getItem('deletedSubscriptionIds') || '[]');
+      
+      // If this subscription is in the blacklist, check if it might exist using force=true
+      if (id && deletedIds.includes(id)) {
+        console.log(`Subscription ${id} is in blacklist but might still exist. Checking with force=true...`);
+        
+        // Try to fetch the subscription directly with force=true
+        // We're using a direct apiClient call to avoid reactive state issues
+        apiClient.get(`/v1/subscriptions/${id}`)
+          .then(response => {
+            console.log(`Force check response:`, response);
+            
+            // If we got a subscription back, it exists despite being in the blacklist
+            if (response.status === 200 && response.data) {
+              console.log(`Subscription ${id} actually exists! Removing from blacklist.`);
+              
+              // Remove from blacklist
+              const updatedDeletedIds = deletedIds.filter(deletedId => deletedId !== id);
+              localStorage.setItem('deletedSubscriptionIds', JSON.stringify(updatedDeletedIds));
+              
+              // Reload the page to refresh data without the blacklist blocking
+              window.location.reload();
+              return;
+            }
+          })
+          .catch(checkError => {
+            console.log(`Confirmed subscription ${id} doesn't exist with direct check:`, checkError);
+            
+            // Show redirect toast and navigate away
+            toast({
+              title: "Subscription not found",
+              description: "The subscription you're looking for doesn't exist or has been deleted.",
+              variant: "destructive",
+            });
+            navigate('/subscriptions');
+          });
+      } else {
+        // Normal 404 handling - subscription truly doesn't exist
+        toast({
+          title: "Subscription not found",
+          description: "The subscription you're looking for doesn't exist or has been deleted.",
+          variant: "destructive",
+        });
+        navigate('/subscriptions');
+      }
     }
-  }, [isError, error, navigate, toast]);
+  }, [id, isError, error, navigate, toast]);
 
   // Handle processing the subscription
   const handleProcess = async () => {

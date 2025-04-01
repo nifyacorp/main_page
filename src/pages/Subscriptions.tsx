@@ -46,7 +46,7 @@ export default function Subscriptions() {
   // Only use real data from the database
   const subscriptionsData = subscriptions || [];
   
-  // Add debugging logs
+  // Add debugging logs and perform blacklist cleanup
   useEffect(() => {
     console.log('Subscriptions component mounted/updated');
     console.log('Subscriptions data:', subscriptionsData);
@@ -60,6 +60,30 @@ export default function Subscriptions() {
       subscriptionsData.forEach((sub, index) => {
         console.log(`Subscription ${index + 1}:`, sub);
       });
+      
+      // Check if any subscriptions in the list are also in the deletion blacklist
+      // This would indicate a sync issue that needs fixing
+      try {
+        const deletedIds = JSON.parse(localStorage.getItem('deletedSubscriptionIds') || '[]');
+        if (deletedIds.length > 0) {
+          // Find subscriptions that are both in the UI list and deletion blacklist
+          const conflictingIds = subscriptionsData
+            .filter(sub => deletedIds.includes(sub.id))
+            .map(sub => sub.id);
+          
+          if (conflictingIds.length > 0) {
+            console.log(`Found ${conflictingIds.length} subscriptions that are both in the list and deletion blacklist:`, conflictingIds);
+            
+            // These subscriptions exist in the backend but are marked as deleted in frontend
+            // Remove them from the blacklist to fix the inconsistency
+            const updatedDeletedIds = deletedIds.filter(id => !conflictingIds.includes(id));
+            localStorage.setItem('deletedSubscriptionIds', JSON.stringify(updatedDeletedIds));
+            console.log(`Removed ${conflictingIds.length} IDs from deletion blacklist to fix inconsistency`);
+          }
+        }
+      } catch (e) {
+        console.warn('Error checking deletion blacklist for conflicts:', e);
+      }
     } else {
       console.log('No subscriptions data available');
     }

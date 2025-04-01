@@ -65,6 +65,64 @@ export interface SubscriptionListResponse {
  * Service for handling subscription-related API calls
  */
 class SubscriptionService {
+  constructor() {
+    this.cleanupDeletionBlacklist();
+  }
+
+  /**
+   * Clean up the deletion blacklist by verifying which subscriptions
+   * actually don't exist anymore in the backend
+   */
+  async cleanupDeletionBlacklist() {
+    try {
+      const deletedIds = JSON.parse(localStorage.getItem('deletedSubscriptionIds') || '[]');
+      if (deletedIds.length === 0) return;
+      
+      console.log(`Checking ${deletedIds.length} blacklisted subscriptions for cleanup...`);
+      
+      // Don't clean if no blacklisted IDs
+      if (deletedIds.length === 0) return;
+      
+      // Get current subscriptions to verify which ones actually exist
+      // We'll do this silently to avoid disrupting normal app flow
+      try {
+        const response = await apiClient.get('/v1/subscriptions');
+        let subscriptions = [];
+        
+        // Extract subscriptions from various response formats
+        if (response.data?.data?.subscriptions) {
+          subscriptions = response.data.data.subscriptions;
+        } else if (Array.isArray(response.data?.data)) {
+          subscriptions = response.data.data;
+        } else if (response.data?.subscriptions) {
+          subscriptions = response.data.subscriptions;
+        }
+        
+        if (subscriptions.length > 0) {
+          // Get IDs of existing subscriptions
+          const existingIds = new Set(subscriptions.map(sub => sub.id));
+          
+          // Check which blacklisted IDs still exist
+          const idsToRemoveFromBlacklist = deletedIds.filter(id => existingIds.has(id));
+          
+          if (idsToRemoveFromBlacklist.length > 0) {
+            console.log(`Found ${idsToRemoveFromBlacklist.length} blacklisted subscriptions that still exist - removing from blacklist`, idsToRemoveFromBlacklist);
+            
+            // Update the blacklist to remove these IDs
+            const newDeletedIds = deletedIds.filter(id => !existingIds.has(id));
+            localStorage.setItem('deletedSubscriptionIds', JSON.stringify(newDeletedIds));
+          }
+        }
+      } catch (error) {
+        console.warn('Error checking existing subscriptions during blacklist cleanup:', error);
+        // Don't throw - this is a silent cleanup operation
+      }
+    } catch (e) {
+      console.warn('Error in cleanup deletion blacklist:', e);
+      // Silent failure - don't disrupt app flow
+    }
+  }
+
   /**
    * Fetch all subscriptions with optional filtering
    */
@@ -292,19 +350,28 @@ class SubscriptionService {
 
   /**
    * Fetch a single subscription by ID
+   * 
+   * @param id - The subscription ID to fetch
+   * @param force - If true, bypass the deletion blacklist check
    */
-  async getSubscription(id: string): Promise<Subscription> {
+  async getSubscription(id: string, force = false): Promise<Subscription> {
     try {
-      console.log(`Fetching subscription details for ID: ${id}`);
+      console.log(`Fetching subscription details for ID: ${id}${force ? ' (force mode)' : ''}`);
       
-      // Check if this ID is in the deletion blacklist - but allow forcing fetch with a URL param
+      // Check if this ID is in the deletion blacklist - but allow forcing fetch
       // This allows us to still edit subscriptions that may have been incorrectly blacklisted
       const deletedIds = JSON.parse(localStorage.getItem('deletedSubscriptionIds') || '[]');
       
+      // Check if we need to force from URL param
+      const forceFromUrl = window.location.search.includes('force=true');
+      
+      // Determine if we should bypass the blacklist check
+      const shouldBypassBlacklist = force || forceFromUrl;
+      
       // Only check blacklist if not in forced mode
-      if (deletedIds.includes(id) && !window.location.search.includes('force=true')) {
+      if (deletedIds.includes(id) && !shouldBypassBlacklist) {
         console.log(`Subscription ${id} is in deletion blacklist, returning 404 immediately`);
-        console.log(`To force fetch this subscription, use ?force=true in the URL`);
+        console.log(`To force fetch this subscription, use ?force=true in the URL or pass force=true parameter`);
         throw {
           status: 404,
           message: 'Subscription has been deleted',
@@ -312,8 +379,8 @@ class SubscriptionService {
         };
       }
       
-      // If force=true is in URL and subscription is in blacklist, remove it from blacklist
-      if (deletedIds.includes(id) && window.location.search.includes('force=true')) {
+      // If force mode is active and subscription is in blacklist, remove it from blacklist
+      if (deletedIds.includes(id) && shouldBypassBlacklist) {
         console.log(`Force mode enabled, removing subscription ${id} from deletion blacklist`);
         const newDeletedIds = deletedIds.filter(deletedId => deletedId !== id);
         localStorage.setItem('deletedSubscriptionIds', JSON.stringify(newDeletedIds));
@@ -461,73 +528,151 @@ class SubscriptionService {
   /**
    * Delete a subscription
    */
-  async deleteSubscription(id: string): Promise<{ success: boolean; message?: string }> {
+  async deleteSubscription(id: string): Promise<{ success: boolean; message?: string; actuallyDeleted?: boolean }> {
     try {
       console.log(`Deleting subscription with ID: ${id}`);
       
-      // Add this ID to our local deletion blacklist immediately
-      // This ensures we treat this subscription as deleted in the UI right away
-      const deletedIds = JSON.parse(localStorage.getItem('deletedSubscriptionIds') || '[]');
-      if (!deletedIds.includes(id)) {
-        deletedIds.push(id);
-        localStorage.setItem('deletedSubscriptionIds', JSON.stringify(deletedIds));
-        console.log(`Added subscription ${id} to deletion blacklist`);
+      // First, verify the subscription actually exists before trying to delete it
+      let subscriptionExists = true;
+      
+      try {
+        // Check if subscription exists first - silently catch errors
+        // Use a direct API call to avoid our own blacklist check
+        await apiClient.get(`/v1/subscriptions/${id}`);
+        console.log(`Confirmed subscription ${id} exists before attempting deletion`);
+      } catch (existsError: any) {
+        // If we get a 404, the subscription doesn't exist
+        if (existsError.response?.status === 404) {
+          console.log(`Subscription ${id} doesn't exist in backend - no need to delete`);
+          subscriptionExists = false;
+          
+          // Add to deletion blacklist since it's confirmed not in backend
+          const deletedIds = JSON.parse(localStorage.getItem('deletedSubscriptionIds') || '[]');
+          if (!deletedIds.includes(id)) {
+            deletedIds.push(id);
+            localStorage.setItem('deletedSubscriptionIds', JSON.stringify(deletedIds));
+            console.log(`Added subscription ${id} to deletion blacklist (confirmed not in backend)`);
+          }
+          
+          // Return success immediately
+          return {
+            success: true,
+            message: 'Subscription already removed or not found',
+            actuallyDeleted: true
+          };
+        }
       }
       
-      // First verify the request is properly formed
-      console.log(`Preparing to send DELETE request to /v1/subscriptions/${id}`);
-      
-      // Attempt the delete API call
-      try {
-        const response = await apiClient.delete(`/v1/subscriptions/${id}`);
-        console.log('Delete subscription response:', response.data);
+      // Only proceed with DELETE request if the subscription actually exists
+      if (subscriptionExists) {
+        console.log(`Preparing to send DELETE request to /v1/subscriptions/${id}`);
         
-        // Handle different API response formats
-        if (response.data && response.data.status === 'error') {
-          console.log(`API returned error status but treating as UI success:`, response.data);
-          return {
-            success: true, // Still return success for UI consistency
-            message: response.data.message || 'Subscription removed from view'
-          };
-        }
-        
-        // Normal success path
-        console.log(`Subscription ${id} deleted successfully:`, response.data);
-        return { 
-          success: true, 
-          message: response.data?.message || 'Subscription deleted successfully' 
-        };
-      } catch (deleteError: any) {
-        console.error(`Network error during delete call for subscription ${id}:`, deleteError);
-        
-        // If we get a 404 on delete, treat it as a success (subscription already gone)
-        if (deleteError.response?.status === 404 || deleteError.status === 404) {
-          console.log(`DELETE endpoint returned 404 for subscription ${id} - treating as already deleted`);
+        // Attempt the delete API call
+        try {
+          const response = await apiClient.delete(`/v1/subscriptions/${id}`);
+          console.log('Delete subscription response:', response.data);
+          
+          // Once we get a successful response, add to deletion blacklist
+          const deletedIds = JSON.parse(localStorage.getItem('deletedSubscriptionIds') || '[]');
+          if (!deletedIds.includes(id)) {
+            deletedIds.push(id);
+            localStorage.setItem('deletedSubscriptionIds', JSON.stringify(deletedIds));
+            console.log(`Added subscription ${id} to deletion blacklist after confirmed deletion`);
+          }
+          
+          // Handle different API response formats
+          if (response.data && response.data.status === 'error') {
+            console.log(`API returned error status but treating as UI success:`, response.data);
+            return {
+              success: true, // Still return success for UI consistency
+              message: response.data.message || 'Subscription removed from view',
+              actuallyDeleted: false
+            };
+          }
+          
+          // Normal success path
+          console.log(`Subscription ${id} deleted successfully:`, response.data);
           return { 
             success: true, 
-            message: 'Subscription already removed or not found'
+            message: response.data?.message || 'Subscription deleted successfully',
+            actuallyDeleted: true
+          };
+        } catch (deleteError: any) {
+          console.error(`Network error during delete call for subscription ${id}:`, deleteError);
+          
+          // If we get a 404 on delete, treat it as a success (subscription already gone)
+          if (deleteError.response?.status === 404 || deleteError.status === 404) {
+            console.log(`DELETE endpoint returned 404 for subscription ${id} - treating as already deleted`);
+            
+            // Add to deletion blacklist even though it was already deleted
+            const deletedIds = JSON.parse(localStorage.getItem('deletedSubscriptionIds') || '[]');
+            if (!deletedIds.includes(id)) {
+              deletedIds.push(id);
+              localStorage.setItem('deletedSubscriptionIds', JSON.stringify(deletedIds));
+              console.log(`Added subscription ${id} to deletion blacklist (was already gone from backend)`);
+            }
+            
+            return { 
+              success: true, 
+              message: 'Subscription already removed or not found',
+              actuallyDeleted: true
+            };
+          }
+          
+          // For server errors (500+), verify if the subscription was actually deleted
+          if (deleteError.response?.status >= 500) {
+            console.log(`Server error (${deleteError.response?.status}) during deletion, verifying if it was actually deleted`);
+            
+            try {
+              // Check if the subscription still exists after the failed delete
+              await apiClient.get(`/v1/subscriptions/${id}`);
+              console.log(`Subscription ${id} still exists after failed deletion`);
+              
+              // Don't add to blacklist since it still exists
+              return {
+                success: true, // Still return success for UI consistency
+                message: 'Removed from view (but may still exist in backend)',
+                actuallyDeleted: false
+              };
+            } catch (verifyError: any) {
+              // If we get a 404, it was actually deleted despite the error
+              if (verifyError.response?.status === 404) {
+                console.log(`Verified subscription ${id} was deleted despite error`);
+                
+                // Add to deletion blacklist
+                const deletedIds = JSON.parse(localStorage.getItem('deletedSubscriptionIds') || '[]');
+                if (!deletedIds.includes(id)) {
+                  deletedIds.push(id);
+                  localStorage.setItem('deletedSubscriptionIds', JSON.stringify(deletedIds));
+                  console.log(`Added subscription ${id} to deletion blacklist (verified gone after error)`);
+                }
+                
+                return {
+                  success: true,
+                  message: 'Subscription deleted successfully (despite error)',
+                  actuallyDeleted: true
+                };
+              }
+            }
+          }
+          
+          // For other errors, don't add to deletion blacklist and inform UI of a sync issue
+          console.log(`Treating delete error as UI success, but flagging backend sync issue: ${deleteError.message}`);
+          return {
+            success: true,
+            message: 'Removed from view (backend sync error)',
+            actuallyDeleted: false
           };
         }
-        
-        // Check if there was an API error response
-        if (deleteError.response?.data) {
-          console.log(`API error response:`, deleteError.response.data);
-        }
-        
-        // For other errors, still return success to clean up UI state
-        console.log(`Treating delete error as success to clean up UI state: ${deleteError.message}`);
-        return {
-          success: true,
-          message: 'Removed from view (backend sync error)'
-        };
       }
     } catch (error: any) {
       console.error(`Unexpected error deleting subscription ${id}:`, error);
       
-      // Return success regardless of the error to ensure UI state cleanup
+      // Return success for UI, but don't add to deletion blacklist
       return {
         success: true,
-        message: 'Removed from view (error recovery)'
+        message: 'Removed from view (error recovery)',
+        actuallyDeleted: false
       };
     }
   }
