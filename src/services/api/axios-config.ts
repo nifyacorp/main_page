@@ -53,10 +53,14 @@ apiClient.interceptors.request.use(
     
     // Add auth headers if token exists
     if (token && config.headers) {
-      // Ensure proper Bearer format and maintain case sensitivity
-      // Remove 'Bearer ' prefix if it exists in the token to prevent duplication
-      const tokenValue = token.replace(/^Bearer\s+/i, '');
-      config.headers.Authorization = `Bearer ${tokenValue}`;
+      // Check if token already has Bearer prefix
+      if (token.startsWith('Bearer ')) {
+        config.headers.Authorization = token;
+        console.log('Using token with existing Bearer prefix');
+      } else {
+        config.headers.Authorization = `Bearer ${token}`;
+        console.log('Added Bearer prefix to token');
+      }
       
       // Add user ID header with proper case for backend compatibility
       if (userId) {
@@ -122,6 +126,7 @@ apiClient.interceptors.response.use(
     
     // Handle 401 errors (unauthorized) by attempting token refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
+      console.log('Auth error detected in fetch response:', error.response?.data);
       originalRequest._retry = true;
       
       try {

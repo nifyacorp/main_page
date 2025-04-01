@@ -162,30 +162,56 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Ensure token has Bearer prefix
       const formattedToken = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
       
-      console.log('AuthContext: Storing authentication token');
+      console.log('AuthContext: Storing authentication token with proper Bearer format');
       localStorage.setItem('accessToken', formattedToken);
       localStorage.setItem('isAuthenticated', 'true');
       
       // Try to extract user ID from token
+      let userId = null;
+      let email = null;
       try {
         const tokenParts = formattedToken.replace('Bearer ', '').split('.');
         if (tokenParts.length >= 2) {
           const payload = JSON.parse(atob(tokenParts[1]));
           if (payload.sub) {
+            userId = payload.sub;
             localStorage.setItem('userId', payload.sub);
-            console.log('AuthContext: Extracted userId from login token:', payload.sub);
+            console.log('AuthContext: Extracted userId from token:', userId);
+          }
+          if (payload.email) {
+            email = payload.email;
+            localStorage.setItem('email', payload.email);
+            console.log('AuthContext: Extracted email from token:', email);
           }
         }
       } catch (tokenError) {
         console.error('Failed to extract userId from login token:', tokenError);
       }
       
-      // Mock user data for now, this will be replaced by API call in useEffect
-      const email = localStorage.getItem('email') || 'user@example.com';
+      // Set user information immediately
+      const userEmail = email || localStorage.getItem('email') || 'user@example.com';
       setUser({
-        id: localStorage.getItem('userId') || '00000000-0000-0000-0000-000000000001',
-        email: email
+        id: userId || localStorage.getItem('userId') || '00000000-0000-0000-0000-000000000001',
+        email: userEmail
       });
+      
+      // After setting tokens, immediately try to get the user profile
+      try {
+        // Wait a brief moment for token to be set
+        setTimeout(async () => {
+          try {
+            const response = await userService.getProfile();
+            if (response.data && !response.error) {
+              setUser(response.data);
+              console.log('AuthContext: User loaded from API after login', response.data);
+            }
+          } catch (apiError) {
+            console.warn('Failed to load user profile after login, using token data:', apiError);
+          }
+        }, 500);
+      } catch (profileError) {
+        console.warn('Error fetching profile after login, using token data:', profileError);
+      }
     } catch (error) {
       console.error('Login failed:', error);
       throw error;

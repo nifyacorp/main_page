@@ -9,7 +9,22 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   
-  return context;
+  // Add a utility function to get auth headers
+  const authHeaders = () => {
+    const token = localStorage.getItem('accessToken');
+    // Ensure token has Bearer prefix
+    const formattedToken = token && !token.startsWith('Bearer ') ? `Bearer ${token}` : token;
+    
+    return {
+      'Authorization': formattedToken || '',
+      'Content-Type': 'application/json',
+    };
+  };
+  
+  return {
+    ...context,
+    authHeaders,
+  };
 }
 
 export default useAuth;

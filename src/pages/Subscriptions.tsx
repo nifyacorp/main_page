@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Clock, FileText, Play, Edit, Trash, Bell, Loader2, AlertTriangle, RefreshCcw, CheckCircle } from 'lucide-react';
+import { Plus, Clock, FileText, Play, Edit, Trash, Bell, Loader2, AlertTriangle, RefreshCcw, CheckCircle, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useSubscriptions } from '../hooks/use-subscriptions';
+import { useEmailPreferences } from '../hooks/use-email-preferences';
 import { useToast } from '../components/ui/use-toast';
 
 // UI components
@@ -32,6 +33,7 @@ export default function Subscriptions() {
   const [completedIds, setCompletedIds] = useState<Record<string, boolean>>({});
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showMockBanner, setShowMockBanner] = useState(false);
+  const [emailPreferences, setEmailPreferences] = useState({ email_notifications: false });
   
   // Use the subscriptions hook
   const { 
@@ -43,9 +45,27 @@ export default function Subscriptions() {
     deleteSubscription
   } = useSubscriptions();
 
+  // Get email preferences to show notification status
+  const { getEmailPreferences, isLoading: isLoadingEmailPrefs } = useEmailPreferences();
+
   // Only use real data from the database
   const subscriptionsData = subscriptions || [];
   
+  // Fetch email preferences on mount
+  useEffect(() => {
+    const loadEmailPreferences = async () => {
+      try {
+        const prefs = await getEmailPreferences();
+        setEmailPreferences(prefs);
+        console.log('Email preferences loaded:', prefs);
+      } catch (err) {
+        console.error('Failed to load email preferences:', err);
+      }
+    };
+    
+    loadEmailPreferences();
+  }, [getEmailPreferences]);
+
   // Add debugging logs and perform blacklist cleanup
   useEffect(() => {
     console.log('Subscriptions component mounted/updated');
@@ -335,6 +355,12 @@ export default function Subscriptions() {
                     {subscription.isActive ? "Activa" : "Inactiva"}
                   </Badge>
                   <Badge variant="secondary">{subscription.source}</Badge>
+                  {emailPreferences.email_notifications && (
+                    <Badge variant="outline" className="ml-1 bg-primary/10 text-xs flex items-center gap-1">
+                      <Mail className="h-3 w-3" />
+                      Email
+                    </Badge>
+                  )}
                 </div>
                 <Link to={`/subscriptions/${subscription.id}`}>
                   <CardTitle className="text-lg hover:text-primary transition-colors">

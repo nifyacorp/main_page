@@ -267,8 +267,16 @@ export async function backendClient<T>({
       };
 
       // Always add authentication headers when available
-      const accessToken = localStorage.getItem('accessToken');
+      let accessToken = localStorage.getItem('accessToken');
       const userId = localStorage.getItem('userId');
+      
+      // Ensure token is in correct Bearer format
+      if (accessToken && !accessToken.startsWith('Bearer ')) {
+        accessToken = `Bearer ${accessToken}`;
+        // Update the stored token to maintain consistency
+        localStorage.setItem('accessToken', accessToken);
+        console.log('Applied Bearer prefix to token before request');
+      }
       
       // Debug the auth headers
       console.log('Auth headers:', { 
