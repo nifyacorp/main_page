@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Mail, Lock, Eye, EyeOff, User, Check, X, AlertCircle } from 'lucide-react';
 import { auth } from '../lib/api/index';
 import { useAuth } from '../hooks/use-auth';
+import { resetAuthState } from '../lib/utils/auth-recovery';
 
 interface PasswordRequirement {
   regex: RegExp;
@@ -49,10 +50,16 @@ const Auth: React.FC = () => {
     newPassword: '',
   });
 
-  // Check for reset password token in URL and clear any redirect flags
+  // Check for reset password token in URL and clean up auth state
   useEffect(() => {
+    console.log('Auth page mounted - cleaning up auth state');
+    
     // Clear any redirect flags to prevent infinite loops
     localStorage.removeItem('auth_redirect_in_progress');
+    
+    // Reset authentication state completely on the auth page
+    // This ensures we're starting fresh without any invalid tokens
+    resetAuthState();
     
     const params = new URLSearchParams(window.location.search);
     const resetToken = params.get('reset_token');

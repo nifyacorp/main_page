@@ -139,6 +139,35 @@ export async function recoverFromAuthError(errorData: any): Promise<boolean> {
  * Function to handle authentication errors in components
  * Checks for auth errors and redirects to login if needed
  */
+/**
+ * Completely reset the auth state to clean slate
+ * This will clear all auth-related data from localStorage
+ */
+export function resetAuthState(): void {
+  console.log('Completely resetting authentication state');
+  
+  // Save email for convenience
+  const email = localStorage.getItem('email');
+  
+  // Clear ALL auth state
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
+  localStorage.removeItem('userId');
+  localStorage.removeItem('isAuthenticated');
+  localStorage.removeItem('auth_redirect_in_progress');
+  localStorage.removeItem('token_expired');
+  localStorage.removeItem('auth_state');
+  
+  // Other potential tokens that might be stored
+  localStorage.removeItem('nifya_auth_token');
+  localStorage.removeItem('nifya_refresh_token');
+  
+  // Restore email for login convenience
+  if (email) {
+    localStorage.setItem('email', email);
+  }
+}
+
 export function handleAuthErrorWithUI(error: any): boolean {
   if (!isAuthError(error)) return false;
   
@@ -150,11 +179,8 @@ export function handleAuthErrorWithUI(error: any): boolean {
   // In some cases we may want to show a toast notification
   // but for simplicity, we'll just log and redirect
   
-  // Clear auth state
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
-  localStorage.removeItem('userId');
-  localStorage.removeItem('isAuthenticated');
+  // Reset all auth state completely
+  resetAuthState();
   
   // Set a flag to prevent infinite redirects
   localStorage.setItem('auth_redirect_in_progress', 'true');

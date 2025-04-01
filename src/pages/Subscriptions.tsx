@@ -47,6 +47,21 @@ export default function Subscriptions() {
 
   // Get email preferences to show notification status
   const { getEmailPreferences, isLoading: isLoadingEmailPrefs } = useEmailPreferences();
+  
+  // Check authentication state consistency
+  useEffect(() => {
+    const accessToken = localStorage.getItem('accessToken');
+    const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+    
+    // If we're on the page but there's an auth inconsistency, fix it
+    if (isAuthenticated && !accessToken) {
+      console.warn('Auth inconsistency detected in Subscriptions page');
+      // This could happen after a page reload - fix by forcing auth
+      if (confirm('Your session appears to be invalid. Would you like to log in again?')) {
+        window.location.href = '/auth';
+      }
+    }
+  }, []);
 
   // Only use real data from the database
   const subscriptionsData = subscriptions || [];
@@ -306,7 +321,40 @@ export default function Subscriptions() {
       )}
 
       {/* Error state - only show for non-mock data errors */}
-      {subscriptionsError && !showMockBanner && renderErrorState()}
+      {subscriptionsError && !showMockBanner && (
+        <Card className="mb-8">
+          <CardHeader className="bg-destructive/5">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-6 w-6 text-destructive flex-shrink-0 mt-1" />
+              <div>
+                <CardTitle className="text-destructive">Error Loading Subscriptions</CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {subscriptionsError || "There was a problem loading your subscriptions. The service might be temporarily unavailable."}
+                </p>
+                {(subscriptionsError || '').includes('401') && (
+                  <p className="text-sm font-semibold mt-2">
+                    Auth error detected. Try <a href="/auth" className="text-primary underline">logging in again</a>.
+                  </p>
+                )}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="flex flex-col sm:flex-row gap-3 items-center">
+              <Button variant="outline" onClick={() => refetchSubscriptions()} className="w-full sm:w-auto">
+                <RefreshCcw className="mr-2 h-4 w-4" />
+                Try Again
+              </Button>
+              <Button asChild className="w-full sm:w-auto">
+                <Link to="/subscriptions/new" className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  <span>Create New Subscription</span>
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Search & Filter */}
       <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">

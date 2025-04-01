@@ -269,6 +269,13 @@ export async function backendClient<T>({
       // Always add authentication headers when available
       let accessToken = localStorage.getItem('accessToken');
       const userId = localStorage.getItem('userId');
+      const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+      
+      // If we say we're authenticated but don't have a token, that's a problem
+      if (isAuthenticated && !accessToken) {
+        console.warn('Auth state inconsistency detected: isAuthenticated=true but no accessToken');
+        localStorage.setItem('auth_state_inconsistent', 'true');
+      }
       
       // Ensure token is in correct Bearer format
       if (accessToken && !accessToken.startsWith('Bearer ')) {
