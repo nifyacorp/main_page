@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { user as userService } from '../lib/api';
+import { toast } from '../components/ui/use-toast';
 
 type User = {
   id: string;
@@ -19,7 +20,7 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (\!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
@@ -33,6 +34,45 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
+  const logout = () => {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('userId');
+    // Keep email for convenience
+    setUser(null);
+  };
+  
+  // Check for token expired flag
+  useEffect(() => {
+    const checkTokenExpired = () => {
+      const tokenExpired = localStorage.getItem('token_expired');
+      if (tokenExpired === 'true') {
+        // Clear the flag
+        localStorage.removeItem('token_expired');
+        // Logout user
+        console.log('Session expired. Logging out user due to expired token.');
+        logout();
+        // Show toast notification
+        toast({
+          title: "Sesión expirada",
+          description: "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.",
+          variant: "destructive",
+          duration: 5000,
+        });
+      }
+    };
+
+    // Check on mount
+    checkTokenExpired();
+
+    // Set up interval to check periodically
+    const intervalId = setInterval(checkTokenExpired, 5000);
+
+    // Cleanup
+    return () => clearInterval(intervalId);
+  }, [logout]);
+
   // Check for existing auth on mount
   useEffect(() => {
     const checkAuth = async () => {
@@ -45,20 +85,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         
         console.log('AuthContext: Checking auth state', { 
           isAuthenticated, 
-          hasAccessToken: !!accessToken,
+          hasAccessToken: \!\!accessToken,
           userId,
           email: userEmail
         });
         
         // Fix token format if needed - ensure it has Bearer prefix
-        if (accessToken && !accessToken.startsWith('Bearer ')) {
+        if (accessToken && \!accessToken.startsWith('Bearer ')) {
           accessToken = `Bearer ${accessToken}`;
           localStorage.setItem('accessToken', accessToken);
           console.log('AuthContext: Fixed token format to include Bearer prefix');
         }
         
         // Extract userId from token if it's missing
-        if (!userId && accessToken) {
+        if (\!userId && accessToken) {
           try {
             const tokenParts = accessToken.replace('Bearer ', '').split('.');
             if (tokenParts.length >= 2) {
@@ -78,7 +118,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           try {
             // Try to get user profile from API
             const response = await userService.getProfile();
-            if (response.data && !response.error) {
+            if (response.data && \!response.error) {
               setUser(response.data);
               console.log('AuthContext: User loaded from API', response.data);
             } else {
@@ -152,20 +192,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
   
-  const logout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('userId');
-    // Keep email for convenience
-    setUser(null);
-  };
-  
   return (
     <AuthContext.Provider
       value={{
         user,
-        isAuthenticated: !!user,
+        isAuthenticated: \!\!user,
         isLoading,
         login,
         logout

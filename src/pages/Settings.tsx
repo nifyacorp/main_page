@@ -3,7 +3,7 @@ import { user } from '../lib/api';
 import type { UserProfile } from '../lib/api/types';
 import { ProfileSection } from '../components/settings/ProfileSection';
 import { AppearanceSection } from '../components/settings/AppearanceSection';
-import { NotificationsSection } from '../components/settings/NotificationsSection';
+import { EmailNotificationSettings } from '../components/settings/EmailNotificationSettings';
 import { PreferencesSection } from '../components/settings/PreferencesSection';
 import { SecuritySection } from '../components/settings/SecuritySection';
 
@@ -259,16 +259,9 @@ const Settings = () => {
           })}
         />
 
-        <NotificationsSection
-          profile={profile}
-          unsavedChanges={unsavedChanges}
-          saving={savingSections['Notificaciones']}
-          onFieldChange={handleFieldChange}
-          onSave={() => handleSectionUpdate('Notificaciones', {
-            emailNotifications: unsavedChanges.emailNotifications,
-            notificationEmail: unsavedChanges.notificationEmail
-          })}
-        />
+        <div className="mb-8">
+          <EmailNotificationSettings />
+        </div>
 
         <PreferencesSection
           profile={profile}
