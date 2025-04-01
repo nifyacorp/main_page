@@ -156,9 +156,21 @@ export function handleAuthErrorWithUI(error: any): boolean {
   localStorage.removeItem('userId');
   localStorage.removeItem('isAuthenticated');
   
+  // Set a flag to prevent infinite redirects
+  localStorage.setItem('auth_redirect_in_progress', 'true');
+  
   // Redirect to login after a brief delay
   setTimeout(() => {
-    window.location.href = '/auth';
+    // Only redirect if we're not already on the auth page
+    if (!window.location.pathname.includes('/auth')) {
+      window.location.href = '/auth';
+    } else {
+      console.log('Already on auth page, not redirecting');
+      // Just remove the redirect flag since we're already on the auth page
+      localStorage.removeItem('auth_redirect_in_progress');
+      // Force reload the page to reset the state
+      window.location.reload();
+    }
   }, 500);
   
   return true;

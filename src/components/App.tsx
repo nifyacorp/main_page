@@ -25,8 +25,25 @@ const AuthErrorHandler: React.FC<{ children: React.ReactNode }> = ({ children })
             if (data?.error === 'MISSING_HEADERS') {
               console.warn('Auth error detected in fetch response:', data);
               
+              // Check if we're in a redirect loop
+              const redirectInProgress = localStorage.getItem('auth_redirect_in_progress') === 'true';
+              
               // Only show the auth error UI if user should be authenticated
-              if (isAuthenticated) {
+              // and we're not already in a redirect
+              if (isAuthenticated && !redirectInProgress) {
+                // First try to fix the token format
+                const accessToken = localStorage.getItem('accessToken');
+                if (accessToken && !accessToken.startsWith('Bearer ')) {
+                  const formattedToken = `Bearer ${accessToken}`;
+                  localStorage.setItem('accessToken', formattedToken);
+                  console.log('Fixed token format to include Bearer prefix');
+                  
+                  // Instead of showing error UI immediately, refresh the page to try with fixed token
+                  window.location.reload();
+                  return;
+                }
+                
+                // If token is already formatted correctly, show auth error UI
                 handleAuthErrorWithUI(data);
               }
             }

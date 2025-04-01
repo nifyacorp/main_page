@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Mail, Lock, Eye, EyeOff, User, Check, X, AlertCircle } from 'lucide-react';
 import { auth } from '../lib/api/index';
+import { useAuth } from '../hooks/use-auth';
 
 interface PasswordRequirement {
   regex: RegExp;
@@ -29,6 +30,7 @@ interface ResetPasswordData {
 const Auth: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { login: authLogin } = useAuth();
   const [isLogin, setIsLogin] = useState(location.state?.isLogin ?? true);
   const [signingIn, setSigningIn] = useState(false);
   const [googleSigningIn, setGoogleSigningIn] = useState(false);
@@ -47,8 +49,11 @@ const Auth: React.FC = () => {
     newPassword: '',
   });
 
-  // Check for reset password token in URL
+  // Check for reset password token in URL and clear any redirect flags
   useEffect(() => {
+    // Clear any redirect flags to prevent infinite loops
+    localStorage.removeItem('auth_redirect_in_progress');
+    
     const params = new URLSearchParams(window.location.search);
     const resetToken = params.get('reset_token');
     if (resetToken) {

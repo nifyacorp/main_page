@@ -350,17 +350,19 @@ export default function Subscriptions() {
           {filteredSubscriptions.map((subscription) => (
             <Card key={subscription.id} className="overflow-hidden">
               <CardHeader className="pb-2">
-                <div className="flex justify-between items-start mb-2">
-                  <Badge variant={subscription.isActive ? "default" : "outline"}>
-                    {subscription.isActive ? "Activa" : "Inactiva"}
-                  </Badge>
-                  <Badge variant="secondary">{subscription.source}</Badge>
-                  {emailPreferences.email_notifications && (
-                    <Badge variant="outline" className="ml-1 bg-primary/10 text-xs flex items-center gap-1">
-                      <Mail className="h-3 w-3" />
-                      Email
+                <div className="flex flex-wrap justify-between items-start mb-2">
+                  <div className="flex gap-1 items-center">
+                    <Badge variant={subscription.isActive ? "default" : "outline"}>
+                      {subscription.isActive ? "Activa" : "Inactiva"}
                     </Badge>
-                  )}
+                    {emailPreferences.email_notifications && (
+                      <Badge variant="outline" className="bg-primary/10 text-xs flex items-center gap-1">
+                        <Mail className="h-3 w-3" />
+                        Email
+                      </Badge>
+                    )}
+                  </div>
+                  <Badge variant="secondary">{subscription.source}</Badge>
                 </div>
                 <Link to={`/subscriptions/${subscription.id}`}>
                   <CardTitle className="text-lg hover:text-primary transition-colors">

@@ -241,6 +241,34 @@ export const notificationService = {
     console.group('Notifications API - list');
     console.log('Listing notifications with options:', options);
     
+    // First check if we are authenticated
+    const accessToken = localStorage.getItem('accessToken');
+    const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+    
+    if (!isAuthenticated || !accessToken) {
+      console.warn('User not authenticated, returning empty notifications list');
+      console.groupEnd();
+      return {
+        status: 200,
+        ok: true,
+        data: {
+          notifications: [],
+          total: 0,
+          unread: 0,
+          page: options.page || 1,
+          limit: options.limit || 10,
+          hasMore: false
+        }
+      };
+    }
+    
+    // Ensure token has Bearer prefix
+    if (accessToken && !accessToken.startsWith('Bearer ')) {
+      const formattedToken = `Bearer ${accessToken}`;
+      localStorage.setItem('accessToken', formattedToken);
+      console.log('Fixed token format to include Bearer prefix');
+    }
+    
     try {
       // Build query parameters
       const params = new URLSearchParams();

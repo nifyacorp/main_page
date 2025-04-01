@@ -176,31 +176,56 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   
   // Initialize WebSocket connection and listeners
   useEffect(() => {
+    // Check auth status before fetching notifications
+    const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+    const accessToken = localStorage.getItem('accessToken');
+    
+    if (!isAuthenticated || !accessToken) {
+      console.log('User not authenticated, skipping notification setup');
+      return;
+    }
+    
+    console.log('User authenticated, setting up notifications');
+    
     // First get the initial unread count
-    refreshUnreadCount();
-    
-    // Initialize WebSocket connection
-    socketClient.connect();
-    
-    // Set up notification listener
-    socketClient.on('notification', handleRealtimeNotification);
-    
-    // Reconnect websocket on auth token change
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'accessToken' && e.newValue) {
-        console.log('Access token changed, reconnecting WebSocket');
-        socketClient.connect(e.newValue);
+    const fetchUnreadCount = async () => {
+      try {
+        await refreshUnreadCount();
+      } catch (error) {
+        console.warn('Failed to fetch initial unread count:', error);
+        // Don't throw error to prevent breaking component
       }
     };
     
-    window.addEventListener('storage', handleStorageChange);
+    fetchUnreadCount();
     
-    // Cleanup
-    return () => {
-      socketClient.off('notification', handleRealtimeNotification);
-      socketClient.disconnect();
-      window.removeEventListener('storage', handleStorageChange);
-    };
+    // Initialize WebSocket connection
+    try {
+      socketClient.connect();
+      
+      // Set up notification listener
+      socketClient.on('notification', handleRealtimeNotification);
+      
+      // Reconnect websocket on auth token change
+      const handleStorageChange = (e: StorageEvent) => {
+        if (e.key === 'accessToken' && e.newValue) {
+          console.log('Access token changed, reconnecting WebSocket');
+          socketClient.connect(e.newValue);
+        }
+      };
+      
+      window.addEventListener('storage', handleStorageChange);
+      
+      // Cleanup
+      return () => {
+        socketClient.off('notification', handleRealtimeNotification);
+        socketClient.disconnect();
+        window.removeEventListener('storage', handleStorageChange);
+      };
+    } catch (error) {
+      console.error('Error setting up notification system:', error);
+      // Don't throw to prevent component from breaking
+    }
   }, [handleRealtimeNotification]);
 
   return (
