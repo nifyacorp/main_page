@@ -20,7 +20,7 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  if (\!context) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
@@ -85,20 +85,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         
         console.log('AuthContext: Checking auth state', { 
           isAuthenticated, 
-          hasAccessToken: \!\!accessToken,
+          hasAccessToken: !!accessToken,
           userId,
           email: userEmail
         });
         
         // Fix token format if needed - ensure it has Bearer prefix
-        if (accessToken && \!accessToken.startsWith('Bearer ')) {
+        if (accessToken && !accessToken.startsWith('Bearer ')) {
           accessToken = `Bearer ${accessToken}`;
           localStorage.setItem('accessToken', accessToken);
           console.log('AuthContext: Fixed token format to include Bearer prefix');
         }
         
         // Extract userId from token if it's missing
-        if (\!userId && accessToken) {
+        if (!userId && accessToken) {
           try {
             const tokenParts = accessToken.replace('Bearer ', '').split('.');
             if (tokenParts.length >= 2) {
@@ -118,7 +118,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           try {
             // Try to get user profile from API
             const response = await userService.getProfile();
-            if (response.data && \!response.error) {
+            if (response.data && !response.error) {
               setUser(response.data);
               console.log('AuthContext: User loaded from API', response.data);
             } else {
@@ -222,7 +222,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     <AuthContext.Provider
       value={{
         user,
-        isAuthenticated: \!\!user,
+        isAuthenticated: !!user,
         isLoading,
         login,
         logout
