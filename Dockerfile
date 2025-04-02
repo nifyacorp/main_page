@@ -29,12 +29,14 @@ RUN mkdir -p /etc/nginx/templates
 COPY nginx.conf /etc/nginx/templates/default.conf.template
 
 # Create entrypoint script
-RUN echo '#!/bin/sh\n\
-# Substitute environment variables in nginx config\n\
-envsubst < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf\n\
-# Start nginx\n\
-exec nginx -g "daemon off;"' > /docker-entrypoint.sh && \
-chmod +x /docker-entrypoint.sh
+RUN echo '#!/bin/sh' > /docker-entrypoint.sh && \
+    echo 'echo "Starting nginx configuration with environment variables..."' >> /docker-entrypoint.sh && \
+    echo 'echo "AUTH_SERVICE_URL=${AUTH_SERVICE_URL:-http://localhost:3001}"' >> /docker-entrypoint.sh && \
+    echo 'echo "BACKEND_SERVICE_URL=${BACKEND_SERVICE_URL:-http://localhost:3000}"' >> /docker-entrypoint.sh && \
+    echo 'envsubst "$$AUTH_SERVICE_URL $$BACKEND_SERVICE_URL" < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf' >> /docker-entrypoint.sh && \
+    echo 'echo "Configuration complete, starting nginx..."' >> /docker-entrypoint.sh && \
+    echo 'exec nginx -g "daemon off;"' >> /docker-entrypoint.sh && \
+    chmod +x /docker-entrypoint.sh
 
 # Expose port
 EXPOSE 8080
