@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { handleAuthErrorWithUI } from '../lib/utils/auth-recovery';
+import { handleAuthErrorWithUI, ensureProperTokenFormat } from '../lib/utils/auth-recovery';
 
 /**
  * Authentication error handler component 
@@ -9,10 +9,19 @@ import { handleAuthErrorWithUI } from '../lib/utils/auth-recovery';
 const AuthErrorHandler: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
   
+  // First ensure proper token format on component mount
+  useEffect(() => {
+    // Ensure proper Bearer token format in localStorage
+    ensureProperTokenFormat();
+  }, []);
+  
   useEffect(() => {
     // Function to intercept and handle global fetch errors
     const originalFetch = window.fetch;
     window.fetch = async function(...args) {
+      // Before each fetch request, ensure token has proper format
+      ensureProperTokenFormat();
+      
       try {
         const response = await originalFetch.apply(this, args);
         
@@ -31,19 +40,15 @@ const AuthErrorHandler: React.FC<{ children: React.ReactNode }> = ({ children })
               // Only show the auth error UI if user should be authenticated
               // and we're not already in a redirect
               if (isAuthenticated && !redirectInProgress) {
-                // First try to fix the token format
-                const accessToken = localStorage.getItem('accessToken');
-                if (accessToken && !accessToken.startsWith('Bearer ')) {
-                  const formattedToken = `Bearer ${accessToken}`;
-                  localStorage.setItem('accessToken', formattedToken);
-                  console.log('Fixed token format to include Bearer prefix');
-                  
+                // Try to fix token format one more time
+                if (ensureProperTokenFormat()) {
+                  console.log('Fixed token format, refreshing page to retry');
                   // Instead of showing error UI immediately, refresh the page to try with fixed token
                   window.location.reload();
                   return;
                 }
                 
-                // If token is already formatted correctly, show auth error UI
+                // If token is already formatted correctly or missing, show auth error UI
                 handleAuthErrorWithUI(data);
               }
             }

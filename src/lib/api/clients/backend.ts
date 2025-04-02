@@ -293,6 +293,13 @@ export async function backendClient<T>({
       });
 
       // Add authentication headers using our utility function
+      // Ensure token has Bearer prefix
+      if (accessToken && !accessToken.startsWith('Bearer ')) {
+        accessToken = `Bearer ${accessToken}`;
+        localStorage.setItem('accessToken', accessToken);
+        console.log('Fixed token format to include Bearer prefix');
+      }
+      
       const authHeaders = getAuthHeaders(accessToken, userId);
       Object.assign(options.headers as Record<string, string>, authHeaders);
 

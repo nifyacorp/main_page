@@ -11,12 +11,18 @@ export function useAuth() {
   
   // Add a utility function to get auth headers
   const authHeaders = () => {
-    const token = localStorage.getItem('accessToken');
+    // Get token from localStorage
+    let token = localStorage.getItem('accessToken');
+    
     // Ensure token has Bearer prefix
-    const formattedToken = token && !token.startsWith('Bearer ') ? `Bearer ${token}` : token;
+    if (token && !token.startsWith('Bearer ')) {
+      token = `Bearer ${token}`;
+      localStorage.setItem('accessToken', token);
+      console.log('authHeaders: Fixed token format to include Bearer prefix');
+    }
     
     return {
-      'Authorization': formattedToken || '',
+      'Authorization': token || '',
       'Content-Type': 'application/json',
     };
   };

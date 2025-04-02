@@ -1,4 +1,5 @@
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import { verifyAuthHeaders } from '../../lib/utils/auth-recovery';
 
 // Environment variables
 const useNetlifyRedirects = import.meta.env.VITE_USE_NETLIFY_REDIRECTS === 'true';
@@ -35,6 +36,9 @@ const apiClient: AxiosInstance = axios.create({
 // Request interceptor for adding auth token
 apiClient.interceptors.request.use(
   (config: AxiosRequestConfig): AxiosRequestConfig => {
+    // Verify and fix auth headers before making the request
+    verifyAuthHeaders();
+    
     // Log authentication state for debugging
     console.log('AuthContext: Checking auth state', {
       isAuthenticated: localStorage.getItem('isAuthenticated') === 'true',

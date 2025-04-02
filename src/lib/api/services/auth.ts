@@ -25,7 +25,27 @@ export const authService = {
       endpoint: '/api/auth/login',
       method: 'POST',
       body: data,
-    }).finally(() => console.groupEnd());
+    })
+    .then(response => {
+      // Process the token to ensure it has Bearer prefix
+      if (response.ok && response.data?.accessToken) {
+        // Ensure token has Bearer prefix
+        const accessToken = response.data.accessToken;
+        if (!accessToken.startsWith('Bearer ')) {
+          console.log('Adding Bearer prefix to token from auth service');
+          response.data.accessToken = `Bearer ${accessToken}`;
+        }
+        
+        // Store this token immediately for subsequent requests
+        localStorage.setItem('accessToken', response.data.accessToken);
+        localStorage.setItem('isAuthenticated', 'true');
+        
+        // Store email for convenience
+        localStorage.setItem('email', data.email);
+      }
+      return response;
+    })
+    .finally(() => console.groupEnd());
   },
 
   signup: (email: string, password: string, name: string): Promise<ApiResponse<AuthResponse>> => {

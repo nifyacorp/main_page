@@ -95,6 +95,9 @@ export async function authClient<T>({
         data.accessToken : 
         `Bearer ${data.accessToken}`;
       
+      // Also update the response data to have consistent format
+      data.accessToken = token;
+      
       console.log('Storing auth token with proper Bearer format');
       localStorage.setItem('accessToken', token);
       

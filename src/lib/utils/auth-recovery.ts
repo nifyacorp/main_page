@@ -140,6 +140,27 @@ export async function recoverFromAuthError(errorData: any): Promise<boolean> {
  * Checks for auth errors and redirects to login if needed
  */
 /**
+ * Ensures token has proper Bearer prefix format
+ * Updates localStorage if needed
+ * @returns The formatted token or null if no token exists
+ */
+export function ensureProperTokenFormat(): string | null {
+  const accessToken = localStorage.getItem('accessToken');
+  
+  if (!accessToken) return null;
+  
+  // Check if token already has Bearer prefix
+  if (!accessToken.startsWith('Bearer ')) {
+    const formattedToken = `Bearer ${accessToken}`;
+    localStorage.setItem('accessToken', formattedToken);
+    console.log('ensureProperTokenFormat: Fixed token format to include Bearer prefix');
+    return formattedToken;
+  }
+  
+  return accessToken;
+}
+
+/**
  * Completely reset the auth state to clean slate
  * This will clear all auth-related data from localStorage
  */
@@ -207,10 +228,62 @@ export function handleAuthErrorWithUI(error: any): boolean {
  * @param fn The function to wrap
  * @returns A wrapped function that attempts to recover from auth errors
  */
+/**
+ * Function to check auth header and fix common issues
+ * Call this before making API requests
+ */
+export function verifyAuthHeaders(): void {
+  // Check if auth is enabled
+  const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+  
+  if (!isAuthenticated) {
+    console.log('Not authenticated, skipping auth header verification');
+    return;
+  }
+  
+  // Check token format
+  const accessToken = localStorage.getItem('accessToken');
+  const userId = localStorage.getItem('userId');
+  
+  // Handle missing token with auth flag set
+  if (!accessToken && isAuthenticated) {
+    console.warn('Auth inconsistency: isAuthenticated=true but no accessToken');
+    // Don't reset auth state here, just log the issue
+  }
+  
+  // Ensure token has Bearer prefix
+  if (accessToken && !accessToken.startsWith('Bearer ')) {
+    const formattedToken = `Bearer ${accessToken}`;
+    localStorage.setItem('accessToken', formattedToken);
+    console.log('verifyAuthHeaders: Fixed token format to include Bearer prefix');
+  }
+  
+  // Verify we have userId
+  if (!userId && accessToken) {
+    console.warn('Missing userId despite having accessToken');
+    try {
+      // Try to extract from token
+      const tokenParts = accessToken.replace('Bearer ', '').split('.');
+      if (tokenParts.length >= 2) {
+        const payload = JSON.parse(atob(tokenParts[1]));
+        if (payload.sub) {
+          localStorage.setItem('userId', payload.sub);
+          console.log('verifyAuthHeaders: Extracted userId from token:', payload.sub);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to extract userId from token:', err);
+    }
+  }
+}
+
 export function withAuthRecovery<T, Args extends any[]>(
   fn: (...args: Args) => Promise<T>
 ): (...args: Args) => Promise<T> {
   return async (...args: Args): Promise<T> => {
+    // Verify auth headers before making request
+    verifyAuthHeaders();
+    
     try {
       return await fn(...args);
     } catch (error) {

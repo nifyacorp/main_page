@@ -1,4 +1,5 @@
 import apiClient, { ApiError } from './axios-config';
+import { verifyAuthHeaders } from '../../lib/utils/auth-recovery';
 
 // Type definitions
 export interface Subscription {
@@ -128,6 +129,9 @@ class SubscriptionService {
    */
   async getSubscriptions(params?: SubscriptionListParams): Promise<{ subscriptions: Subscription[]; total: number; page: number; limit: number; totalPages: number; error?: string }> {
     try {
+      // Verify auth headers before making request
+      verifyAuthHeaders();
+      
       // First check if the user has subscriptions according to their profile
       let userHasSubscriptionsInProfile = false;
       try {
