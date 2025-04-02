@@ -35,8 +35,10 @@ RUN echo '#!/bin/sh' > /docker-entrypoint.sh && \
     echo 'export BACKEND_SERVICE_URL=${BACKEND_SERVICE_URL:-http://localhost:3000}' >> /docker-entrypoint.sh && \
     echo 'echo "AUTH_SERVICE_URL=$AUTH_SERVICE_URL"' >> /docker-entrypoint.sh && \
     echo 'echo "BACKEND_SERVICE_URL=$BACKEND_SERVICE_URL"' >> /docker-entrypoint.sh && \
-    echo 'envsubst < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf' >> /docker-entrypoint.sh && \
+    echo 'envsubst "\${AUTH_SERVICE_URL} \${BACKEND_SERVICE_URL}" < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf' >> /docker-entrypoint.sh && \
     echo 'echo "Configuration complete, starting nginx..."' >> /docker-entrypoint.sh && \
+    echo 'echo "Checking nginx config..."' >> /docker-entrypoint.sh && \
+    echo 'nginx -t' >> /docker-entrypoint.sh && \
     echo 'exec nginx -g "daemon off;"' >> /docker-entrypoint.sh && \
     chmod +x /docker-entrypoint.sh
 
