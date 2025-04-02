@@ -89,11 +89,12 @@ export default defineConfig(({ mode }) => {
           drop_debugger: true
         }
       },
-      // Avoid empty chunks in production
+      // Avoid empty chunks in production and handle external scripts
       rollupOptions: {
         output: {
           manualChunks: undefined
-        }
+        },
+        external: ['/assets/env-config.js'] // Mark env-config.js as external
       }
     }
   };
