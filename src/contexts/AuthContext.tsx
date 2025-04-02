@@ -218,11 +218,35 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
   
+  // Compute authentication state from both user and localStorage
+  const computeIsAuthenticated = () => {
+    // If we have a user, we're definitely authenticated
+    if (user) return true;
+    
+    // If we're still loading, check localStorage as a fallback
+    if (isLoading) {
+      // Check localStorage for auth flag and token
+      const hasAuthFlag = localStorage.getItem('isAuthenticated') === 'true';
+      const hasToken = !!localStorage.getItem('accessToken');
+      return hasAuthFlag && hasToken;
+    }
+    
+    // If we're not loading and don't have a user, we're not authenticated
+    return false;
+  };
+
+  const isAuthenticated = computeIsAuthenticated();
+  
+  // Effect to log authentication state changes for debugging
+  useEffect(() => {
+    console.log('Auth state in header updated:', { isAuthenticated, user });
+  }, [isAuthenticated, user]);
+
   return (
     <AuthContext.Provider
       value={{
         user,
-        isAuthenticated: !!user,
+        isAuthenticated,
         isLoading,
         login,
         logout

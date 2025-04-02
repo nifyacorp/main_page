@@ -242,6 +242,40 @@ export function isPublicPath(path: string): boolean {
 }
 
 /**
+ * Detects and breaks auth redirect loops
+ * Call this whenever redirecting to the auth page
+ * @returns true if a loop was detected and broken
+ */
+export function detectAndBreakAuthRedirectLoop(): boolean {
+  // Get the last redirect time
+  const lastRedirectTime = parseInt(localStorage.getItem('auth_redirect_timestamp') || '0');
+  const currentTime = Date.now();
+  
+  // Get the redirect count
+  const redirectCount = parseInt(localStorage.getItem('auth_redirect_count') || '0');
+  
+  // If we've had multiple redirects in a short time, we're in a loop
+  const isInLoop = (currentTime - lastRedirectTime < 2000) && redirectCount > 2;
+  
+  // Update the timestamp and count
+  localStorage.setItem('auth_redirect_timestamp', currentTime.toString());
+  localStorage.setItem('auth_redirect_count', (redirectCount + 1).toString());
+  
+  // If we detect a loop, reset everything
+  if (isInLoop) {
+    console.error('Auth redirect loop detected! Breaking the loop.');
+    resetAuthState();
+    // Reset the loop detection counters
+    localStorage.removeItem('auth_redirect_timestamp');
+    localStorage.removeItem('auth_redirect_count');
+    
+    return true;
+  }
+  
+  return false;
+}
+
+/**
  * Function to check auth header and fix common issues
  * Call this before making API requests
  */

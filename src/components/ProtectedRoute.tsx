@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import DashboardLayout from './DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import LoadingPage from './LoadingPage';
+import { detectAndBreakAuthRedirectLoop } from '@/lib/utils/auth-recovery';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -13,12 +14,23 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
+    // Check if we're already on the auth page to prevent redirect loops
+    const isOnAuthPage = window.location.pathname === '/auth';
+    
     // Check for redirect in progress flag to break potential infinite loops
     const redirectInProgress = localStorage.getItem('auth_redirect_in_progress') === 'true';
     
-    // Only redirect if auth check is complete, user is not authenticated, and we're not already redirecting
-    if (!isLoading && !isAuthenticated && !redirectInProgress) {
+    // Only redirect if auth check is complete, user is not authenticated, not already on auth page, and we're not already redirecting
+    if (!isLoading && !isAuthenticated && !isOnAuthPage && !redirectInProgress) {
       console.log('User not authenticated, redirecting to auth');
+      
+      // Check for redirect loops before proceeding
+      if (detectAndBreakAuthRedirectLoop()) {
+        console.log('Auth redirect loop detected and broken');
+        window.location.href = '/auth'; // Force a full page refresh
+        return;
+      }
+      
       // Set a flag to avoid redirect loops
       localStorage.setItem('auth_redirect_in_progress', 'true');
       // Clear any existing auth tokens that might be invalid

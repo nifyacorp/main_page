@@ -60,3 +60,7 @@ If you encounter 401 Unauthorized errors:
 2. Authentication state is verified before making API calls
 3. Proper Bearer token format is maintained throughout the application
 4. Public routes are identified to prevent unnecessary authentication checks
+5. Loop detection mechanism prevents infinite redirects between /auth and protected routes
+6. The Auth component checks if a user is already authenticated before mounting
+7. AuthContext computes authentication state from both user object and localStorage
+8. Redirect flags are cleared when authentication is successful

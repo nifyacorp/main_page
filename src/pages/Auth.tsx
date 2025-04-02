@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Mail, Lock, Eye, EyeOff, User, Check, X, AlertCircle } from 'lucide-react';
 import { auth } from '../lib/api/index';
 import { useAuth } from '../hooks/use-auth';
-import { resetAuthState } from '../lib/utils/auth-recovery';
+import { resetAuthState, detectAndBreakAuthRedirectLoop } from '../lib/utils/auth-recovery';
 
 interface PasswordRequirement {
   regex: RegExp;
@@ -31,7 +31,7 @@ interface ResetPasswordData {
 const Auth: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { login: authLogin } = useAuth();
+  const { login: authLogin, isAuthenticated } = useAuth();
   const [isLogin, setIsLogin] = useState(location.state?.isLogin ?? true);
   const [signingIn, setSigningIn] = useState(false);
   const [googleSigningIn, setGoogleSigningIn] = useState(false);
@@ -41,7 +41,7 @@ const Auth: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [formData, setFormData] = useState<AuthFormData>({
-    email: '',
+    email: localStorage.getItem('email') || '',
     password: '',
     name: '',
   });
@@ -49,17 +49,48 @@ const Auth: React.FC = () => {
     token: '',
     newPassword: '',
   });
-
-  // Check for reset password token in URL and clean up auth state
+  
+  // Redirect authenticated users to dashboard
   useEffect(() => {
-    console.log('Auth page mounted - cleaning up auth state');
+    if (isAuthenticated) {
+      console.log('User is authenticated in Auth component, redirecting to dashboard');
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
+
+  // Check for reset password token in URL and check auth state
+  useEffect(() => {
+    console.log('Auth page mounted - checking auth state');
+    
+    // Check for redirect loops
+    if (detectAndBreakAuthRedirectLoop()) {
+      console.log('Auth redirect loop detected and broken');
+      // Forces a clean slate for the auth process
+      resetAuthState();
+      window.location.reload(); // Full page refresh to reset React state
+      return;
+    }
     
     // Clear any redirect flags to prevent infinite loops
     localStorage.removeItem('auth_redirect_in_progress');
     
-    // Reset authentication state completely on the auth page
-    // This ensures we're starting fresh without any invalid tokens
-    resetAuthState();
+    // Check if the user is already authenticated
+    const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+    const hasAccessToken = !!localStorage.getItem('accessToken');
+    
+    if (isAuthenticated && hasAccessToken) {
+      // User is already authenticated, redirect to dashboard
+      console.log('User is already authenticated, redirecting to dashboard');
+      navigate('/dashboard', { replace: true });
+      return;
+    }
+    
+    // Only reset auth state if not authenticated
+    if (!isAuthenticated) {
+      // Reset authentication state completely on the auth page
+      // This ensures we're starting fresh without any invalid tokens
+      resetAuthState();
+    }
     
     const params = new URLSearchParams(window.location.search);
     const resetToken = params.get('reset_token');
@@ -67,7 +98,7 @@ const Auth: React.FC = () => {
       setIsResetPassword(true);
       setResetPasswordData(prev => ({ ...prev, token: resetToken }));
     }
-  }, []);
+  }, [navigate]);
 
   // Use an effect to manually set the autocomplete attribute on the password field
   useEffect(() => {
@@ -108,23 +139,62 @@ const Auth: React.FC = () => {
         alert('Contraseña actualizada correctamente');
         window.location.href = '/auth';
       } else if (isLogin) {
-        const { error, data } = await auth.login({
-          email: formData.email,
-          password: formData.password
-        });
-        if (error) throw new Error(error);
+        console.group('🔑 Login Process');
+        console.log('Starting login process with email:', formData.email);
         
-        // Store auth state after successful login
-        if (data?.accessToken) {
-          localStorage.setItem('accessToken', data.accessToken);
+        try {
+          const { error, data } = await auth.login({
+            email: formData.email,
+            password: formData.password
+          });
+          
+          if (error) {
+            console.error('Login API error:', error);
+            throw new Error(error);
+          }
+          
+          console.log('Login API response received:', { 
+            success: true, 
+            hasAccessToken: !!data?.accessToken,
+            hasRefreshToken: !!data?.refreshToken
+          });
+          
+          // Use the AuthContext login function to handle authentication properly
+          if (data?.accessToken) {
+            console.log('Calling authLogin with token');
+            
+            // Reset any loop detection counters before login
+            localStorage.removeItem('auth_redirect_timestamp');
+            localStorage.removeItem('auth_redirect_count');
+            localStorage.removeItem('auth_redirect_in_progress');
+            
+            // Call the context login function which will update state and localStorage
+            await authLogin(data.accessToken);
+            
+            // Also store the refresh token if available
+            if (data?.refreshToken) {
+              localStorage.setItem('refreshToken', data.refreshToken);
+            }
+            
+            // Store email for future convenience
+            localStorage.setItem('email', formData.email);
+            
+            // Set authenticated flag explicitly
+            localStorage.setItem('isAuthenticated', 'true');
+            
+            // Redirect to dashboard after successful login with replace to prevent back button issues
+            console.log('Login successful, redirecting to dashboard');
+            navigate('/dashboard', { replace: true });
+          } else {
+            console.error('No access token in response');
+            throw new Error('No access token received from server');
+          }
+        } catch (err) {
+          console.error('Login error:', err);
+          setError(err instanceof Error ? err.message : 'Login failed. Please check your credentials.');
+        } finally {
+          console.groupEnd();
         }
-        if (data?.refreshToken) {
-          localStorage.setItem('refreshToken', data.refreshToken);
-        }
-        localStorage.setItem('isAuthenticated', 'true');
-        
-        // Use history API instead of location for smoother navigation
-        navigate('/dashboard');
       } else {
         console.group('📝 Signup Process');
         console.log('Attempting signup with:', {
