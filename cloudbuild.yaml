@@ -13,7 +13,7 @@ steps:
     args:
       - 'run'
       - 'deploy'
-      - 'frontend'
+      - 'main-page'
       - '--image=gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA'
       - '--region=us-central1'
       - '--platform=managed'
