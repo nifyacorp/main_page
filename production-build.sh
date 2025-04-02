@@ -35,17 +35,14 @@ echo "Creating runtime environment script..."
 mkdir -p dist/assets
 cat > dist/assets/env-config.js << ENVFILE
 // Runtime environment configuration
-export const RUNTIME_CONFIG = {
+window.RUNTIME_CONFIG = {
   AUTH_SERVICE_URL: "\${AUTH_SERVICE_URL:-PLACEHOLDER_AUTH_URL}",
   BACKEND_SERVICE_URL: "\${BACKEND_SERVICE_URL:-PLACEHOLDER_BACKEND_URL}",
   NODE_ENV: "production",
   REACT_APP_ENV: "production",
   USE_NETLIFY_REDIRECTS: false
 };
-
-// Make available globally for backward compatibility
-window.RUNTIME_CONFIG = RUNTIME_CONFIG;
-console.log('Runtime config loaded:', RUNTIME_CONFIG);
+console.log('Runtime config loaded:', window.RUNTIME_CONFIG);
 ENVFILE
 
 echo "Production build completed successfully\!"

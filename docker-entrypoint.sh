@@ -17,17 +17,14 @@ echo "NODE_ENV=$NODE_ENV"
 mkdir -p /usr/share/nginx/html/assets
 cat > /usr/share/nginx/html/assets/env-config.js << EOF
 // Runtime environment configuration - updated at container startup
-export const RUNTIME_CONFIG = {
+window.RUNTIME_CONFIG = {
   AUTH_SERVICE_URL: "${AUTH_SERVICE_URL}",
   BACKEND_SERVICE_URL: "${BACKEND_SERVICE_URL}",
   NODE_ENV: "production",
   REACT_APP_ENV: "production",
   USE_NETLIFY_REDIRECTS: false
 };
-
-// Make available globally for backward compatibility
-window.RUNTIME_CONFIG = RUNTIME_CONFIG;
-console.log('Runtime config loaded:', RUNTIME_CONFIG);
+console.log('Runtime config loaded:', window.RUNTIME_CONFIG);
 EOF
 
 # Process the main nginx template
