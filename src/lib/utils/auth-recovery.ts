@@ -229,12 +229,31 @@ export function handleAuthErrorWithUI(error: any): boolean {
  * @returns A wrapped function that attempts to recover from auth errors
  */
 /**
+ * Function to check if a URL is a public path that doesn't require authentication
+ */
+export function isPublicPath(path: string): boolean {
+  const publicPaths = ['/', '/auth'];
+  // Check if the path is in the public paths list or starts with any of them
+  return publicPaths.some(prefix => 
+    path === prefix || 
+    path.startsWith(`${prefix}/`) ||
+    path.startsWith(`${prefix}?`)
+  );
+}
+
+/**
  * Function to check auth header and fix common issues
  * Call this before making API requests
  */
 export function verifyAuthHeaders(): void {
   // Check if auth is enabled
   const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+  
+  // If we're on a public path, we shouldn't need auth headers
+  const currentPath = window.location.pathname;
+  if (isPublicPath(currentPath)) {
+    console.log(`On public path ${currentPath}, authentication optional`);
+  }
   
   if (!isAuthenticated) {
     console.log('Not authenticated, skipping auth header verification');

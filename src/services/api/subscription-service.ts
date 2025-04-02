@@ -67,7 +67,12 @@ export interface SubscriptionListResponse {
  */
 class SubscriptionService {
   constructor() {
-    this.cleanupDeletionBlacklist();
+    // Only call cleanup if the user is authenticated
+    if (localStorage.getItem('isAuthenticated') === 'true') {
+      this.cleanupDeletionBlacklist();
+    } else {
+      console.log('User not authenticated, skipping deletion blacklist cleanup');
+    }
   }
 
   /**
@@ -76,17 +81,30 @@ class SubscriptionService {
    */
   async cleanupDeletionBlacklist() {
     try {
+      // Check auth state first
+      if (localStorage.getItem('isAuthenticated') !== 'true') {
+        console.log('User not authenticated, skipping deletion blacklist cleanup');
+        return;
+      }
+      
       const deletedIds = JSON.parse(localStorage.getItem('deletedSubscriptionIds') || '[]');
       if (deletedIds.length === 0) return;
       
       console.log(`Checking ${deletedIds.length} blacklisted subscriptions for cleanup...`);
       
-      // Don't clean if no blacklisted IDs
-      if (deletedIds.length === 0) return;
+      // Make sure we have the proper auth headers
+      const accessToken = localStorage.getItem('accessToken');
+      if (!accessToken) {
+        console.log('No access token available, skipping deletion blacklist cleanup');
+        return;
+      }
       
       // Get current subscriptions to verify which ones actually exist
       // We'll do this silently to avoid disrupting normal app flow
       try {
+        // Verify auth headers before making request
+        verifyAuthHeaders();
+        
         const response = await apiClient.get('/v1/subscriptions');
         let subscriptions = [];
         
@@ -129,6 +147,19 @@ class SubscriptionService {
    */
   async getSubscriptions(params?: SubscriptionListParams): Promise<{ subscriptions: Subscription[]; total: number; page: number; limit: number; totalPages: number; error?: string }> {
     try {
+      // Check if user is authenticated
+      if (localStorage.getItem('isAuthenticated') !== 'true') {
+        console.log('User not authenticated, returning empty subscriptions');
+        return {
+          subscriptions: [],
+          total: 0,
+          page: params?.page || 1,
+          limit: params?.limit || 10,
+          totalPages: 0,
+          error: 'User not authenticated'
+        };
+      }
+      
       // Verify auth headers before making request
       verifyAuthHeaders();
       

@@ -21,3 +21,11 @@
 - React Router for navigation and protected routes
 - React Query for data fetching and caching
 - Socket.io for real-time notifications
+
+## Authentication Guidelines
+- All API requests must include `Authorization: Bearer <token>` header
+- Token is stored in localStorage as `accessToken` with the Bearer prefix
+- Authentication flows use `/auth` route (not `/login`)
+- Use auth-recovery.ts utilities to ensure proper token format
+- Check isAuthenticated state before making API calls
+- Refer to AUTH-HEADER-GUIDE.md for detailed authentication documentation

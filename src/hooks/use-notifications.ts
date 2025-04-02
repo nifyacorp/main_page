@@ -15,7 +15,10 @@ export function useNotifications(params?: NotificationListParams) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Fetch notifications
+  // Check authentication status
+  const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+
+  // Fetch notifications - only if authenticated
   const {
     data,
     isLoading,
@@ -27,9 +30,10 @@ export function useNotifications(params?: NotificationListParams) {
     queryFn: () => notificationService.getNotifications(filter),
     staleTime: 30000, // 30 seconds
     refetchInterval: 60000, // Poll every minute for new notifications
+    enabled: isAuthenticated, // Only run query if authenticated
   });
 
-  // Get notification count
+  // Get notification count - only if authenticated
   const {
     data: notificationCount,
     isLoading: isLoadingCount,
@@ -54,6 +58,7 @@ export function useNotifications(params?: NotificationListParams) {
     },
     staleTime: 30000, // 30 seconds
     refetchInterval: 60000, // Poll every minute
+    enabled: isAuthenticated, // Only run query if authenticated
   });
 
   // Mark as read mutation

@@ -60,7 +60,7 @@ export default function Home() {
                   <Link to="/signup">Get Started <ArrowRightIcon className="ml-2 h-4 w-4" /></Link>
                 </Button>
                 <Button size="lg" variant="outline" asChild>
-                  <Link to="/login">Log In</Link>
+                  <Link to="/auth">Log In</Link>
                 </Button>
               </>
             )}

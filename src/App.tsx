@@ -116,6 +116,8 @@ export default function App() {
                   }
                 />
                 <Route path="/auth" element={<Auth />} />
+                {/* Redirect /login to /auth to prevent infinite loops */}
+                <Route path="/login" element={<Navigate to="/auth" replace />} />
                 
                 {/* Protected routes */}
                 <Route path="/dashboard" element={

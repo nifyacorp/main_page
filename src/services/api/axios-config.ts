@@ -144,7 +144,7 @@ apiClient.interceptors.response.use(
           localStorage.removeItem('userId');
           localStorage.removeItem(AUTH_TOKEN_KEY);
           localStorage.removeItem(REFRESH_TOKEN_KEY);
-          window.location.href = '/login';
+          window.location.href = '/auth';
           return Promise.reject(error);
         }
         
@@ -180,7 +180,7 @@ apiClient.interceptors.response.use(
         localStorage.removeItem('userId');
         localStorage.removeItem(AUTH_TOKEN_KEY);
         localStorage.removeItem(REFRESH_TOKEN_KEY);
-        window.location.href = '/login';
+        window.location.href = '/auth';
         return Promise.reject(refreshError);
       }
     }

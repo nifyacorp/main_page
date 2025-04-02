@@ -18,7 +18,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     
     // Only redirect if auth check is complete, user is not authenticated, and we're not already redirecting
     if (!isLoading && !isAuthenticated && !redirectInProgress) {
-      console.log('User not authenticated, redirecting to login');
+      console.log('User not authenticated, redirecting to auth');
       // Set a flag to avoid redirect loops
       localStorage.setItem('auth_redirect_in_progress', 'true');
       // Clear any existing auth tokens that might be invalid
