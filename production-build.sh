@@ -1,4 +1,4 @@
-#!/bin/bash
+#\!/bin/bash
 # Production-optimized build script for React frontend
 
 # Set environment variables
@@ -12,7 +12,7 @@ echo "Starting production build..."
 echo "NODE_ENV: $NODE_ENV"
 
 # Install required Babel dependencies if not present
-if [ ! -d "node_modules/@babel/preset-react" ]; then
+if [ \! -d "node_modules/@babel/preset-react" ]; then
   echo "Installing Babel dependencies..."
   npm install --save-dev @babel/preset-react @babel/plugin-transform-react-jsx terser
 fi
@@ -32,17 +32,21 @@ npx vite build --mode production
 
 # Generate runtime environment script
 echo "Creating runtime environment script..."
-cat > dist/assets/env-config.js << EOF
+mkdir -p dist/assets
+cat > dist/assets/env-config.js << ENVFILE
 // Runtime environment configuration
-window.RUNTIME_CONFIG = {
-  AUTH_SERVICE_URL: "${AUTH_SERVICE_URL:-PLACEHOLDER_AUTH_URL}",
-  BACKEND_SERVICE_URL: "${BACKEND_SERVICE_URL:-PLACEHOLDER_BACKEND_URL}",
+export const RUNTIME_CONFIG = {
+  AUTH_SERVICE_URL: "\${AUTH_SERVICE_URL:-PLACEHOLDER_AUTH_URL}",
+  BACKEND_SERVICE_URL: "\${BACKEND_SERVICE_URL:-PLACEHOLDER_BACKEND_URL}",
   NODE_ENV: "production",
   REACT_APP_ENV: "production",
   USE_NETLIFY_REDIRECTS: false
 };
-console.log('Runtime config loaded:', window.RUNTIME_CONFIG);
-EOF
 
-echo "Production build completed successfully!"
+// Make available globally for backward compatibility
+window.RUNTIME_CONFIG = RUNTIME_CONFIG;
+console.log('Runtime config loaded:', RUNTIME_CONFIG);
+ENVFILE
+
+echo "Production build completed successfully\!"
 echo "Output directory: $(pwd)/dist"
