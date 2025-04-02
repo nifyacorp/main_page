@@ -10,8 +10,8 @@ export BACKEND_SERVICE_URL="${BACKEND_SERVICE_URL:-http://localhost:3000}"
 echo "AUTH_SERVICE_URL=$AUTH_SERVICE_URL"
 echo "BACKEND_SERVICE_URL=$BACKEND_SERVICE_URL"
 
-# Process API configuration template
-envsubst < /etc/nginx/templates/api.conf.template > /etc/nginx/conf.d/api.conf
+# Process the main nginx template
+envsubst '${AUTH_SERVICE_URL} ${BACKEND_SERVICE_URL}' < /etc/nginx/nginx.template > /etc/nginx/nginx.conf
 
 echo "Nginx configuration completed."
 echo "Testing nginx configuration..."

@@ -1,7 +1,7 @@
 #!/bin/bash
 # Test nginx config file syntax
 
-# Check if nginx-api.conf.template has valid syntax after substitution
+# Check if nginx template has valid syntax after substitution
 echo "Testing nginx configuration..."
 
 # Create temporary environment variables
@@ -13,15 +13,22 @@ TEMP_DIR=$(mktemp -d)
 echo "Using temporary directory: $TEMP_DIR"
 
 # Create a temporary test environment
-cp nginx.conf $TEMP_DIR/default.conf
-cp nginx-api.conf.template $TEMP_DIR/api.conf.template
+cp nginx.template $TEMP_DIR/nginx.template
 
 # Process the environment variables
-envsubst < $TEMP_DIR/api.conf.template > $TEMP_DIR/api.conf
+envsubst '${AUTH_SERVICE_URL} ${BACKEND_SERVICE_URL}' < $TEMP_DIR/nginx.template > $TEMP_DIR/nginx.conf
 
 # Show the processed config
 echo "Processed configuration:"
-cat $TEMP_DIR/api.conf
+cat $TEMP_DIR/nginx.conf
+
+# Check if nginx config is valid (if nginx is installed)
+if command -v nginx &> /dev/null; then
+    echo "Validating nginx configuration..."
+    nginx -t -c $TEMP_DIR/nginx.conf
+else
+    echo "Nginx not installed, skipping validation"
+fi
 
 # Clean up
 rm -rf $TEMP_DIR

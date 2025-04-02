@@ -1,17 +1,21 @@
-# Auth service - must be before the more general /api/ location
-location /api/auth/ {
-    proxy_pass ${AUTH_SERVICE_URL}/api/auth/;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-}
-
-# Backend service
-location /api/ {
-    proxy_pass ${BACKEND_SERVICE_URL}/api/;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
+server {
+    listen 8080;
+    
+    # Auth service - must be before the more general /api/ location
+    location /api/auth/ {
+        proxy_pass ${AUTH_SERVICE_URL}/api/auth/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    
+    # Backend service
+    location /api/ {
+        proxy_pass ${BACKEND_SERVICE_URL}/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
 }
