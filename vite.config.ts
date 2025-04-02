@@ -12,7 +12,19 @@ export default defineConfig(({ mode }) => {
   console.log(`🚀 Vite Config: ${mode} mode`);
   
   return {
-    plugins: [react()],
+    plugins: [
+      react({
+        // Use React production mode in production builds
+        jsxRuntime: mode === 'production' ? 'automatic' : 'classic',
+        // Use Babel to ensure proper JSX transformation
+        babel: {
+          presets: ['@babel/preset-react'],
+          plugins: ['@babel/plugin-transform-react-jsx'],
+          babelrc: false,
+          configFile: false,
+        }
+      }),
+    ],
     server: {
       historyApiFallback: true,
       proxy: {
@@ -57,10 +69,32 @@ export default defineConfig(({ mode }) => {
       'process.env.VITE_BACKEND_URL': JSON.stringify(env.VITE_BACKEND_URL || 'http://localhost:3000'),
       'process.env.VITE_SUBSCRIPTION_WORKER': JSON.stringify(env.VITE_SUBSCRIPTION_WORKER || 'http://localhost:5000'),
       'process.env.VITE_ENABLE_LOGGING': JSON.stringify(env.VITE_ENABLE_LOGGING || 'false'),
-      'process.env.VITE_ENV': JSON.stringify(env.VITE_ENV || 'development'),
-      'process.env.NODE_ENV': JSON.stringify(env.NODE_ENV || 'production'),
+      'process.env.VITE_ENV': JSON.stringify(env.VITE_ENV || 'production'),
+      'process.env.NODE_ENV': JSON.stringify(mode === 'production' ? 'production' : 'development'),
       'process.env.VITE_APP_ENV': JSON.stringify(env.VITE_APP_ENV || 'production'),
-      'process.env.VITE_USE_NETLIFY_REDIRECTS': JSON.stringify(env.VITE_USE_NETLIFY_REDIRECTS || 'true')
+      'process.env.VITE_USE_NETLIFY_REDIRECTS': JSON.stringify(env.VITE_USE_NETLIFY_REDIRECTS || 'false'),
+      // Add React production settings explicitly
+      '__VITE_DEV_MODE__': mode !== 'production',
+      'React.jsxDEV': mode !== 'production'
+    },
+    // Make build more robust
+    build: {
+      // Output source maps for easier debugging
+      sourcemap: true,
+      // Add additional minification options
+      minify: 'terser',
+      terserOptions: {
+        compress: {
+          drop_console: false,  // Keep console logs for now
+          drop_debugger: true
+        }
+      },
+      // Avoid empty chunks in production
+      rollupOptions: {
+        output: {
+          manualChunks: undefined
+        }
+      }
     }
   };
 });

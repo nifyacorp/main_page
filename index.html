@@ -2,9 +2,29 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="/nifya-icon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>NIFYA - Notificaciones inteligentes impulsadas por IA</title>
+    
+    <!-- Load runtime environment configuration -->
+    <script src="/assets/env-config.js"></script>
+    
+    <!-- Ensure React is available in production -->
+    <script>
+      // Set production mode explicitly and load runtime config
+      window.process = window.process || {};
+      window.process.env = window.process.env || {};
+      window.process.env.NODE_ENV = 'production';
+      
+      // Apply runtime config if available
+      if (window.RUNTIME_CONFIG) {
+        Object.keys(window.RUNTIME_CONFIG).forEach(function(key) {
+          window.process.env[key] = window.RUNTIME_CONFIG[key];
+        });
+        console.log('Runtime config applied:', window.RUNTIME_CONFIG);
+      }
+    </script>
+    
     <script type="text/javascript">
       // Fix for subscription redirect issue
       (function() {

@@ -10,8 +10,14 @@ RUN npm ci
 # Copy the rest of the application
 COPY . .
 
-# Build the application
-RUN npm run build
+# Copy production build script
+COPY production-build.sh ./
+RUN chmod +x ./production-build.sh
+
+# Build using production script
+ENV NODE_ENV=production
+ENV BABEL_ENV=production
+RUN ./production-build.sh
 
 # Runtime stage
 FROM nginx:alpine

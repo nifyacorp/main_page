@@ -6,9 +6,25 @@ echo "Starting nginx configuration with environment variables..."
 # Default values for environment variables
 export AUTH_SERVICE_URL="${AUTH_SERVICE_URL:-http://localhost:3001}"
 export BACKEND_SERVICE_URL="${BACKEND_SERVICE_URL:-http://localhost:3000}"
+export NODE_ENV="production"
+export REACT_APP_ENV="production"
 
 echo "AUTH_SERVICE_URL=$AUTH_SERVICE_URL"
 echo "BACKEND_SERVICE_URL=$BACKEND_SERVICE_URL"
+echo "NODE_ENV=$NODE_ENV"
+
+# Create runtime environment JS file
+mkdir -p /usr/share/nginx/html/assets
+cat > /usr/share/nginx/html/assets/env-config.js << EOF
+// Runtime environment configuration - updated at container startup
+window.RUNTIME_CONFIG = {
+  AUTH_SERVICE_URL: "${AUTH_SERVICE_URL}",
+  BACKEND_SERVICE_URL: "${BACKEND_SERVICE_URL}",
+  NODE_ENV: "production",
+  REACT_APP_ENV: "production",
+  USE_NETLIFY_REDIRECTS: false
+};
+EOF
 
 # Process the main nginx template
 envsubst '${AUTH_SERVICE_URL} ${BACKEND_SERVICE_URL}' < /etc/nginx/nginx.template > /etc/nginx/nginx.conf

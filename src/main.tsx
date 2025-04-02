@@ -1,9 +1,13 @@
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
+import React, { StrictMode } from 'react';
+import * as ReactDOM from 'react-dom/client';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App.tsx';
 import './index.css';
+
+// Ensure React is available in the global scope for debugging
+window.React = React;
+window.ReactDOM = ReactDOM;
 
 // Create a client
 const queryClient = new QueryClient();
@@ -43,17 +47,19 @@ try {
   }
   
   console.log('Creating React root...');
-  const root = createRoot(rootElement);
+  // Use ReactDOM explicitly to avoid potential issues
+  const root = ReactDOM.createRoot(rootElement);
   
   console.log('Rendering application...');
+  // Use explicit JSX with React
   root.render(
-    <StrictMode>
-      <Router>
-        <QueryClientProvider client={queryClient}>
-          <App />
-        </QueryClientProvider>
-      </Router>
-    </StrictMode>
+    React.createElement(StrictMode, null, 
+      React.createElement(Router, null,
+        React.createElement(QueryClientProvider, { client: queryClient },
+          React.createElement(App, null)
+        )
+      )
+    )
   );
   
   console.log('Application rendered successfully');
