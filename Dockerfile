@@ -16,14 +16,28 @@ RUN npm run build
 # Runtime stage
 FROM nginx:alpine
 
+# Install gettext for envsubst
+RUN apk add --no-cache gettext
+
 # Copy the built app to nginx server
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Create nginx template directory if it doesn't exist
+RUN mkdir -p /etc/nginx/templates
+
+# Copy nginx configuration as a template
+COPY nginx.conf /etc/nginx/templates/default.conf.template
+
+# Create entrypoint script
+RUN echo '#!/bin/sh\n\
+# Substitute environment variables in nginx config\n\
+envsubst < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf\n\
+# Start nginx\n\
+exec nginx -g "daemon off;"' > /docker-entrypoint.sh && \
+chmod +x /docker-entrypoint.sh
 
 # Expose port
 EXPOSE 8080
 
 # Command to run the container
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["/docker-entrypoint.sh"]
