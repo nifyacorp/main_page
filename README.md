@@ -1,407 +1,249 @@
-# NIFYA - Notificaciones Inteligentes con IA
+# NIFYA Frontend
 
 ![NIFYA](https://ik.imagekit.io/appraisily/NYFIA/logo.png)
 
-NIFYA es una plataforma moderna que utiliza inteligencia artificial para proporcionar notificaciones personalizadas sobre información relevante del BOE, mercado inmobiliario y más.
+NIFYA is a modern platform that leverages artificial intelligence to provide personalized notifications about relevant information from BOE, real estate market, and more.
 
-## 🌟 Características Principales
+## 🌟 Key Features
 
-### 📰 Vigilancia del BOE
-- Monitorización automática de publicaciones oficiales
-- Filtrado inteligente basado en tus intereses
-- Notificaciones inmediatas sobre subvenciones, oposiciones y oportunidades
-- Múltiples prompts por suscripción (hasta 3)
-- Frecuencia de notificaciones configurable (inmediata o diaria)
+- **📰 BOE Monitoring**: Automated monitoring of official publications with intelligent filtering based on your interests
+- **🏠 Real Estate Alerts**: Track Idealista and Fotocasa with customized filters and real-time alerts
+- **🧠 Adaptive AI**: Learning system that improves with use and refines search criteria automatically
+- **📊 Comprehensive Dashboard**: Overview of all active subscriptions and recent notifications
+- **📱 Responsive Design**: Interface adaptable to all devices with optimized mobile navigation
 
-### 🏠 Alertas Inmobiliarias
-- Seguimiento de Idealista y Fotocasa
-- Filtros personalizados por precio, ubicación y características
-- Alertas en tiempo real sobre nuevas propiedades
-- Soporte para múltiples búsquedas simultáneas
-- Notificaciones personalizables por frecuencia
+## 🛠️ Technology Stack
 
-### 🧠 IA Adaptativa
-- Sistema de aprendizaje que mejora con el uso
-- Refinamiento automático de criterios de búsqueda
-- Reducción de falsos positivos
-- Personalización por usuario
-- Análisis de patrones de interés
+- **Frontend Framework**: React 18 with TypeScript
+- **Build Tool**: Vite
+- **State Management**: React Context API and React Query
+- **Styling**: TailwindCSS
+- **Routing**: React Router v6
+- **HTTP Client**: Axios
+- **Real-time Updates**: Socket.IO
+- **Testing**: Vitest (in progress)
 
-## 💡 Funcionalidades Detalladas
-
-### 🔐 Autenticación y Seguridad
-- Sistema de registro y login
-- Protección de rutas para usuarios autenticados
-- Gestión de sesiones
-- Cierre de sesión en todos los dispositivos
-- Cambio de contraseña
-- Integración con Google OAuth
-
-### 📊 Panel de Control
-- Vista general de todas las suscripciones activas
-- Estadísticas de alertas recibidas
-- Actividad reciente
-- Acceso rápido a funciones principales
-- Métricas de rendimiento
-
-### ✨ Gestión de Suscripciones
-- Catálogo de tipos de suscripción
-- Creación de suscripciones personalizadas
-- Hasta 3 prompts por suscripción
-- Activación/desactivación de suscripciones
-- Eliminación de suscripciones
-- Plantillas predefinidas
-
-### 🔧 Configuración y Preferencias
-- Tema claro/oscuro
-- Configuración de notificaciones por email
-- Selección de idioma (Español, English, Català)
-- Gestión de email de notificaciones
-- Preferencias de seguridad
-- Personalización del perfil
-
-### 📱 Diseño Responsivo
-- Interfaz adaptativa para todos los dispositivos
-- Navegación optimizada para móvil
-- Diseño moderno y minimalista
-- Transiciones y animaciones suaves
-- Feedback visual interactivo
-
-## 🛠️ Stack Tecnológico
-
-### Frontend
-- React 18 con TypeScript
-- Vite para desarrollo y construcción
-- React Router para navegación
-- TailwindCSS para estilos
-- Lucide Icons para iconografía
-
-### Diseño y UX
-- Sistema de diseño personalizado
-- Tema claro/oscuro
-- Componentes reutilizables
-- Diseño responsive
-- Animaciones y transiciones
-
-### Seguridad
-- Autenticación JWT
-- Refresh tokens
-- Protección de rutas
-- Validación de formularios
-- Sanitización de datos
-
-### API y Backend
-- API RESTful
-- Endpoints versionados
-- Manejo de errores estandarizado
-- Rate limiting
-- Caché de respuestas
-
-## 📂 Estructura del Proyecto
+## 📂 Project Structure
 
 ```
 frontend/
-├── src/                        # Código fuente
-│   ├── components/             # Componentes reutilizables
-│   │   ├── ui/                 # Componentes de interfaz base
-│   │   ├── notifications/      # Componentes relacionados con notificaciones
-│   │   └── settings/           # Componentes de configuración
-│   ├── pages/                  # Páginas de la aplicación
-│   │   ├── Auth.tsx            # Página de autenticación
-│   │   ├── Dashboard.tsx       # Panel principal
-│   │   ├── Landing.tsx         # Página de inicio (no autenticada)
-│   │   ├── Notifications.tsx   # Página de notificaciones
-│   │   ├── Settings.tsx        # Página de configuración
-│   │   ├── Subscriptions.tsx   # Página de suscripciones
-│   │   └── ...                 # Otras páginas
-│   ├── contexts/               # Contextos de React
-│   ├── lib/                    # Utilidades y funciones auxiliares
-│   ├── App.tsx                 # Componente principal y enrutamiento
-│   ├── main.tsx                # Punto de entrada de la aplicación
-│   └── index.css               # Estilos globales
-├── public/                     # Archivos estáticos
-├── dist/                       # Directorio de compilación (generado)
-├── .env                        # Variables de entorno
-├── index.html                  # HTML principal
-├── package.json                # Dependencias y scripts
-├── tsconfig.json               # Configuración de TypeScript
-└── vite.config.ts              # Configuración de Vite
+├── src/                        # Source code
+│   ├── components/             # Reusable components
+│   │   ├── ui/                 # Base UI components
+│   │   ├── notifications/      # Notification components
+│   │   └── settings/           # Settings components
+│   ├── contexts/               # React contexts
+│   │   ├── AuthContext.tsx     # Authentication state management
+│   │   └── NotificationContext.tsx # Notification state management
+│   ├── hooks/                  # Custom React hooks
+│   │   ├── use-auth.ts         # Authentication hook
+│   │   ├── use-notifications.ts # Notifications hook
+│   │   └── use-subscriptions.ts # Subscription management hook
+│   ├── lib/                    # Utilities and helpers
+│   │   ├── api/                # API services and types
+│   │   └── utils/              # Utility functions
+│   ├── pages/                  # Page components
+│   ├── App.tsx                 # Main app component
+│   └── main.tsx                # Entry point
+├── public/                     # Static assets
+└── dist/                       # Build output (generated)
 ```
 
-## 🚀 Inicio Rápido
+## ✨ Core Components and Functions
 
-### Requisitos Previos
-- Node.js 18+
-- npm 9+
-- Navegador moderno con soporte para ES2020+
+### Authentication
 
-### Instalación
+#### `src/contexts/AuthContext.tsx`
+Provides authentication state and methods across the application.
 
-1. Clona el repositorio:
-```bash
-git clone https://github.com/tu-usuario/nifya.git
+```typescript
+// Key exported values:
+interface AuthContextType {
+  isAuthenticated: boolean;
+  user: User | null;
+  token: string | null;
+  login: (email: string, password: string) => Promise<User>;
+  logout: () => void;
+  signup: (email: string, password: string, name: string) => Promise<User>;
+  isLoading: boolean;
+  error: string | null;
+}
 ```
 
-2. Instala las dependencias:
-```bash
-cd nifya
-npm install
+#### `src/hooks/use-auth.ts`
+Custom hook for consuming the auth context.
+
+```typescript
+// Usage:
+const { 
+  isAuthenticated, 
+  user, 
+  login, 
+  logout 
+} = useAuth();
 ```
 
-3. Configura las variables de entorno:
-Crea un archivo `.env` en la raíz del proyecto:
-```env
-VITE_AUTH_URL=https://authentication-service.example.com
-VITE_BACKEND_URL=https://backend.example.com
-VITE_SUBSCRIPTION_WORKER=https://subscription-worker.example.com
-VITE_ENV=development
-VITE_ENABLE_LOGGING=true
-```
+### Subscriptions
 
-4. Inicia el servidor de desarrollo:
-```bash
-npm run dev
-```
+#### `src/lib/api/services/subscriptions.ts`
+API service for subscription management.
 
-## 📦 Scripts Disponibles
-
-- `npm run dev` - Inicia el servidor de desarrollo
-- `npm run build` - Construye la aplicación para producción
-- `npm run preview` - Previsualiza la versión de producción
-- `npm run lint` - Ejecuta el linter
-
-## 🔄 Integración con Microservicios
-
-La aplicación frontend se integra con varios microservicios del ecosistema NIFYA:
-
-### Servicio de Autenticación
-- Endpoint base: `VITE_AUTH_URL`
-- Gestiona:
-  - Registro de usuarios
-  - Inicio de sesión
-  - Autenticación OAuth con Google
-  - Gestión de tokens
-  - Recuperación de contraseñas
-
-### Backend API (Orchestration Service)
-- Endpoint base: `VITE_BACKEND_URL`
-- Proporciona:
-  - Gestión de suscripciones
-  - Consulta de notificaciones
-  - Configuración de perfil de usuario
-  - Plantillas de suscripción
-  - Estado de procesamiento
-
-### Subscription Worker
-- Endpoint base: `VITE_SUBSCRIPTION_WORKER`
-- Se utiliza para:
-  - Verificación del estado de las suscripciones
-  - Diagnósticos de procesamiento
-
-## 🔒 Autenticación y Seguridad
-
-### Flujo de Autenticación
-1. El usuario se autentica a través del servicio de autenticación
-2. Se recibe un JWT token y se almacena en localStorage
-3. Cada solicitud a la API incluye el token en la cabecera de autorización
-4. Los tokens caducados se refrescan automáticamente
-5. Las rutas protegidas redirigen a los usuarios no autenticados
-
-### Cabeceras de API
-```javascript
-const headers = {
-  'Authorization': `Bearer ${token}`,
-  'X-User-ID': userId,
-  'Content-Type': 'application/json'
+```typescript
+// Main functions:
+const subscriptionsService = {
+  // Get all user subscriptions
+  getSubscriptions: async () => {...},
+  
+  // Get subscription details
+  getSubscription: async (id: string) => {...},
+  
+  // Create new subscription
+  createSubscription: async (data: CreateSubscriptionDto) => {...},
+  
+  // Update subscription
+  updateSubscription: async (id: string, data: UpdateSubscriptionDto) => {...},
+  
+  // Delete subscription
+  deleteSubscription: async (id: string) => {...},
+  
+  // Process subscription
+  processSubscription: async (id: string) => {...}
 };
 ```
 
-### Protección de Rutas
-El componente `ProtectedRoute` asegura que solo los usuarios autenticados puedan acceder a rutas como:
-- `/dashboard`
-- `/subscriptions`
-- `/notifications`
-- `/settings`
+#### `src/hooks/use-subscriptions.ts`
+Hook for subscription operations.
 
-## 🎨 Personalización
-
-### Temas
-El sistema de temas está implementado usando variables CSS y Tailwind:
-- Modo claro/oscuro automático
-- Colores personalizables
-- Bordes y sombras consistentes
-- Espaciado y tipografía unificados
-
-### Componentes
-Los componentes principales incluyen:
-- Layout de dashboard
-- Tarjetas de suscripción
-- Formularios interactivos
-- Modales y diálogos
-- Componentes de navegación
-
-## 📱 Responsive Design
-
-La aplicación está completamente optimizada para diferentes tamaños de pantalla:
-- Mobile first
-- Breakpoints personalizados
-- Layouts adaptativos
-- Navegación responsiva
-- Optimización de rendimiento
-
-## 🚀 Despliegue
-
-### Preparación para Producción
-
-1. Actualiza las variables de entorno para producción en `.env.production`:
-```
-VITE_AUTH_URL=https://authentication-service-production.example.com
-VITE_BACKEND_URL=https://backend-production.example.com
-VITE_SUBSCRIPTION_WORKER=https://subscription-worker-production.example.com
-VITE_ENV=production
-VITE_ENABLE_LOGGING=false
+```typescript
+// Usage:
+const {
+  subscriptions,
+  isLoading,
+  error,
+  createSubscription,
+  updateSubscription,
+  deleteSubscription,
+  processSubscription
+} = useSubscriptions();
 ```
 
-2. Construye la aplicación:
-```bash
-npm run build
+#### `src/hooks/use-subscriptions-enhanced.ts`
+Enhanced subscription hook with additional functionality.
+
+```typescript
+// Returns additional data:
+interface EnhancedSubscriptionHook {
+  subscriptions: Subscription[];
+  isLoading: boolean;
+  error: Error | null;
+  createSubscription: (data: CreateSubscriptionDto) => Promise<Subscription>;
+  updateSubscription: (id: string, data: UpdateSubscriptionDto) => Promise<Subscription>;
+  deleteSubscription: (id: string) => Promise<void>;
+  processSubscription: (id: string) => Promise<ProcessingResult>;
+  subscriptionsByType: Record<string, Subscription[]>;
+  activeSubscriptions: Subscription[];
+  pendingSubscriptions: Subscription[];
+  processingSubscriptions: Subscription[];
+  getSubscriptionStatus: (id: string) => SubscriptionStatus;
+}
 ```
 
-3. Previsualiza la versión de producción:
-```bash
-npm run preview
+### Notifications
+
+#### `src/lib/api/services/notifications.ts`
+API service for notifications.
+
+```typescript
+// Main functions:
+const notificationsService = {
+  // Get all notifications
+  getNotifications: async (params?: NotificationQueryParams) => {...},
+  
+  // Mark notification as read
+  markAsRead: async (id: string) => {...},
+  
+  // Mark all notifications as read
+  markAllAsRead: async () => {...},
+  
+  // Delete notification
+  deleteNotification: async (id: string) => {...}
+};
 ```
 
-### Despliegue en Netlify
+#### `src/hooks/use-notifications.ts`
+Hook for notification operations.
 
-1. Conecta tu repositorio a Netlify
-2. Configura las variables de entorno en la configuración del sitio
-3. Especifica el comando de construcción como `npm run build`
-4. Establece el directorio de publicación como `dist`
-5. Configura redirecciones para SPA:
-
-Crea un archivo `_redirects` o `netlify.toml`:
-```
-/*  /index.html  200
-```
-
-### Optimizaciones de Producción
-
-- Code-splitting para carga más rápida
-- Assets comprimidos y minificados
-- Caché de respuestas HTTP
-- Lazy-loading de componentes
-- Precarga de rutas frecuentes
-
-## 📊 Analítica y Monitorización
-
-### Logging del Cliente
-- Entorno de desarrollo: logs detallados en consola
-- Entorno de producción: logs críticos enviados al backend
-- Agrupación de errores para diagnóstico
-- Captura de excepciones no controladas
-
-### Monitorización de Rendimiento
-- Métricas de tiempo de carga
-- Análisis de rendering
-- Seguimiento de interacciones de usuario
-- Diagnóstico de problemas de red
-
-## 🐞 Depuración y Resolución de Problemas
-
-### Problemas Comunes
-
-#### Problemas de Autenticación
-- Verifica que las URLs de los servicios sean correctas
-- Comprueba el almacenamiento local para tokens
-- Asegúrate de que el token no haya expirado
-- Revisa los logs del cliente para errores HTTP 401/403
-
-#### Problemas de Carga de Datos
-- Verifica la conexión de red
-- Asegúrate de que las APIs estén disponibles
-- Revisa las cabeceras de las solicitudes
-- Comprueba si hay limitaciones de rate-limiting
-
-#### Problemas de UI/UX
-- Prueba en diferentes navegadores
-- Verifica la compatibilidad con dispositivos móviles
-- Revisa las versiones de las dependencias
-- Comprueba si hay conflictos de CSS
-
-## 🧪 Testing
-
-### Testing Manual
-1. Verifica el flujo de autenticación
-2. Prueba la creación, edición y eliminación de suscripciones
-3. Comprueba la visualización y gestión de notificaciones
-4. Verifica la navegación y cambios de ruta
-5. Prueba con diferentes tamaños de pantalla
-
-### Testing Automatizado
-```bash
-# Ejecutar tests unitarios
-npm run test:unit
-
-# Ejecutar tests de integración
-npm run test:integration
-
-# Ejecutar todos los tests
-npm run test
+```typescript
+// Usage:
+const {
+  notifications,
+  isLoading,
+  error,
+  unreadCount,
+  markAsRead,
+  markAllAsRead,
+  deleteNotification
+} = useNotifications();
 ```
 
-## 🔄 Workflow de Desarrollo
+### WebSocket Connection
 
-### Estándares de Código
-- Utiliza ESLint para el linting
-- Sigue las prácticas de TypeScript
-- Mantén los componentes pequeños y reutilizables
-- Documenta las funciones y componentes complejos
-- Utiliza nombres descriptivos para variables y funciones
+#### `src/lib/api/websocket.ts`
+Manages real-time connections for notifications.
 
-### Proceso de Contribución
-1. Crea una rama para tu funcionalidad (`feature/nueva-funcionalidad`)
-2. Desarrolla y prueba tu código
-3. Asegúrate de que pasa los linters y tests
-4. Crea un Pull Request con una descripción detallada
-5. Solicita revisión de código
-6. Implementa los cambios solicitados
-7. Fusiona con la rama principal tras la aprobación
+```typescript
+// Main functions:
+export const socketService = {
+  // Connect to notification socket
+  connect: (token: string) => {...},
+  
+  // Disconnect socket
+  disconnect: () => {...},
+  
+  // Subscribe to notification events
+  onNotification: (callback: (notification: Notification) => void) => {...},
+  
+  // Handle processing status updates
+  onProcessingUpdate: (callback: (update: ProcessingUpdate) => void) => {...}
+};
+```
 
-## 📋 Versiones y Actualizaciones
+### Form Components
 
-### v1.0.0 (Marzo 2025)
-- Lanzamiento inicial
-- Funcionalidades básicas de notificaciones y suscripciones
-- Integración con servicios de backend
-- Soporte para autenticación JWT
+#### `src/components/subscriptions/SubscriptionForm.tsx`
+Reusable form for creating and editing subscriptions.
 
-### v0.9.0 (Febrero 2025)
-- Versión beta con funcionalidades principales
-- Interfaz de usuario mejorada
-- Soporte para múltiples idiomas
-- Optimizaciones de rendimiento
+```typescript
+// Props:
+interface SubscriptionFormProps {
+  initialValues?: Partial<CreateSubscriptionDto>;
+  onSubmit: (values: CreateSubscriptionDto) => Promise<void>;
+  isEdit?: boolean;
+  subscriptionTypes?: SubscriptionType[];
+}
+```
 
-## 📧 Contacto y Soporte
+#### `src/components/ui/button.tsx`
+Core button component with multiple variants.
 
-Para preguntas, sugerencias o problemas:
-- Email: soporte@nifya.com
-- GitHub: [Reportar un problema](https://github.com/tu-usuario/nifya/issues)
+```typescript
+// Variants:
+type ButtonVariant = 
+  | "default"
+  | "destructive"
+  | "outline"
+  | "secondary"
+  | "ghost"
+  | "link";
 
-## 🤝 Agradecimientos
+// Sizes:
+type ButtonSize = "default" | "sm" | "lg" | "icon";
+```
 
-- [React](https://reactjs.org/)
-- [Vite](https://vitejs.dev/)
-- [TailwindCSS](https://tailwindcss.com/)
-- [Lucide Icons](https://lucide.dev/)
+## 🚀 Development Guide
 
----
+### Installation
 
-Desarrollado con ❤️ por el equipo de NIFYA
-
-## 🧰 Development
-
-### Standard Development Mode
 ```bash
 # Install dependencies
 npm install
@@ -410,114 +252,127 @@ npm install
 npm run dev
 ```
 
-### Hybrid Development Mode
-The hybrid development mode allows you to run the frontend locally while connecting to production backend services. This is useful for testing frontend changes against real data.
+### Available Scripts
 
-```bash
-# Run frontend with connections to production services
-npm run hybrid
-# Or for WSL environments:
-npm run hybrid:wsl
-```
+- `npm run dev` - Start development server
+- `npm run hybrid` - Run with connections to production services but local frontend
+- `npm run hybrid:wsl` - Hybrid mode for WSL environments
+- `npm run build` - Build for production
+- `npm run build:netlify` - Build specifically for Netlify
+- `npm run lint` - Run ESLint
+- `npm run type-check` - Run TypeScript type checking
 
 ### Environment Configuration
-The application supports different environment configurations:
 
-1. **Local Development** (.env.local)
-   - Local frontend with local backend services
-   - Full debugging enabled
-   - All services running on localhost
+Create a `.env` file in the project root:
 
-2. **Hybrid Development** (created by hybrid-dev.sh)
-   - Local frontend with production backend services
-   - Enhanced debugging and logging
-   - Uses proxy configuration for API requests
+```env
+# Authentication Service URL
+VITE_AUTH_URL=http://localhost:4000
 
-3. **Production** (.env.production)
-   - Production build for deployment
-   - Optimized for performance
-   - Minimal logging and debugging
+# Backend API URL
+VITE_BACKEND_URL=http://localhost:3000
 
-### Debugging Tools
+# Subscription Worker URL
+VITE_SUBSCRIPTION_WORKER=http://localhost:5000
 
-The application includes built-in debugging tools accessible at `/debug` in development mode. This provides:
+# Enable detailed logging
+VITE_ENABLE_LOGGING=true
 
-- API connectivity testing
-- Environment variable inspection
-- Data comparison between standard and enhanced hooks
-- System diagnostics
-- Network request monitoring
+# Environment type
+VITE_ENV=development
+VITE_APP_ENV=development
 
-To access the debug page:
-1. Start the app in development mode (`npm run dev` or `npm run hybrid`)
-2. Navigate to `http://localhost:5173/debug` (or your configured port)
-
-## 🏗️ Building for Production
-
-### Local Production Build
-```bash
-npm run build
+# Use Netlify redirects (set to false for local development)
+VITE_USE_NETLIFY_REDIRECTS=false
 ```
 
-### Netlify Deployment Build
+### Docker Deployment
+
+The application includes a Dockerfile for containerized deployment:
+
 ```bash
-npm run build:netlify
+# Build the Docker image
+docker build -t nifya-frontend .
+
+# Run the container
+docker run -p 8080:8080 \
+  -e AUTH_SERVICE_URL=https://authentication-service-415554190254.us-central1.run.app \
+  -e BACKEND_SERVICE_URL=https://backend-415554190254.us-central1.run.app \
+  nifya-frontend
 ```
 
-### Local Preview of Production Build
+### Cloud Run Deployment
+
+For Google Cloud Run deployment:
+
 ```bash
-npm run preview
+# Build and deploy to Cloud Run
+gcloud builds submit --tag gcr.io/PROJECT_ID/nifya-frontend
+gcloud run deploy nifya-frontend \
+  --image gcr.io/PROJECT_ID/nifya-frontend \
+  --platform managed \
+  --allow-unauthenticated \
+  --set-env-vars="AUTH_SERVICE_URL=https://authentication-service-415554190254.us-central1.run.app,BACKEND_SERVICE_URL=https://backend-415554190254.us-central1.run.app"
 ```
-
-## 🚀 Netlify Deployment Notes
-
-If you encounter build issues on Netlify:
-
-1. The project is configured to use the `build:netlify` script which bypasses certain checks
-2. Environment variables are set in the `netlify.toml` file and Netlify UI
-3. All redirects are configured to point to index.html for SPA routing
-4. Set `NODE_ENV=production` for the optimal production build
 
 ## 🔍 Troubleshooting
 
-### Common Build Issues
+### CORS Issues
 
-- **JSX Transformation Errors**: Ensure `NODE_ENV=development` is set for development builds
-- **ESLint Errors**: The build may show linting errors but should still complete if using the Netlify build command
-- **TypeScript Errors**: Make sure to address any TypeScript errors before deploying
-- **Environment Variables**: If your app requires specific environment variables, add them to the `[build.environment]` section in `netlify.toml`
+When encountering CORS errors:
+- Verify that backend services have correct CORS configuration
+- Check that environment URLs are properly set in `.env`
+- Ensure authentication headers are formatted correctly
 
-### API Connection Issues
+### Auth Token Issues
 
-- **CORS Errors**: Check that the API endpoints support cross-origin requests from your frontend
-- **Authentication Failures**: Verify that tokens are being correctly stored and sent with requests
-- **Network Errors**: Use the debug page to test API connectivity and inspect request/response details
+If authentication fails:
+- Verify token storage and retrieval
+- Check token expiration
+- Ensure correct headers are included in requests
+- Verify user synchronization between auth and backend services
 
-### Development Environment Setup
+### API Connection Problems
 
-1. For local backend development:
-   ```
-   VITE_AUTH_URL=http://localhost:4000
-   VITE_BACKEND_URL=http://localhost:3000
-   VITE_SUBSCRIPTION_WORKER=http://localhost:5000
-   NODE_ENV=development
-   ```
+When API requests fail:
+- Check network connectivity
+- Verify environment variables are correctly set
+- Confirm that backend services are running
+- Check browser console for detailed error messages
 
-2. For production backend with local frontend:
-   ```
-   VITE_AUTH_URL=https://authentication-service-415554190254.us-central1.run.app
-   VITE_BACKEND_URL=https://backend-415554190254.us-central1.run.app
-   VITE_USE_NETLIFY_REDIRECTS=false
-   NODE_ENV=development
-   VITE_ENV=development
-   ```
+## 🧪 Testing
 
-## 📁 Project Structure
+For manual testing, use the built-in debugging tools:
 
-- `src/components` - Reusable UI components
-- `src/components/ui` - Base UI components (buttons, cards, etc.)
-- `src/contexts` - React contexts for state management
-- `src/hooks` - Custom React hooks for shared logic
-- `src/lib` - Utility functions and API services
-- `src/pages` - Page components and routes
-- `src/services` - Service layer for API interactions
+```bash
+# Start in development mode
+npm run dev
+
+# Access the debug page
+# Navigate to: http://localhost:5173/debug
+```
+
+For API testing, consider using the testing tools from `/testing-tools` directory in the project root.
+
+## 📋 Recent Updates
+
+### User Synchronization
+
+Recent changes include improved user synchronization between the authentication service and backend database:
+
+- Users authenticated with valid JWT tokens are now automatically created in the backend database if they don't exist
+- This fixes foreign key constraint errors when creating subscriptions for users that exist in auth but not in backend
+- CORS configuration has been updated to allow connections from all Cloud Run domains
+
+## 🤝 Contributing
+
+When contributing to this codebase:
+1. Follow the existing code style and architecture
+2. Maintain TypeScript type safety
+3. Add appropriate documentation for new features
+4. Test all changes thoroughly before submitting
+
+---
+
+Developed with ❤️ by the NIFYA Team
