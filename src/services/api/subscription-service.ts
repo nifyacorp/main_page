@@ -184,10 +184,9 @@ class SubscriptionService {
       // Different API response formats handling:
       // 1. Format: { data: { subscriptions: [], pagination: {} } }
       if (response.data && response.data.data && Array.isArray(response.data.data.subscriptions)) {
-        // Check if we got empty results but user profile shows subscriptions exist
+        // Just log the issue but don't create mock data
         if (userHasSubscriptionsInProfile && response.data.data.subscriptions.length === 0) {
-          console.log('API returned empty subscriptions despite user profile showing subscriptions exist. Trying stats fallback.');
-          return await this.createMockSubscriptionsFromStats();
+          console.log('API returned empty subscriptions despite user profile showing subscriptions exist.');
         }
         
         return {
@@ -201,10 +200,9 @@ class SubscriptionService {
       
       // 2. Format: { data: { data: [], pagination: {} } }
       if (response.data && response.data.data && Array.isArray(response.data.data.data)) {
-        // Check if we got empty results but user profile shows subscriptions exist
+        // Just log the issue but don't create mock data
         if (userHasSubscriptionsInProfile && response.data.data.data.length === 0) {
-          console.log('API returned empty subscriptions despite user profile showing subscriptions exist. Trying stats fallback.');
-          return await this.createMockSubscriptionsFromStats();
+          console.log('API returned empty subscriptions despite user profile showing subscriptions exist.');
         }
         
         return {
@@ -219,10 +217,9 @@ class SubscriptionService {
       // 3. Format: { data: [], pagination: {} } or { status: 'success', data: [], pagination: {} }
       if (response.data) {
         if (Array.isArray(response.data.data)) {
-          // Check if we got empty results but user profile shows subscriptions exist
+          // Just log the issue but don't create mock data
           if (userHasSubscriptionsInProfile && response.data.data.length === 0) {
-            console.log('API returned empty subscriptions despite user profile showing subscriptions exist. Trying stats fallback.');
-            return await this.createMockSubscriptionsFromStats();
+            console.log('API returned empty subscriptions despite user profile showing subscriptions exist.');
           }
           
           // Direct data array

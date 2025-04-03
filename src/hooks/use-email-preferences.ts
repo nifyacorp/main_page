@@ -31,7 +31,8 @@ export function useEmailPreferences() {
 
     try {
       // API path that's compatible with our backend's forwarding mechanism
-      const response = await API.get('/v1/me/email-preferences', { headers: authHeaders() });
+      const headers = typeof authHeaders === 'function' ? authHeaders() : authHeaders;
+      const response = await API.get('/v1/me/email-preferences', { headers });
       
       return response.data;
     } catch (err) {
@@ -58,10 +59,11 @@ export function useEmailPreferences() {
 
     try {
       // API path that's compatible with our backend's forwarding mechanism
+      const headers = typeof authHeaders === 'function' ? authHeaders() : authHeaders;
       const response = await API.patch(
         '/v1/me/email-preferences',
         data,
-        { headers: authHeaders() }
+        { headers }
       );
       
       return response.data;
@@ -81,10 +83,11 @@ export function useEmailPreferences() {
 
     try {
       // API path that's compatible with our backend's forwarding mechanism
+      const headers = typeof authHeaders === 'function' ? authHeaders() : authHeaders;
       const response = await API.post(
         '/v1/me/test-email',
         { email },
-        { headers: authHeaders() }
+        { headers }
       );
       
       return response.data;
