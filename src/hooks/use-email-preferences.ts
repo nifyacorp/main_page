@@ -30,7 +30,8 @@ export function useEmailPreferences() {
     setError(null);
 
     try {
-      const response = await API.get('/v1/me/email-preferences', { headers: authHeaders() });
+      // Correct path for email preferences in the backend
+      const response = await API.get('/v1/users/me/email-preferences', { headers: authHeaders() });
       
       return response.data;
     } catch (err) {
@@ -56,8 +57,9 @@ export function useEmailPreferences() {
     setError(null);
 
     try {
+      // Fix the endpoint path to match backend route registration
       const response = await API.patch(
-        '/v1/me/email-preferences',
+        '/v1/users/me/email-preferences',
         data,
         { headers: authHeaders() }
       );
@@ -78,8 +80,9 @@ export function useEmailPreferences() {
     setError(null);
 
     try {
+      // Fix the endpoint path to match backend route registration
       const response = await API.post(
-        '/v1/me/test-email',
+        '/v1/users/me/test-email',
         { email },
         { headers: authHeaders() }
       );
