@@ -88,7 +88,7 @@ export default function Subscriptions() {
     return () => {
       isMounted = false;
     };
-  }, []); // Empty dependency array - only run once on mount
+  }, [getEmailPreferences]); // Include getEmailPreferences in dependencies
 
   // Add debugging logs and perform blacklist cleanup
   useEffect(() => {
@@ -245,9 +245,12 @@ export default function Subscriptions() {
       // Force a full refetch to ensure UI is synchronized with server
       try {
         console.log(`Refetching subscriptions after deletion`);
-        refetchSubscriptions();
+        // Use Promise-based refetch call to handle potential failures
+        refetchSubscriptions().catch(error => {
+          console.error(`Error refetching after deletion:`, error);
+        });
       } catch (refetchError) {
-        console.error(`Error refetching after deletion:`, refetchError);
+        console.error(`Error calling refetchSubscriptions:`, refetchError);
       }
     }
   };
