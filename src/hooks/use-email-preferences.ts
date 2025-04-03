@@ -30,7 +30,7 @@ export function useEmailPreferences() {
     setError(null);
 
     try {
-      const response = await API.get('/v1/users/me/email-preferences', { headers: authHeaders() });
+      const response = await API.get('/v1/me/email-preferences', { headers: authHeaders() });
       
       return response.data;
     } catch (err) {
@@ -57,7 +57,7 @@ export function useEmailPreferences() {
 
     try {
       const response = await API.patch(
-        '/v1/users/me/email-preferences',
+        '/v1/me/email-preferences',
         data,
         { headers: authHeaders() }
       );
@@ -79,7 +79,7 @@ export function useEmailPreferences() {
 
     try {
       const response = await API.post(
-        '/v1/users/me/test-email',
+        '/v1/me/test-email',
         { email },
         { headers: authHeaders() }
       );
