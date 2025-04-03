@@ -6,7 +6,6 @@ import {
   enhanceNotifications, 
   enhanceNotification 
 } from '../lib/api/services/notifications';
-import socketClient from '../lib/api/websocket';
 
 interface NotificationContextType {
   unreadCount: number;
@@ -163,18 +162,13 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     }
   };
 
-  // Handler for real-time notifications
+  // This project doesn't use WebSockets, so this function is no longer needed
+  // Keeping a simplified version for potential future use
   const handleRealtimeNotification = useCallback((notification: Notification) => {
-    console.log('Received real-time notification:', notification);
-    
-    // Update unread count when a new notification is received
-    setUnreadCount(prevCount => prevCount + 1);
-    
-    // You could also update the notifications array if it's displayed
-    // setNotifications(prev => [enhanceNotification(notification), ...prev]);
+    console.log('Real-time notifications are not supported');
   }, []);
   
-  // Initialize WebSocket connection and listeners
+  // Initialize notifications
   useEffect(() => {
     // Check auth status before fetching notifications
     const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
@@ -187,7 +181,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     
     console.log('User authenticated, setting up notifications');
     
-    // First get the initial unread count
+    // Fetch the initial unread count
     const fetchUnreadCount = async () => {
       try {
         await refreshUnreadCount();
@@ -199,34 +193,16 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     
     fetchUnreadCount();
     
-    // Initialize WebSocket connection
-    try {
-      socketClient.connect();
-      
-      // Set up notification listener
-      socketClient.on('notification', handleRealtimeNotification);
-      
-      // Reconnect websocket on auth token change
-      const handleStorageChange = (e: StorageEvent) => {
-        if (e.key === 'accessToken' && e.newValue) {
-          console.log('Access token changed, reconnecting WebSocket');
-          socketClient.connect(e.newValue);
-        }
-      };
-      
-      window.addEventListener('storage', handleStorageChange);
-      
-      // Cleanup
-      return () => {
-        socketClient.off('notification', handleRealtimeNotification);
-        socketClient.disconnect();
-        window.removeEventListener('storage', handleStorageChange);
-      };
-    } catch (error) {
-      console.error('Error setting up notification system:', error);
-      // Don't throw to prevent component from breaking
-    }
-  }, [handleRealtimeNotification]);
+    // Set up a polling interval to check for new notifications periodically
+    const pollingInterval = setInterval(() => {
+      fetchUnreadCount();
+    }, 30000); // Check every 30 seconds
+    
+    // Cleanup
+    return () => {
+      clearInterval(pollingInterval);
+    };
+  }, []);
 
   return (
     <NotificationContext.Provider

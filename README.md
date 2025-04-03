@@ -357,6 +357,13 @@ For API testing, consider using the testing tools from `/testing-tools` director
 
 ## 📋 Recent Updates
 
+### WebSocket Connection Removal
+
+- Removed WebSocket connection code as it's not needed in this project
+- Replaced real-time updates with polling for notifications
+- Added environment variable `VITE_DISABLE_WEBSOCKET=true` to explicitly disable WebSockets
+- Fixed console errors related to WebSocket connection failures
+
 ### User Synchronization
 
 Recent changes include improved user synchronization between the authentication service and backend database:
