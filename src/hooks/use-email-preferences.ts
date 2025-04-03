@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { backendClientWithMethods as API } from '@/lib/api/clients/backend';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -24,14 +24,14 @@ export function useEmailPreferences() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  // Get email preferences
-  const getEmailPreferences = async (): Promise<EmailPreference> => {
+  // Get email preferences (memoized to prevent infinite loops)
+  const getEmailPreferences = useCallback(async (): Promise<EmailPreference> => {
     setIsLoading(true);
     setError(null);
 
     try {
-      // Correct path for email preferences in the backend
-      const response = await API.get('/v1/users/me/email-preferences', { headers: authHeaders() });
+      // API path that's compatible with our backend's forwarding mechanism
+      const response = await API.get('/v1/me/email-preferences', { headers: authHeaders() });
       
       return response.data;
     } catch (err) {
@@ -47,19 +47,19 @@ export function useEmailPreferences() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [authHeaders]);
 
-  // Update email preferences
-  const updateEmailPreferences = async (
+  // Update email preferences (memoized to prevent infinite loops)
+  const updateEmailPreferences = useCallback(async (
     data: UpdateEmailPreferenceParams
   ): Promise<UpdateEmailPreferenceResponse> => {
     setIsLoading(true);
     setError(null);
 
     try {
-      // Fix the endpoint path to match backend route registration
+      // API path that's compatible with our backend's forwarding mechanism
       const response = await API.patch(
-        '/v1/users/me/email-preferences',
+        '/v1/me/email-preferences',
         data,
         { headers: authHeaders() }
       );
@@ -72,17 +72,17 @@ export function useEmailPreferences() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [authHeaders]);
 
-  // Send test email
-  const sendTestEmail = async (email: string): Promise<{ message: string; email: string }> => {
+  // Send test email (memoized to prevent infinite loops)
+  const sendTestEmail = useCallback(async (email: string): Promise<{ message: string; email: string }> => {
     setIsLoading(true);
     setError(null);
 
     try {
-      // Fix the endpoint path to match backend route registration
+      // API path that's compatible with our backend's forwarding mechanism
       const response = await API.post(
-        '/v1/users/me/test-email',
+        '/v1/me/test-email',
         { email },
         { headers: authHeaders() }
       );
@@ -95,7 +95,7 @@ export function useEmailPreferences() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [authHeaders]);
 
   return {
     getEmailPreferences,

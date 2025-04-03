@@ -68,18 +68,27 @@ export default function Subscriptions() {
   
   // Fetch email preferences on mount
   useEffect(() => {
+    let isMounted = true;
+    
     const loadEmailPreferences = async () => {
       try {
         const prefs = await getEmailPreferences();
-        setEmailPreferences(prefs);
-        console.log('Email preferences loaded:', prefs);
+        if (isMounted) {
+          setEmailPreferences(prefs);
+          console.log('Email preferences loaded:', prefs);
+        }
       } catch (err) {
         console.error('Failed to load email preferences:', err);
       }
     };
     
     loadEmailPreferences();
-  }, [getEmailPreferences]);
+    
+    // Cleanup function to prevent state updates if the component unmounts
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Empty dependency array - only run once on mount
 
   // Add debugging logs and perform blacklist cleanup
   useEffect(() => {
