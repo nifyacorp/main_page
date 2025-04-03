@@ -16,6 +16,22 @@ interface AuthResponse {
   refreshToken?: string;
 }
 
+interface SessionResponse {
+  authenticated: boolean;
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    email_verified: boolean;
+  } | null;
+  session: {
+    issuedAt: string;
+    expiresAt: string;
+    remainingTime: number;
+  } | null;
+  error?: string;
+}
+
 export const authService = {
   login: (data: LoginData): Promise<ApiResponse<AuthResponse>> => {
     console.group('🔑 Login Process');
@@ -79,4 +95,44 @@ export const authService = {
       method: 'POST',
       body: { code, state },
     }).finally(() => console.groupEnd()),
+    
+  getSession: (): Promise<ApiResponse<SessionResponse>> => {
+    console.group('🔑 Session Check');
+    console.log('Validating current session');
+    
+    return authClient({
+      endpoint: '/api/auth/session',
+      method: 'GET',
+      // The auth token will be automatically included from localStorage
+    })
+    .then(response => {
+      console.log('Session response:', response);
+      
+      // If authenticated, update local state
+      if (response.data?.authenticated) {
+        localStorage.setItem('isAuthenticated', 'true');
+        if (response.data.user) {
+          localStorage.setItem('userId', response.data.user.id);
+          localStorage.setItem('email', response.data.user.email);
+        }
+      } else {
+        // If not authenticated and we have tokens, clear them
+        const hasTokens = !!localStorage.getItem('accessToken');
+        if (hasTokens) {
+          console.log('Session invalid but tokens exist - clearing auth state');
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('isAuthenticated');
+          // Keep userId and email for convenience
+        }
+      }
+      
+      return response;
+    })
+    .catch(error => {
+      console.error('Session check failed:', error);
+      return { error: 'Failed to validate session' };
+    })
+    .finally(() => console.groupEnd());
+  }
 }

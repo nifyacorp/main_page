@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { user as userService } from '../lib/api';
+import { user as userService, auth } from '../lib/api';
 import { toast } from '../components/ui/use-toast';
 
 type User = {
@@ -116,7 +116,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         
         if (isAuthenticated && accessToken) {
           try {
-            // Try to get user profile from API
+            // Check session validity with auth service first
+            console.log('AuthContext: Validating session with auth service');
+            const sessionResponse = await auth.getSession();
+            
+            if (sessionResponse.data?.authenticated && sessionResponse.data.user) {
+              console.log('AuthContext: Session is valid, using user data from session');
+              setUser(sessionResponse.data.user);
+              localStorage.setItem('isAuthenticated', 'true');
+              return;
+            } else if (sessionResponse.error || (sessionResponse.data && !sessionResponse.data.authenticated)) {
+              console.log('AuthContext: Session invalid, attempting fallback to user profile');
+            }
+            
+            // Fallback to getting user profile
+            console.log('AuthContext: Attempting to load user profile');
             const response = await userService.getProfile();
             if (response.data && !response.error) {
               setUser(response.data);
