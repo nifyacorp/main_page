@@ -12,9 +12,7 @@ COPY . .
 
 # Make it clear this is a Vite project, not a Next.js project
 RUN echo "This is a Vite project" > .vitebuild
-RUN rm -f .next* next.config.js tsconfig.json
-RUN touch tsconfig.json
-RUN echo '{"compilerOptions":{"target":"ESNext","useDefineForClassFields":true,"lib":["DOM","DOM.Iterable","ESNext"],"allowJs":true,"skipLibCheck":true,"esModuleInterop":true,"allowSyntheticDefaultImports":true,"strict":true,"forceConsistentCasingInFileNames":true,"module":"ESNext","moduleResolution":"Node","resolveJsonModule":true,"isolatedModules":true,"noEmit":true,"jsx":"react-jsx"},"include":["src"],"references":[{"path":"./tsconfig.node.json"}]}' > tsconfig.json
+RUN rm -f .next* next.config.js
 
 # Add typescript as explicit dependency to avoid Next.js trying to install it
 RUN npm install --save-dev typescript@5.5.3
