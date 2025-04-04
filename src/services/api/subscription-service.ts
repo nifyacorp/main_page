@@ -188,90 +188,191 @@ class SubscriptionService {
       // Log the response for debugging
       console.log('Subscriptions API response:', response.data);
       
-      // Different API response formats handling:
-      // 1. Format: { status: 'success', data: { subscriptions: [], pagination: {} } }
-      if (response.data && response.data.status === 'success' && response.data.data && Array.isArray(response.data.data.subscriptions)) {
-        console.log('Processing response format 1 (data.data.subscriptions)');
-        
-        // Just log the issue but don't create mock data
-        if (userHasSubscriptionsInProfile && response.data.data.subscriptions.length === 0) {
-          console.log('API returned empty subscriptions despite user profile showing subscriptions exist.');
-        }
-        
-        return {
-          subscriptions: response.data.data.subscriptions,
-          total: response.data.data.pagination.total || 0,
-          page: response.data.data.pagination.page || 1,
-          limit: response.data.data.pagination.limit || 10,
-          totalPages: response.data.data.pagination.totalPages || 0
-        };
-      } 
+      // Deep inspect the response structure
+      console.log('Subscription API response structure:', JSON.stringify({
+        hasData: !!response.data,
+        isArray: Array.isArray(response.data),
+        hasStatus: !!response.data?.status,
+        statusValue: response.data?.status,
+        hasSubscriptionsAtRoot: Array.isArray(response.data?.subscriptions),
+        hasDataProperty: !!response.data?.data,
+        isDataArray: Array.isArray(response.data?.data),
+        hasSubscriptionsInData: Array.isArray(response.data?.data?.subscriptions),
+        hasNestedData: Array.isArray(response.data?.data?.data),
+        hasTopLevelSubscriptions: !!response.data?.subscriptions,
+        numberOfTopLevelSubscriptions: response.data?.subscriptions?.length
+      }));
       
-      // 2. Format: { data: { data: [], pagination: {} } }
-      if (response.data && response.data.data && Array.isArray(response.data.data.data)) {
-        console.log('Processing response format 2 (data.data.data)');
-        
-        // Just log the issue but don't create mock data
-        if (userHasSubscriptionsInProfile && response.data.data.data.length === 0) {
-          console.log('API returned empty subscriptions despite user profile showing subscriptions exist.');
-        }
-        
+      // New format: [{ id: '...', name: '...' }] - Direct array response
+      if (Array.isArray(response.data)) {
+        console.log('Processing array response (direct array of subscriptions)');
         return {
-          subscriptions: response.data.data.data,
-          total: response.data.data.pagination.total || 0,
-          page: response.data.data.pagination.page || 1,
-          limit: response.data.data.pagination.limit || 10,
-          totalPages: response.data.data.pagination.totalPages || 0
+          subscriptions: response.data,
+          total: response.data.length,
+          page: 1,
+          limit: response.data.length,
+          totalPages: 1
         };
       }
       
-      // 3. Format: { status: 'success', data: { subscriptions: [] } }
-      if (response.data && response.data.status === 'success' && Array.isArray(response.data.data?.subscriptions)) {
-        console.log('Processing response format 3 (data.subscriptions)');
+      // Format check for standard response formats
+      const formats = [
+        // 1. Format: { status: 'success', data: { subscriptions: [], pagination: {} } }
+        {
+          check: () => response.data?.status === 'success' && 
+                      response.data?.data && 
+                      Array.isArray(response.data?.data?.subscriptions),
+          process: () => {
+            console.log('Processing response format 1 (data.data.subscriptions)');
+            return {
+              subscriptions: response.data.data.subscriptions,
+              total: response.data.data.pagination?.total || response.data.data.subscriptions.length,
+              page: response.data.data.pagination?.page || 1,
+              limit: response.data.data.pagination?.limit || 10,
+              totalPages: response.data.data.pagination?.totalPages || 1
+            };
+          }
+        },
         
-        return {
-          subscriptions: response.data.data.subscriptions,
-          total: response.data.data.pagination?.total || response.data.data.subscriptions.length,
-          page: response.data.data.pagination?.page || 1,
-          limit: response.data.data.pagination?.limit || 10,
-          totalPages: response.data.data.pagination?.totalPages || 1
-        };
-      }
+        // 2. Format: { data: { data: [], pagination: {} } }
+        {
+          check: () => response.data?.data && Array.isArray(response.data?.data?.data),
+          process: () => {
+            console.log('Processing response format 2 (data.data.data)');
+            return {
+              subscriptions: response.data.data.data,
+              total: response.data.data.pagination?.total || response.data.data.data.length,
+              page: response.data.data.pagination?.page || 1,
+              limit: response.data.data.pagination?.limit || 10,
+              totalPages: response.data.data.pagination?.totalPages || 1
+            };
+          }
+        },
+        
+        // 3. Format: { status: 'success', data: { subscriptions: [] } } without pagination
+        {
+          check: () => response.data?.status === 'success' && 
+                      response.data?.data && 
+                      Array.isArray(response.data?.data?.subscriptions),
+          process: () => {
+            console.log('Processing response format 3 (data.subscriptions)');
+            return {
+              subscriptions: response.data.data.subscriptions,
+              total: response.data.data.subscriptions.length,
+              page: 1,
+              limit: response.data.data.subscriptions.length,
+              totalPages: 1
+            };
+          }
+        },
+        
+        // 4. Format: { data: [], pagination: {} } 
+        {
+          check: () => Array.isArray(response.data?.data),
+          process: () => {
+            console.log('Processing response format 4 (data as array)');
+            return {
+              subscriptions: response.data.data,
+              total: response.data.pagination?.total || response.data.data.length,
+              page: response.data.pagination?.page || 1,
+              limit: response.data.pagination?.limit || 10,
+              totalPages: response.data.pagination?.totalPages || 1
+            };
+          }
+        },
+        
+        // 5. Format: { status: 'success', subscriptions: [] }
+        {
+          check: () => response.data?.status === 'success' && Array.isArray(response.data?.subscriptions),
+          process: () => {
+            console.log('Processing response format 5 (subscriptions array)');
+            return {
+              subscriptions: response.data.subscriptions,
+              total: response.data.total || response.data.subscriptions.length,
+              page: response.data.page || 1,
+              limit: response.data.limit || 10,
+              totalPages: response.data.totalPages || 1
+            };
+          }
+        },
+        
+        // 6. Format: { subscriptions: [] } - No status field
+        {
+          check: () => Array.isArray(response.data?.subscriptions),
+          process: () => {
+            console.log('Processing response format 6 (subscriptions array without status)');
+            return {
+              subscriptions: response.data.subscriptions,
+              total: response.data.total || response.data.subscriptions.length,
+              page: response.data.page || 1,
+              limit: response.data.limit || 10,
+              totalPages: response.data.totalPages || 1
+            };
+          }
+        },
+        
+        // 7. Format: { status: 'success', data: [] } - Data is array
+        {
+          check: () => response.data?.status === 'success' && Array.isArray(response.data?.data),
+          process: () => {
+            console.log('Processing response format 7 (data array with status)');
+            return {
+              subscriptions: response.data.data,
+              total: response.data.total || response.data.data.length,
+              page: response.data.page || 1,
+              limit: response.data.limit || 10,
+              totalPages: response.data.totalPages || 1
+            };
+          }
+        }
+      ];
       
-      // 4. Format: { data: [], pagination: {} } or { status: 'success', data: [], pagination: {} }
-      if (response.data) {
-        if (Array.isArray(response.data.data)) {
-          console.log('Processing response format 4 (data as array)');
+      // Try all formats
+      for (const format of formats) {
+        if (format.check()) {
+          const result = format.process();
           
-          // Just log the issue but don't create mock data
-          if (userHasSubscriptionsInProfile && response.data.data.length === 0) {
+          // Log if we found subscriptions
+          if (result.subscriptions.length > 0) {
+            console.log(`Successfully extracted ${result.subscriptions.length} subscriptions`);
+          } else if (userHasSubscriptionsInProfile) {
             console.log('API returned empty subscriptions despite user profile showing subscriptions exist.');
           }
           
-          // Direct data array
-          return {
-            subscriptions: response.data.data,
-            total: response.data.pagination?.total || response.data.data.length,
-            page: response.data.pagination?.page || 1,
-            limit: response.data.pagination?.limit || 10,
-            totalPages: response.data.pagination?.totalPages || 1
-          };
-        } else if (response.data.status === 'success' && Array.isArray(response.data.subscriptions)) {
-          console.log('Processing response format 5 (subscriptions array)');
-          
-          // Check if we got empty results but user profile shows subscriptions exist
-          if (userHasSubscriptionsInProfile && response.data.subscriptions.length === 0) {
-            console.log('API returned empty subscriptions despite user profile showing subscriptions exist. Trying stats fallback.');
-            return await this.createMockSubscriptionsFromStats();
+          return result;
+        }
+      }
+      
+      // If we reach here, try more generic format detection
+      if (response.data) {
+        console.log('Attempting more generic format detection');
+        
+        // Try to find any array that might contain subscriptions
+        const findSubscriptionsArray = (obj, prefix = '') => {
+          for (const [key, value] of Object.entries(obj)) {
+            const path = prefix ? `${prefix}.${key}` : key;
+            
+            if (Array.isArray(value) && value.length > 0 && value[0] && 
+                (value[0].id || value[0].name || value[0].type || value[0].source)) {
+              console.log(`Found potential subscriptions array at: ${path}`);
+              return { path, data: value };
+            } else if (value && typeof value === 'object' && !Array.isArray(value)) {
+              const result = findSubscriptionsArray(value, path);
+              if (result) return result;
+            }
           }
-          
-          // Format: { status: 'success', subscriptions: [] }
+          return null;
+        };
+        
+        const foundArray = findSubscriptionsArray(response.data);
+        if (foundArray) {
+          console.log(`Using discovered array at ${foundArray.path}`);
           return {
-            subscriptions: response.data.subscriptions,
-            total: response.data.total || response.data.subscriptions.length,
-            page: response.data.page || 1,
-            limit: response.data.limit || 10,
-            totalPages: response.data.totalPages || 1
+            subscriptions: foundArray.data,
+            total: foundArray.data.length,
+            page: 1,
+            limit: foundArray.data.length,
+            totalPages: 1
           };
         }
       }

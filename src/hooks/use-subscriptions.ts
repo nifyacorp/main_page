@@ -280,15 +280,56 @@ export function useSubscriptions(params?: SubscriptionListParams) {
     }
   }, [data, filter]);
 
+  // Extract subscriptions with better format handling
+  const getSubscriptionsArray = () => {
+    if (!data) return [];
+    
+    // Log the data format for debugging
+    console.log('Subscriptions data format:', {
+      hasSubscriptionsArray: Array.isArray(data.subscriptions),
+      hasDataProperty: !!data.data,
+      isDataArray: data.data && Array.isArray(data.data),
+      hasSubscriptionsProperty: !!data.subscriptions,
+      topLevelType: typeof data,
+      isTopLevelArray: Array.isArray(data)
+    });
+    
+    // Handle different data formats
+    if (Array.isArray(data.subscriptions)) {
+      // Format: { subscriptions: [] }
+      return data.subscriptions;
+    } else if (data.data) {
+      if (Array.isArray(data.data)) {
+        // Format: { data: [] }
+        return data.data;
+      } else if (data.data.subscriptions && Array.isArray(data.data.subscriptions)) {
+        // Format: { data: { subscriptions: [] } }
+        return data.data.subscriptions;
+      }
+    } else if (Array.isArray(data)) {
+      // Format: direct array
+      return data;
+    }
+    
+    // Default to empty array
+    console.log('Could not detect subscription array format, returning empty array');
+    return [];
+  };
+
   return {
     // Queries
-    subscriptions: data?.subscriptions || [],
+    subscriptions: getSubscriptionsArray(),
     metadata: data
       ? {
-          total: data.total,
-          page: data.page,
-          limit: data.limit,
-          totalPages: data.totalPages,
+          total: data.total || (data.pagination ? data.pagination.total : 0) || 
+                 (data.data && data.data.pagination ? data.data.pagination.total : 0) || 
+                 getSubscriptionsArray().length,
+          page: data.page || (data.pagination ? data.pagination.page : 1) || 
+                (data.data && data.data.pagination ? data.data.pagination.page : 1) || 1,
+          limit: data.limit || (data.pagination ? data.pagination.limit : 10) || 
+                 (data.data && data.data.pagination ? data.data.pagination.limit : 10) || 10,
+          totalPages: data.totalPages || (data.pagination ? data.pagination.totalPages : 1) || 
+                      (data.data && data.data.pagination ? data.data.pagination.totalPages : 1) || 1,
         }
       : undefined,
     stats,

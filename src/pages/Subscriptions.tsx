@@ -63,8 +63,32 @@ export default function Subscriptions() {
     }
   }, []);
 
-  // Only use real data from the database
-  const subscriptionsData = subscriptions || [];
+  // Explicitly log the subscriptions data to debug
+  console.log('Raw subscriptions data from hook:', subscriptions);
+  
+  // Fix issue with subscription data format
+  let subscriptionsData = [];
+  
+  // Handle all possible subscription data formats
+  if (Array.isArray(subscriptions)) {
+    // Already an array, use directly
+    subscriptionsData = subscriptions;
+    console.log('Using direct array data');
+  } else if (subscriptions && typeof subscriptions === 'object') {
+    // If subscriptions is an object with a subscriptions property (common format)
+    if (Array.isArray(subscriptions.subscriptions)) {
+      subscriptionsData = subscriptions.subscriptions;
+      console.log('Using subscriptions.subscriptions array');
+    } else if (subscriptions.data && Array.isArray(subscriptions.data)) {
+      // Handle response.data format
+      subscriptionsData = subscriptions.data;
+      console.log('Using subscriptions.data array');
+    }
+  } else {
+    // Fallback to empty array
+    subscriptionsData = [];
+    console.log('No valid subscription data found, using empty array');
+  }
   
   // Fetch email preferences on mount
   useEffect(() => {
