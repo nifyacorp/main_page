@@ -175,15 +175,24 @@ class SubscriptionService {
         console.log('Could not check user profile for subscription count', profileError);
       }
       
+      // Modify params: map 'isActive' to 'status'
+      const apiParams = { ...params };
+      if (apiParams.isActive !== undefined) {
+        apiParams.status = apiParams.isActive ? 'active' : 'inactive';
+        delete apiParams.isActive;
+      }
+      
       // Get subscription list from API
-      const response = await apiClient.get('/v1/subscriptions', { params });
+      const response = await apiClient.get('/v1/subscriptions', { params: apiParams });
       
       // Log the response for debugging
       console.log('Subscriptions API response:', response.data);
       
       // Different API response formats handling:
-      // 1. Format: { data: { subscriptions: [], pagination: {} } }
-      if (response.data && response.data.data && Array.isArray(response.data.data.subscriptions)) {
+      // 1. Format: { status: 'success', data: { subscriptions: [], pagination: {} } }
+      if (response.data && response.data.status === 'success' && response.data.data && Array.isArray(response.data.data.subscriptions)) {
+        console.log('Processing response format 1 (data.data.subscriptions)');
+        
         // Just log the issue but don't create mock data
         if (userHasSubscriptionsInProfile && response.data.data.subscriptions.length === 0) {
           console.log('API returned empty subscriptions despite user profile showing subscriptions exist.');
@@ -200,6 +209,8 @@ class SubscriptionService {
       
       // 2. Format: { data: { data: [], pagination: {} } }
       if (response.data && response.data.data && Array.isArray(response.data.data.data)) {
+        console.log('Processing response format 2 (data.data.data)');
+        
         // Just log the issue but don't create mock data
         if (userHasSubscriptionsInProfile && response.data.data.data.length === 0) {
           console.log('API returned empty subscriptions despite user profile showing subscriptions exist.');
@@ -214,9 +225,24 @@ class SubscriptionService {
         };
       }
       
-      // 3. Format: { data: [], pagination: {} } or { status: 'success', data: [], pagination: {} }
+      // 3. Format: { status: 'success', data: { subscriptions: [] } }
+      if (response.data && response.data.status === 'success' && Array.isArray(response.data.data?.subscriptions)) {
+        console.log('Processing response format 3 (data.subscriptions)');
+        
+        return {
+          subscriptions: response.data.data.subscriptions,
+          total: response.data.data.pagination?.total || response.data.data.subscriptions.length,
+          page: response.data.data.pagination?.page || 1,
+          limit: response.data.data.pagination?.limit || 10,
+          totalPages: response.data.data.pagination?.totalPages || 1
+        };
+      }
+      
+      // 4. Format: { data: [], pagination: {} } or { status: 'success', data: [], pagination: {} }
       if (response.data) {
         if (Array.isArray(response.data.data)) {
+          console.log('Processing response format 4 (data as array)');
+          
           // Just log the issue but don't create mock data
           if (userHasSubscriptionsInProfile && response.data.data.length === 0) {
             console.log('API returned empty subscriptions despite user profile showing subscriptions exist.');
@@ -231,6 +257,8 @@ class SubscriptionService {
             totalPages: response.data.pagination?.totalPages || 1
           };
         } else if (response.data.status === 'success' && Array.isArray(response.data.subscriptions)) {
+          console.log('Processing response format 5 (subscriptions array)');
+          
           // Check if we got empty results but user profile shows subscriptions exist
           if (userHasSubscriptionsInProfile && response.data.subscriptions.length === 0) {
             console.log('API returned empty subscriptions despite user profile showing subscriptions exist. Trying stats fallback.');

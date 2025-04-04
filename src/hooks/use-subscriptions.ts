@@ -263,6 +263,23 @@ export function useSubscriptions(params?: SubscriptionListParams) {
     },
   });
 
+  // Add some debug logging when the subscription data changes
+  useEffect(() => {
+    if (data) {
+      console.log('Subscription data updated:', {
+        count: data.subscriptions?.length || 0,
+        hasData: !!data.subscriptions,
+        filter,
+        metadata: {
+          total: data.total,
+          page: data.page,
+          limit: data.limit,
+          totalPages: data.totalPages,
+        }
+      });
+    }
+  }, [data, filter]);
+
   return {
     // Queries
     subscriptions: data?.subscriptions || [],
