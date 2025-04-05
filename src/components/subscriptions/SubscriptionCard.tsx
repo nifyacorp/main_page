@@ -15,6 +15,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "../ui/alert-dialog";
+import { cn } from '../lib/utils';
 
 // Define the structure of a subscription object based on usage in Subscriptions.tsx
 interface Subscription {
@@ -156,15 +157,19 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction 
+                <button 
+                  type="button" // Important for forms
                   onClick={() => {
-                    console.log('!!!! Eliminar button clicked in AlertDialogAction !!!!');
+                    console.log('!!!! Eliminar PLAIN button clicked !!!!'); 
                     onDelete(subscription.id);
                   }}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90" // Style delete action button
+                  className={cn(
+                    "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-10 px-4 py-2", // Base button styles
+                    "bg-destructive text-destructive-foreground hover:bg-destructive/90" // Destructive variant styles
+                  )}
                 >
                   Eliminar
-                </AlertDialogAction>
+                </button>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

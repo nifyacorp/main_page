@@ -1,11 +1,20 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Bell, Loader2, AlertTriangle, RefreshCcw } from 'lucide-react';
+import { Plus, Bell, Loader2, AlertTriangle, RefreshCcw, Trash2 } from 'lucide-react';
 // Removed unused icons: Clock, FileText, Play, Edit, Trash, CheckCircle, Mail
 
 import { useSubscriptions } from '../hooks/use-subscriptions';
 import { useEmailPreferences } from '../hooks/use-email-preferences';
-import { useToast } from '../components/ui/use-toast';
+import { useToast } from '@/components/ui/use-toast';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "../components/ui/pagination";
 
 // UI components
 import { Button } from '../components/ui/button';
@@ -15,6 +24,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 // Extracted components
 import SubscriptionCard from '../components/subscriptions/SubscriptionCard';
 import SubscriptionFilterBar from '../components/subscriptions/SubscriptionFilterBar';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 // Define Subscription type (can be shared or defined closer to hook if preferred)
 interface Subscription {
@@ -32,21 +52,26 @@ export default function Subscriptions() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSource, setFilterSource] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
   const [processingIds, setProcessingIds] = useState<Record<string, boolean>>({});
   const [completedIds, setCompletedIds] = useState<Record<string, boolean>>({});
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showMockBanner, setShowMockBanner] = useState(false);
   const [emailPreferences, setEmailPreferences] = useState({ email_notifications: false });
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
   
+  const ITEMS_PER_PAGE = 9;
+
   // Use the subscriptions hook
   const { 
     subscriptions: rawSubscriptions, // Renamed to avoid confusion
     isLoadingSubscriptions,
     error: subscriptionsError,
-    refetch: refetchSubscriptions,
+    refetchSubscriptions,
     processSubscription,
-    deleteSubscription
-  } = useSubscriptions();
+    deleteSubscription,
+    metadata // Need metadata for pagination
+  } = useSubscriptions({ page: currentPage, limit: ITEMS_PER_PAGE }); // <-- Pass page and limit
 
   // Get email preferences
   const { getEmailPreferences } = useEmailPreferences();
@@ -167,6 +192,60 @@ export default function Subscriptions() {
     }
   }, [deleteSubscription, toast]); // Ensure toast dependency is still needed if used elsewhere, remove if not
 
+  // Handle deleting ALL subscriptions
+  const handleDeleteAll = useCallback(async () => {
+    console.log("[SubscriptionsPage] handleDeleteAll called");
+    if (subscriptionsData.length === 0) {
+      toast({
+        title: "No subscriptions to delete",
+        variant: "default",
+      });
+      return;
+    }
+    
+    setIsDeletingAll(true); // Set loading state
+    let deletedCount = 0;
+    let errorCount = 0;
+
+    console.log(`[SubscriptionsPage] Starting deletion for ${subscriptionsData.length} subscriptions.`);
+    
+    // Sequentially delete each subscription
+    for (const subscription of subscriptionsData) {
+      try {
+        console.log(`[SubscriptionsPage] Deleting subscription ${subscription.id} as part of Delete All`);
+        await deleteSubscription.mutateAsync(subscription.id);
+        deletedCount++;
+      } catch (error) {
+        console.error(`[SubscriptionsPage] Error deleting subscription ${subscription.id} during Delete All:`, error);
+        errorCount++;
+        // Continue to next subscription even if one fails
+      }
+    }
+
+    console.log(`[SubscriptionsPage] Delete All finished. Deleted: ${deletedCount}, Errors: ${errorCount}`);
+
+    // Show summary toast
+    if (errorCount === 0) {
+      toast({
+        title: `All ${deletedCount} subscriptions deleted successfully`,
+        variant: "default",
+      });
+    } else {
+      toast({
+        title: `Deletion completed with errors`,
+        description: `${deletedCount} deleted successfully, ${errorCount} failed. Check console for details.`,
+        variant: "warning", // Or destructive depending on severity
+      });
+    }
+
+    setIsDeletingAll(false); // Reset loading state
+    
+    // Trigger a final refetch after all operations are done
+    console.log("[SubscriptionsPage] Refetching subscriptions after Delete All operation.");
+    refetchSubscriptions(); 
+
+  }, [subscriptionsData, deleteSubscription, toast, refetchSubscriptions]); // Add dependencies
+
   // --- Render Functions --- //
 
   const renderErrorState = () => (
@@ -249,6 +328,47 @@ export default function Subscriptions() {
     </div>
   );
 
+  // --- Pagination Handler ---
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= (metadata?.totalPages ?? 1)) {
+      setCurrentPage(newPage);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+  
+  // --- Pagination Component ---
+  const renderPaginationControls = () => {
+    if (!metadata || metadata.totalPages <= 1) return null;
+    
+    return (
+      <Pagination className="mt-8">
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious 
+              href="#" 
+              onClick={(e: React.MouseEvent) => { e.preventDefault(); handlePageChange(currentPage - 1); }}
+              className={currentPage === 1 ? "pointer-events-none opacity-50" : undefined}
+            />
+          </PaginationItem>
+          
+          <PaginationItem>
+            <PaginationLink href="#" isActive>
+              {currentPage} / {metadata.totalPages}
+            </PaginationLink>
+          </PaginationItem>
+          
+          <PaginationItem>
+            <PaginationNext 
+              href="#" 
+              onClick={(e: React.MouseEvent) => { e.preventDefault(); handlePageChange(currentPage + 1); }}
+              className={currentPage === metadata.totalPages ? "pointer-events-none opacity-50" : undefined}
+            />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
+    );
+  };
+
   // --- Main Return --- //
 
   return (
@@ -259,12 +379,48 @@ export default function Subscriptions() {
           <h1 className="text-2xl font-bold">Subscripciones</h1>
           <p className="text-muted-foreground">Gestiona tus fuentes de datos y alertas</p>
         </div>
-        <Button asChild>
-          <Link to="/subscriptions/new" className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            <span>Nueva Subscripción</span>
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild>
+            <Link to="/subscriptions/new" className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              <span>Nueva Subscripción</span>
+            </Link>
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="destructive" 
+                disabled={isLoadingSubscriptions || subscriptionsData.length === 0 || isDeletingAll}
+              >
+                {isDeletingAll ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="mr-2 h-4 w-4" />
+                )}
+                Eliminar Todas
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>¿Eliminar Todas las Subscripciones?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta acción eliminará permanentemente TODAS ({subscriptionsData.length}) tus subscripciones. 
+                  No podrás deshacer esta acción.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction 
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={handleDeleteAll}
+                  disabled={isDeletingAll}
+                >
+                  {isDeletingAll ? 'Eliminando...' : 'Confirmar Eliminar Todas'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
 
       {/* Mock Data Banner */}
@@ -296,7 +452,10 @@ export default function Subscriptions() {
         : !subscriptionsError && filteredSubscriptions.length === 0 
         ? renderEmptyState()
         : !subscriptionsError && filteredSubscriptions.length > 0
-        ? renderSubscriptionList()
+        ? (<>
+             {renderSubscriptionList()}
+             {renderPaginationControls()}
+           </>)
         : null /* Handle case where there's an error but we don't show the error state (e.g., mock banner) */
       }
     </div>
