@@ -147,27 +147,25 @@ export default function Subscriptions() {
   
   // Handle deleting a subscription
   const handleDelete = useCallback(async (id: string) => {
-    setDeletingId(id);
+    console.log(`[SubscriptionsPage] handleDelete called for ID: ${id}`);
+    setDeletingId(id); // Set loading state immediately
+    
     try {
+      console.log(`[SubscriptionsPage] Calling deleteSubscription mutation for ID: ${id}`);
+      // The mutation hook now handles success/error toasts and query invalidation
       await deleteSubscription.mutateAsync(id);
-      // No need to manually remove from list, rely on hook's cache update/refetch
-      toast({
-        title: "Subscripción eliminada",
-        variant: "default",
-      });
+      console.log(`[SubscriptionsPage] deleteSubscription mutation finished for ID: ${id}`);
+      
+      // Note: Success toast is handled by the hook's onSuccess
+      
     } catch (error) {
-      console.error(`Error deleting subscription ${id}:`, error);
-      toast({
-        title: "Error al eliminar",
-        description: "No se pudo eliminar la subscripción. Inténtalo de nuevo.", // Provide clearer error message
-        variant: "destructive",
-      });
+      console.error(`[SubscriptionsPage] Error caught from deleteSubscription mutation for ID ${id}:`, error);
+      // Note: Error toast is handled by the hook's onError
     } finally {
-      setDeletingId(null);
-      // Optional: Trigger manual refetch if cache invalidation isn't reliable enough
-      // refetchSubscriptions(); 
+      console.log(`[SubscriptionsPage] Resetting deletingId after attempt for ID: ${id}`);
+      setDeletingId(null); // Reset loading state regardless of outcome
     }
-  }, [deleteSubscription, toast]);
+  }, [deleteSubscription, toast]); // Ensure toast dependency is still needed if used elsewhere, remove if not
 
   // --- Render Functions --- //
 

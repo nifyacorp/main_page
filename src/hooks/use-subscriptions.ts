@@ -112,111 +112,64 @@ export function useSubscriptions(params?: SubscriptionListParams) {
     },
   });
 
-  // Delete subscription mutation - enhanced with proper error handling
+  // Delete subscription mutation - simplified for debugging
   const deleteSubscription = useMutation({
     mutationFn: (id: string) => {
-      console.log(`Mutation starting for delete subscription: ${id}`);
+      console.log(`[useSubscriptions] mutationFn: Deleting subscription ${id}`);
+      // Calls the simplified service function
       return subscriptionService.deleteSubscription(id);
     },
-    onMutate: async (id) => {
-      console.log(`onMutate handling for delete subscription: ${id}`);
-      // Cancel any outgoing refetches to avoid overwriting our optimistic update
-      await queryClient.cancelQueries({ queryKey: ['subscriptions'] });
-      
-      // Get the current data from the cache
-      const previousData = queryClient.getQueryData(['subscriptions']);
-      
-      // Optimistically update the cache to remove the deleted subscription
-      // This is just visual - if the deletion fails, we'll restore previous data
-      queryClient.setQueryData(['subscriptions'], (oldData: any) => {
-        if (!oldData || !oldData.subscriptions) return oldData;
-        
-        console.log(`Optimistically removing subscription ${id} from UI`);
-        return {
-          ...oldData,
-          subscriptions: oldData.subscriptions.filter((sub: any) => sub.id !== id)
-        };
-      });
-      
-      // Hold the removal of this subscription from other caches until we get confirmation
-      
-      return { previousData };
-    },
-    onSuccess: (result, id, context) => {
-      console.log(`onSuccess: Subscription ${id} deleted with result:`, result);
-      
-      // Subscription was definitely deleted in the backend
+    onSuccess: (result, id) => {
+      console.log(`[useSubscriptions] onSuccess: Subscription ${id} deleted. Result:`, result);
+
+      // Show success toast
       toast({
         title: 'Subscription deleted',
-        description: 'Your subscription has been deleted successfully.',
+        description: result?.message || 'Your subscription has been deleted successfully.',
         variant: 'default',
       });
-      
-      // Permanently remove this subscription from any individual query cache
-      queryClient.removeQueries({ queryKey: ['subscription', id] });
-            
-      // Invalidate related queries to ensure data consistency
+
+      // Invalidate queries to refetch data after successful deletion
+      console.log(`[useSubscriptions] Invalidating queries after delete for ID: ${id}`);
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
       queryClient.invalidateQueries({ queryKey: ['subscriptionStats'] });
-      
-      // Force immediate refetch of the subscription list
-      setTimeout(() => {
-        console.log(`Refetching subscriptions after confirmed deletion`);
-        queryClient.removeQueries({ queryKey: ['subscriptions'] });
-        queryClient.refetchQueries({ queryKey: ['subscriptions'] });
-      }, 300);
+      // Remove specific subscription query cache if it exists
+      queryClient.removeQueries({ queryKey: ['subscription', id] });
+
+      // Optional: Force immediate refetch if needed, but invalidation is usually enough
+      // setTimeout(() => { 
+      //   console.log(`[useSubscriptions] Refetching subscriptions query after delete`);
+      //   queryClient.refetchQueries({ queryKey: ['subscriptions'] }); 
+      // }, 100);
     },
-    onError: (error: any, id, context) => {
-      console.error(`onError: Error deleting subscription ${id}:`, error);
+    onError: (error: any, id) => {
+      console.error(`[useSubscriptions] onError deleting subscription ${id}:`, error);
+
+      // Determine the error message to show
+      let errorMessage = 'There was a problem deleting your subscription. Please try again.';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error?.message) {
+        // Handle ApiError-like objects passed from the service
+        errorMessage = error.message;
+      }
       
-      // Show error message to user
+      // Show error toast
       toast({
         title: 'Error deleting subscription',
-        description: error.message || 'There was a problem deleting your subscription. Please try again.',
+        description: errorMessage,
         variant: 'destructive',
       });
-      
-      // Revert optimistic update by restoring the previous data
-      if (context?.previousData) {
-        console.log('Reverting optimistic deletion due to error');
-        queryClient.setQueryData(['subscriptions'], context.previousData);
-      }
-      
-      // Check if the error should be treated as a success (e.g., 404 Not Found is actually a good thing)
-      if (error.status === 404) {
-        console.log(`Subscription ${id} reported 404 - already deleted in backend`);
-        // Remove any individual subscription data from cache
-        queryClient.removeQueries({ queryKey: ['subscription', id] });
-        
-        // Show success toast for 404s since it means subscription is gone
-        toast({
-          title: 'Subscription removed',
-          description: 'This subscription is no longer in the system.',
-          variant: 'default',
-        });
-      } else {
-        // For other errors, refetch to ensure we have correct data
-        console.log('Refetching subscriptions after deletion error');
-        queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
-        queryClient.invalidateQueries({ queryKey: ['subscriptionStats'] });
-      }
+
+      // Important: Invalidate queries even on error to potentially get the correct state back from the server
+      // For example, if the delete failed because it was already gone, refetching will update the UI.
+      console.log(`[useSubscriptions] Invalidating queries after delete error for ID: ${id}`);
+      queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['subscriptionStats'] });
     },
-    onSettled: (data, error, variables) => {
-      console.log(`onSettled: Mutation settled for subscription ${variables}`);
-      
-      // Always refetch after error or success to ensure consistency
-      setTimeout(() => {
-        queryClient.removeQueries({ queryKey: ['subscriptions'] });
-        queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
-        queryClient.refetchQueries({ queryKey: ['subscriptions'] });
-      }, 500);
-      
-      // One final refetch after a longer delay to ensure data consistency
-      setTimeout(() => {
-        console.log(`Final refetch after deletion operation`);
-        queryClient.refetchQueries({ queryKey: ['subscriptions'] });
-      }, 1500);
-    },
+    // Removed onMutate and onSettled for simplification
   });
 
   // Process subscription mutation
