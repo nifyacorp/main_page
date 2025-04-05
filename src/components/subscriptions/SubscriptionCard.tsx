@@ -160,7 +160,7 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
                 <button 
                   type="button" // Important for forms
                   onClick={() => {
-                    console.log('!!!! Eliminar PLAIN button clicked !!!!'); 
+                    console.log('!!!! Eliminar PLAIN button clicked INSIDE DIALOG !!!!'); 
                     onDelete(subscription.id);
                   }}
                   className={cn(
@@ -168,11 +168,26 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
                     "bg-destructive text-destructive-foreground hover:bg-destructive/90" // Destructive variant styles
                   )}
                 >
-                  Eliminar
+                  Eliminar (Inside Dialog)
                 </button>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+
+          {/* --- TEMPORARY DIAGNOSTIC BUTTON --- */}
+          <button 
+             type="button"
+             onClick={() => { 
+               console.log('!!!! TEST DELETE BUTTON CLICKED (OUTSIDE DIALOG) !!!!'); 
+               // Optionally call onDelete directly for testing, but log is key
+               // onDelete(subscription.id); 
+             }} 
+             className="bg-yellow-500 text-black p-1 rounded text-xs ml-2"
+          >
+            Test Delete
+          </button>
+          {/* --- END TEMPORARY DIAGNOSTIC BUTTON --- */}
+
         </div>
       </CardFooter>
     </Card>
