@@ -112,7 +112,7 @@ export function useSubscriptions(params?: SubscriptionListParams) {
     },
   });
 
-  // Delete subscription mutation - enhanced with forced refetching
+  // Delete subscription mutation - enhanced with proper error handling
   const deleteSubscription = useMutation({
     mutationFn: (id: string) => {
       console.log(`Mutation starting for delete subscription: ${id}`);
@@ -127,7 +127,7 @@ export function useSubscriptions(params?: SubscriptionListParams) {
       const previousData = queryClient.getQueryData(['subscriptions']);
       
       // Optimistically update the cache to remove the deleted subscription
-      // But don't add to deletion blacklist yet - wait for backend confirmation
+      // This is just visual - if the deletion fails, we'll restore previous data
       queryClient.setQueryData(['subscriptions'], (oldData: any) => {
         if (!oldData || !oldData.subscriptions) return oldData;
         
@@ -138,68 +138,68 @@ export function useSubscriptions(params?: SubscriptionListParams) {
         };
       });
       
-      // Also immediately remove this subscription from any individual query cache
-      queryClient.removeQueries({ queryKey: ['subscription', id] });
+      // Hold the removal of this subscription from other caches until we get confirmation
       
       return { previousData };
     },
     onSuccess: (result, id, context) => {
       console.log(`onSuccess: Subscription ${id} deleted with result:`, result);
       
-      // Check if the subscription was actually deleted in the backend
-      const actuallyDeleted = result.actuallyDeleted !== false;
+      // Subscription was definitely deleted in the backend
+      toast({
+        title: 'Subscription deleted',
+        description: 'Your subscription has been deleted successfully.',
+        variant: 'default',
+      });
       
-      if (actuallyDeleted) {
-        console.log(`Subscription ${id} was confirmed deleted in the backend`);
-        // The service has already updated the deletion blacklist if needed
-      } else {
-        console.log(`Subscription ${id} might not have been completely deleted in the backend`);
-        // Ensure we refetch to get the latest status
-      }
-      
-      // IMPORTANT: Force reset query cache
-      queryClient.resetQueries({ queryKey: ['subscriptions'] });
-      queryClient.resetQueries({ queryKey: ['subscriptionStats'] });
-      
+      // Permanently remove this subscription from any individual query cache
+      queryClient.removeQueries({ queryKey: ['subscription', id] });
+            
       // Invalidate related queries to ensure data consistency
-      queryClient.invalidateQueries({ queryKey: ['subscriptionStats'] });
-      
-      // Force immediate refetch of the subscription list
-      setTimeout(() => {
-        console.log(`Refetching subscriptions after deletion (success: ${actuallyDeleted})`);
-        queryClient.removeQueries({ queryKey: ['subscriptions'] });
-        queryClient.refetchQueries({ queryKey: ['subscriptions'] });
-      }, 300);
-      
-      // Run the cleanup function to ensure deletion blacklist is accurate
-      setTimeout(() => {
-        console.log('Running cleanup on deletion blacklist after delete operation');
-        subscriptionService.cleanupDeletionBlacklist();
-      }, 1000);
-    },
-    onError: (error: any, id, context) => {
-      console.error(`onError: Error deleting subscription ${id}:`, error);
-      
-      // IMPORTANT: Force reset query cache
-      queryClient.resetQueries({ queryKey: ['subscriptions'] });
-      queryClient.resetQueries({ queryKey: ['subscriptionStats'] });
-      
-      // Force refetch to make sure we're in sync with backend
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
       queryClient.invalidateQueries({ queryKey: ['subscriptionStats'] });
       
       // Force immediate refetch of the subscription list
       setTimeout(() => {
-        console.log(`Force refetching subscriptions after deletion error`);
+        console.log(`Refetching subscriptions after confirmed deletion`);
         queryClient.removeQueries({ queryKey: ['subscriptions'] });
         queryClient.refetchQueries({ queryKey: ['subscriptions'] });
       }, 300);
+    },
+    onError: (error: any, id, context) => {
+      console.error(`onError: Error deleting subscription ${id}:`, error);
       
-      // Run the cleanup function to ensure deletion blacklist is accurate
-      setTimeout(() => {
-        console.log('Running cleanup on deletion blacklist after delete error');
-        subscriptionService.cleanupDeletionBlacklist();
-      }, 1000);
+      // Show error message to user
+      toast({
+        title: 'Error deleting subscription',
+        description: error.message || 'There was a problem deleting your subscription. Please try again.',
+        variant: 'destructive',
+      });
+      
+      // Revert optimistic update by restoring the previous data
+      if (context?.previousData) {
+        console.log('Reverting optimistic deletion due to error');
+        queryClient.setQueryData(['subscriptions'], context.previousData);
+      }
+      
+      // Check if the error should be treated as a success (e.g., 404 Not Found is actually a good thing)
+      if (error.status === 404) {
+        console.log(`Subscription ${id} reported 404 - already deleted in backend`);
+        // Remove any individual subscription data from cache
+        queryClient.removeQueries({ queryKey: ['subscription', id] });
+        
+        // Show success toast for 404s since it means subscription is gone
+        toast({
+          title: 'Subscription removed',
+          description: 'This subscription is no longer in the system.',
+          variant: 'default',
+        });
+      } else {
+        // For other errors, refetch to ensure we have correct data
+        console.log('Refetching subscriptions after deletion error');
+        queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+        queryClient.invalidateQueries({ queryKey: ['subscriptionStats'] });
+      }
     },
     onSettled: (data, error, variables) => {
       console.log(`onSettled: Mutation settled for subscription ${variables}`);

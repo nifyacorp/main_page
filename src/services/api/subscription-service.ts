@@ -733,20 +733,19 @@ class SubscriptionService {
           const response = await apiClient.delete(`/v1/subscriptions/${id}`);
           console.log('Delete subscription response:', response.data);
           
-          // Check for error details in the response even if status is success
-          // This is because the backend returns 200 status for UI consistency
-          if (response.data?.details?.error) {
-            console.warn('⚠️ Subscription deletion API returned success but includes error details:', {
-              error: response.data.details.error,
-              errorCode: response.data.details.errorCode,
-              errorDetails: response.data.details.errorDetails,
-              debugInfo: response.data.details.debugInfo
+          // The backend now properly returns error status codes
+          // Check if the response indicates success
+          if (response.status >= 200 && response.status < 300) {
+            console.log('✅ Subscription deletion API returned success:', {
+              status: response.status,
+              message: response.data?.message || 'Subscription deleted successfully'
             });
-            
-            // If response has debugging information, log it separately
-            if (response.data.details.debugInfo) {
-              console.error('🔍 Subscription deletion debug information:', response.data.details.debugInfo);
-            }
+          } else {
+            // This block should never execute since axios throws on non-2xx
+            console.warn('⚠️ Unexpected non-success status that did not throw:', {
+              status: response.status,
+              data: response.data
+            });
           }
           
           // Once we get a successful response, add to deletion blacklist
@@ -757,101 +756,42 @@ class SubscriptionService {
             console.log(`Added subscription ${id} to deletion blacklist after confirmed deletion`);
           }
           
-          // Determine if the subscription was actually deleted based on error details
-          const actuallyDeleted = !response.data?.details?.error;
-          
-          // Handle different API response formats
-          if (response.data && response.data.status === 'error') {
-            console.log(`API returned error status but treating as UI success:`, response.data);
-            return {
-              success: true, // Still return success for UI consistency
-              message: response.data.message || 'Subscription removed from view',
-              actuallyDeleted: false
-            };
-          }
-          
-          // Get the information about whether deletion was actually successful
-          // This comes from the response if available, or from our error detection
-          const wasActuallyDeleted = response.data?.details?.alreadyRemoved === false || actuallyDeleted;
+          // The backend now properly returns error responses
+          // Since we're here in the try block, the response was successful
           
           // Normal success path
-          console.log(`Subscription ${id} deleted with status:`, { 
+          console.log(`Subscription ${id} deleted successfully:`, { 
             success: true,
-            actuallyDeleted: wasActuallyDeleted,
             response: response.data
           });
           
           return { 
             success: true, 
-            message: response.data?.message || 'Subscription deleted successfully',
-            actuallyDeleted: wasActuallyDeleted
+            message: response.data?.message || 'Subscription deleted successfully'
           };
         } catch (deleteError: any) {
-          console.error(`Network error during delete call for subscription ${id}:`, deleteError);
+          console.error(`Error during delete call for subscription ${id}:`, deleteError);
           
-          // If we get a 404 on delete, treat it as a success (subscription already gone)
+          // If we get a 404 on delete, pass it through - it's a valid error case that the frontend handles specifically
           if (deleteError.response?.status === 404 || deleteError.status === 404) {
-            console.log(`DELETE endpoint returned 404 for subscription ${id} - treating as already deleted`);
+            console.log(`DELETE endpoint returned 404 for subscription ${id}`);
             
-            // Add to deletion blacklist even though it was already deleted
-            const deletedIds = JSON.parse(localStorage.getItem('deletedSubscriptionIds') || '[]');
-            if (!deletedIds.includes(id)) {
-              deletedIds.push(id);
-              localStorage.setItem('deletedSubscriptionIds', JSON.stringify(deletedIds));
-              console.log(`Added subscription ${id} to deletion blacklist (was already gone from backend)`);
-            }
-            
-            return { 
-              success: true, 
-              message: 'Subscription already removed or not found',
-              actuallyDeleted: true
-            };
+            // We'll propagate the 404 error up to be handled by the frontend
+            deleteError.status = 404; // Ensure status is set properly
+            throw deleteError;
           }
           
-          // For server errors (500+), verify if the subscription was actually deleted
-          if (deleteError.response?.status >= 500) {
-            console.log(`Server error (${deleteError.response?.status}) during deletion, verifying if it was actually deleted`);
-            
-            try {
-              // Check if the subscription still exists after the failed delete
-              await apiClient.get(`/v1/subscriptions/${id}`);
-              console.log(`Subscription ${id} still exists after failed deletion`);
-              
-              // Don't add to blacklist since it still exists
-              return {
-                success: true, // Still return success for UI consistency
-                message: 'Removed from view (but may still exist in backend)',
-                actuallyDeleted: false
-              };
-            } catch (verifyError: any) {
-              // If we get a 404, it was actually deleted despite the error
-              if (verifyError.response?.status === 404) {
-                console.log(`Verified subscription ${id} was deleted despite error`);
-                
-                // Add to deletion blacklist
-                const deletedIds = JSON.parse(localStorage.getItem('deletedSubscriptionIds') || '[]');
-                if (!deletedIds.includes(id)) {
-                  deletedIds.push(id);
-                  localStorage.setItem('deletedSubscriptionIds', JSON.stringify(deletedIds));
-                  console.log(`Added subscription ${id} to deletion blacklist (verified gone after error)`);
-                }
-                
-                return {
-                  success: true,
-                  message: 'Subscription deleted successfully (despite error)',
-                  actuallyDeleted: true
-                };
-              }
-            }
+          // Rethrow other errors with enhanced details
+          if (deleteError.response?.data?.message) {
+            // Use backend error message if available
+            const error = new Error(deleteError.response.data.message);
+            error.status = deleteError.response.status;
+            error.code = deleteError.response.data.code || 'DELETE_ERROR';
+            throw error;
+          } else {
+            // Default error handling
+            throw deleteError;
           }
-          
-          // For other errors, don't add to deletion blacklist and inform UI of a sync issue
-          console.log(`Treating delete error as UI success, but flagging backend sync issue: ${deleteError.message}`);
-          return {
-            success: true,
-            message: 'Removed from view (backend sync error)',
-            actuallyDeleted: false
-          };
         }
       }
     } catch (error: any) {
