@@ -6,15 +6,6 @@ import { Plus, Bell, Loader2, AlertTriangle, RefreshCcw, Trash2 } from 'lucide-r
 import { useSubscriptions } from '../hooks/use-subscriptions';
 import { useEmailPreferences } from '../hooks/use-email-preferences';
 import { useToast } from '@/components/ui/use-toast';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "../components/ui/pagination";
 
 // UI components
 import { Button } from '../components/ui/button';
@@ -234,7 +225,7 @@ export default function Subscriptions() {
       toast({
         title: `Deletion completed with errors`,
         description: `${deletedCount} deleted successfully, ${errorCount} failed. Check console for details.`,
-        variant: "warning", // Or destructive depending on severity
+        variant: "destructive",
       });
     }
 
@@ -335,37 +326,36 @@ export default function Subscriptions() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
-  
-  // --- Pagination Component ---
-  const renderPaginationControls = () => {
+
+  // --- SIMPLE Pagination Component ---
+  const renderSimplePagination = () => {
     if (!metadata || metadata.totalPages <= 1) return null;
-    
+
+    const canGoPrev = currentPage > 1;
+    const canGoNext = currentPage < metadata.totalPages;
+
     return (
-      <Pagination className="mt-8">
-        <PaginationContent>
-          <PaginationItem>
-            <PaginationPrevious 
-              href="#" 
-              onClick={(e: React.MouseEvent) => { e.preventDefault(); handlePageChange(currentPage - 1); }}
-              className={currentPage === 1 ? "pointer-events-none opacity-50" : undefined}
-            />
-          </PaginationItem>
-          
-          <PaginationItem>
-            <PaginationLink href="#" isActive>
-              {currentPage} / {metadata.totalPages}
-            </PaginationLink>
-          </PaginationItem>
-          
-          <PaginationItem>
-            <PaginationNext 
-              href="#" 
-              onClick={(e: React.MouseEvent) => { e.preventDefault(); handlePageChange(currentPage + 1); }}
-              className={currentPage === metadata.totalPages ? "pointer-events-none opacity-50" : undefined}
-            />
-          </PaginationItem>
-        </PaginationContent>
-      </Pagination>
+      <div className="flex justify-center items-center space-x-4 mt-8">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => handlePageChange(currentPage - 1)}
+          disabled={!canGoPrev}
+        >
+          Previous
+        </Button>
+        <span className="text-sm text-muted-foreground">
+          Page {currentPage} of {metadata.totalPages}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => handlePageChange(currentPage + 1)}
+          disabled={!canGoNext}
+        >
+          Next
+        </Button>
+      </div>
     );
   };
 
@@ -454,7 +444,7 @@ export default function Subscriptions() {
         : !subscriptionsError && filteredSubscriptions.length > 0
         ? (<>
              {renderSubscriptionList()}
-             {renderPaginationControls()}
+             {renderSimplePagination()}
            </>)
         : null /* Handle case where there's an error but we don't show the error state (e.g., mock banner) */
       }
