@@ -15,7 +15,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "../ui/alert-dialog";
-import { cn } from '../lib/utils';
+import { cn } from '../../lib/utils';
 
 // Define the structure of a subscription object based on usage in Subscriptions.tsx
 interface Subscription {
