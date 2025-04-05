@@ -687,122 +687,52 @@ class SubscriptionService {
   }
 
   /**
-   * Delete a subscription
+   * Delete a subscription (Simplified)
    */
-  async deleteSubscription(id: string): Promise<{ success: boolean; message?: string; actuallyDeleted?: boolean }> {
+  async deleteSubscription(id: string): Promise<{ success: boolean; message?: string; status?: number }> {
     try {
-      console.log(`Deleting subscription with ID: ${id}`);
+      console.log(`Attempting to delete subscription with ID: ${id}`);
       
-      // First, verify the subscription actually exists before trying to delete it
-      let subscriptionExists = true;
-      
-      try {
-        // Check if subscription exists first - silently catch errors
-        // Use a direct API call to avoid our own blacklist check
-        await apiClient.get(`/v1/subscriptions/${id}`);
-        console.log(`Confirmed subscription ${id} exists before attempting deletion`);
-      } catch (existsError: any) {
-        // If we get a 404, the subscription doesn't exist
-        if (existsError.response?.status === 404) {
-          console.log(`Subscription ${id} doesn't exist in backend - no need to delete`);
-          subscriptionExists = false;
-          
-          // Add to deletion blacklist since it's confirmed not in backend
-          const deletedIds = JSON.parse(localStorage.getItem('deletedSubscriptionIds') || '[]');
-          if (!deletedIds.includes(id)) {
-            deletedIds.push(id);
-            localStorage.setItem('deletedSubscriptionIds', JSON.stringify(deletedIds));
-            console.log(`Added subscription ${id} to deletion blacklist (confirmed not in backend)`);
-          }
-          
-          // Return success immediately
-          return {
-            success: true,
-            message: 'Subscription already removed or not found',
-            actuallyDeleted: true
-          };
-        }
-      }
-      
-      // Only proceed with DELETE request if the subscription actually exists
-      if (subscriptionExists) {
-        console.log(`Preparing to send DELETE request to /v1/subscriptions/${id}`);
-        
-        // Attempt the delete API call
-        try {
-          const response = await apiClient.delete(`/v1/subscriptions/${id}`);
-          console.log('Delete subscription response:', response.data);
-          
-          // The backend now properly returns error status codes
-          // Check if the response indicates success
-          if (response.status >= 200 && response.status < 300) {
-            console.log('✅ Subscription deletion API returned success:', {
-              status: response.status,
-              message: response.data?.message || 'Subscription deleted successfully'
-            });
-          } else {
-            // This block should never execute since axios throws on non-2xx
-            console.warn('⚠️ Unexpected non-success status that did not throw:', {
-              status: response.status,
-              data: response.data
-            });
-          }
-          
-          // Once we get a successful response, add to deletion blacklist
-          const deletedIds = JSON.parse(localStorage.getItem('deletedSubscriptionIds') || '[]');
-          if (!deletedIds.includes(id)) {
-            deletedIds.push(id);
-            localStorage.setItem('deletedSubscriptionIds', JSON.stringify(deletedIds));
-            console.log(`Added subscription ${id} to deletion blacklist after confirmed deletion`);
-          }
-          
-          // The backend now properly returns error responses
-          // Since we're here in the try block, the response was successful
-          
-          // Normal success path
-          console.log(`Subscription ${id} deleted successfully:`, { 
-            success: true,
-            response: response.data
-          });
-          
-          return { 
-            success: true, 
-            message: response.data?.message || 'Subscription deleted successfully'
-          };
-        } catch (deleteError: any) {
-          console.error(`Error during delete call for subscription ${id}:`, deleteError);
-          
-          // If we get a 404 on delete, pass it through - it's a valid error case that the frontend handles specifically
-          if (deleteError.response?.status === 404 || deleteError.status === 404) {
-            console.log(`DELETE endpoint returned 404 for subscription ${id}`);
-            
-            // We'll propagate the 404 error up to be handled by the frontend
-            deleteError.status = 404; // Ensure status is set properly
-            throw deleteError;
-          }
-          
-          // Rethrow other errors with enhanced details
-          if (deleteError.response?.data?.message) {
-            // Use backend error message if available
-            const error = new Error(deleteError.response.data.message);
-            error.status = deleteError.response.status;
-            error.code = deleteError.response.data.code || 'DELETE_ERROR';
-            throw error;
-          } else {
-            // Default error handling
-            throw deleteError;
-          }
-        }
-      }
-    } catch (error: any) {
-      console.error(`Unexpected error deleting subscription ${id}:`, error);
-      
-      // Return success for UI, but don't add to deletion blacklist
+      // Directly attempt the DELETE request
+      const response = await apiClient.delete(`/v1/subscriptions/${id}`);
+      console.log('Delete subscription response:', response.data, 'Status:', response.status);
+
+      // Assume success if axios doesn't throw (status 2xx)
       return {
         success: true,
-        message: 'Removed from view (error recovery)',
-        actuallyDeleted: false
+        message: response.data?.message || 'Subscription deleted successfully',
+        status: response.status
       };
+
+    } catch (error: any) {
+      console.error(`Error deleting subscription ${id}:`, error);
+
+      // Check if it's an Axios error with a response
+      if (error.response) {
+        console.error('Axios error response:', {
+          status: error.response.status,
+          data: error.response.data
+        });
+        // If it's a 404, treat it as success because the subscription is gone
+        if (error.response.status === 404) {
+          console.log(`Subscription ${id} not found (404), treating as successful deletion.`);
+          return {
+            success: true, // Treat 404 as success in this context
+            message: 'Subscription already removed or not found',
+            status: 404
+          };
+        }
+        // Re-throw other API errors to be handled by the mutation hook
+        throw new ApiError(
+          error.response.data?.message || 'Failed to delete subscription',
+          error.response.status,
+          error.response.data
+        );
+      } else {
+        // Network error or other issue
+        console.error('Non-API error during deletion:', error.message);
+        throw new Error('A network error occurred while trying to delete the subscription.');
+      }
     }
   }
 
