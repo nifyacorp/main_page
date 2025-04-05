@@ -733,6 +733,22 @@ class SubscriptionService {
           const response = await apiClient.delete(`/v1/subscriptions/${id}`);
           console.log('Delete subscription response:', response.data);
           
+          // Check for error details in the response even if status is success
+          // This is because the backend returns 200 status for UI consistency
+          if (response.data?.details?.error) {
+            console.warn('⚠️ Subscription deletion API returned success but includes error details:', {
+              error: response.data.details.error,
+              errorCode: response.data.details.errorCode,
+              errorDetails: response.data.details.errorDetails,
+              debugInfo: response.data.details.debugInfo
+            });
+            
+            // If response has debugging information, log it separately
+            if (response.data.details.debugInfo) {
+              console.error('🔍 Subscription deletion debug information:', response.data.details.debugInfo);
+            }
+          }
+          
           // Once we get a successful response, add to deletion blacklist
           const deletedIds = JSON.parse(localStorage.getItem('deletedSubscriptionIds') || '[]');
           if (!deletedIds.includes(id)) {
@@ -740,6 +756,9 @@ class SubscriptionService {
             localStorage.setItem('deletedSubscriptionIds', JSON.stringify(deletedIds));
             console.log(`Added subscription ${id} to deletion blacklist after confirmed deletion`);
           }
+          
+          // Determine if the subscription was actually deleted based on error details
+          const actuallyDeleted = !response.data?.details?.error;
           
           // Handle different API response formats
           if (response.data && response.data.status === 'error') {
@@ -751,12 +770,21 @@ class SubscriptionService {
             };
           }
           
+          // Get the information about whether deletion was actually successful
+          // This comes from the response if available, or from our error detection
+          const wasActuallyDeleted = response.data?.details?.alreadyRemoved === false || actuallyDeleted;
+          
           // Normal success path
-          console.log(`Subscription ${id} deleted successfully:`, response.data);
+          console.log(`Subscription ${id} deleted with status:`, { 
+            success: true,
+            actuallyDeleted: wasActuallyDeleted,
+            response: response.data
+          });
+          
           return { 
             success: true, 
             message: response.data?.message || 'Subscription deleted successfully',
-            actuallyDeleted: true
+            actuallyDeleted: wasActuallyDeleted
           };
         } catch (deleteError: any) {
           console.error(`Network error during delete call for subscription ${id}:`, deleteError);
