@@ -13,11 +13,11 @@ window.ReactDOM = ReactDOM;
 const queryClient = new QueryClient();
 
 // Debug environment variables
-console.log('Environment variables:');
-console.log('VITE_AUTH_URL:', import.meta.env.VITE_AUTH_URL);
-console.log('VITE_BACKEND_URL:', import.meta.env.VITE_BACKEND_URL);
-console.log('VITE_SUBSCRIPTION_WORKER:', import.meta.env.VITE_SUBSCRIPTION_WORKER);
-console.log('VITE_ENV:', import.meta.env.VITE_ENV);
+// console.log('Environment variables:');
+// console.log('VITE_AUTH_URL:', import.meta.env.VITE_AUTH_URL);
+// console.log('VITE_BACKEND_URL:', import.meta.env.VITE_BACKEND_URL);
+// console.log('VITE_SUBSCRIPTION_WORKER:', import.meta.env.VITE_SUBSCRIPTION_WORKER);
+// console.log('VITE_ENV:', import.meta.env.VITE_ENV);
 
 // Set up global error handler
 window.addEventListener('error', (event) => {
@@ -38,7 +38,7 @@ window.addEventListener('unhandledrejection', (event) => {
   });
 });
 
-console.log('Application starting...');
+// console.log('Application starting...');
 
 try {
   const rootElement = document.getElementById('root');
@@ -46,11 +46,11 @@ try {
     throw new Error('Root element not found');
   }
   
-  console.log('Creating React root...');
+  // console.log('Creating React root...');
   // Use ReactDOM explicitly to avoid potential issues
   const root = ReactDOM.createRoot(rootElement);
   
-  console.log('Rendering application...');
+  // console.log('Rendering application...');
   // Use explicit JSX with React
   root.render(
     React.createElement(StrictMode, null, 
@@ -62,7 +62,7 @@ try {
     )
   );
   
-  console.log('Application rendered successfully');
+  // console.log('Application rendered successfully');
 } catch (error) {
   console.error('Fatal error during application initialization:', error);
   // Render fallback UI
