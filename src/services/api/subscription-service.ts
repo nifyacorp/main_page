@@ -723,11 +723,7 @@ class SubscriptionService {
           };
         }
         // Re-throw other API errors to be handled by the mutation hook
-        throw new ApiError(
-          error.response.data?.message || 'Failed to delete subscription',
-          error.response.status,
-          error.response.data
-        );
+        throw error;
       } else {
         // Network error or other issue
         console.error('Non-API error during deletion:', error.message);
