@@ -157,7 +157,10 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
                 <AlertDialogAction 
-                  onClick={() => onDelete(subscription.id)}
+                  onClick={() => {
+                    console.log('!!!! Eliminar button clicked in AlertDialogAction !!!!');
+                    onDelete(subscription.id);
+                  }}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90" // Style delete action button
                 >
                   Eliminar
