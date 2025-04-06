@@ -26,6 +26,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { cn } from '@/lib/utils';
 
 // Define Subscription type (can be shared or defined closer to hook if preferred)
 interface Subscription {
@@ -400,13 +401,17 @@ export default function Subscriptions() {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction 
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  onClick={handleDeleteAll}
+                <button
+                  type="button"
+                  onClick={handleDeleteAll} 
                   disabled={isDeletingAll}
+                  className={cn(
+                    "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-10 px-4 py-2", 
+                    "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  )}
                 >
                   {isDeletingAll ? 'Eliminando...' : 'Confirmar Eliminar Todas'}
-                </AlertDialogAction>
+                </button>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
