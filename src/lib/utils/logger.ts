@@ -15,11 +15,28 @@ interface LogEntry {
   userAgent: string;
 }
 
+// Logger configuration options
+interface LoggerConfig {
+  sendToBackend: boolean;
+  logLevels: LogLevel[];
+  maxQueueSize: number;
+  flushInterval: number;
+}
+
+// Default configuration
+const defaultConfig: LoggerConfig = {
+  sendToBackend: import.meta.env.PROD, // Only send to backend in production by default
+  logLevels: ['error', 'warn'], // Only send error and warning logs by default
+  maxQueueSize: 10,
+  flushInterval: 10000, // 10 seconds
+};
+
+// Current configuration
+let config: LoggerConfig = { ...defaultConfig };
+
 // Queue to store logs before sending them in batches
 let logQueue: LogEntry[] = [];
-const MAX_QUEUE_SIZE = 10;
 let queueTimer: NodeJS.Timeout | null = null;
-const FLUSH_INTERVAL = 10000; // 10 seconds
 
 // Original console methods
 const originalConsole = {
@@ -69,12 +86,20 @@ const createLogEntry = (level: LogLevel, args: any[]): LogEntry => {
 // Function to send logs to backend
 const sendLogsToBackend = async (logs: LogEntry[]): Promise<void> => {
   if (logs.length === 0) return;
+  
+  // Filter logs based on configured log levels
+  const filteredLogs = logs.filter(log => config.logLevels.includes(log.level));
+  
+  if (filteredLogs.length === 0) return;
+  
+  // Don't send logs if sending to backend is disabled
+  if (!config.sendToBackend) return;
 
   try {
     await backendClient({
       endpoint: '/api/v1/logs',
       method: 'POST',
-      body: { logs },
+      body: { logs: filteredLogs },
     });
     // Don't log the response to avoid infinite loop
   } catch (error) {
@@ -88,13 +113,13 @@ const queueLog = (entry: LogEntry): void => {
   logQueue.push(entry);
 
   // Flush immediately if queue is full
-  if (logQueue.length >= MAX_QUEUE_SIZE) {
+  if (logQueue.length >= config.maxQueueSize) {
     flushLogs();
   }
 
   // Set up timer to flush logs if not already set
   if (!queueTimer) {
-    queueTimer = setTimeout(flushLogs, FLUSH_INTERVAL);
+    queueTimer = setTimeout(flushLogs, config.flushInterval);
   }
 };
 
@@ -155,11 +180,19 @@ const restoreConsole = () => {
   }
 };
 
+// Configure the logger
+const configure = (newConfig: Partial<LoggerConfig>) => {
+  config = { ...config, ...newConfig };
+};
+
 // Logger object with public methods
 export const logger = {
   setup: setupConsoleOverrides,
   restore: restoreConsole,
   flush: flushLogs,
+  configure,
+  // Expose current configuration for debugging
+  getConfig: () => ({ ...config }),
 };
 
 // Handle page unload to send any remaining logs
