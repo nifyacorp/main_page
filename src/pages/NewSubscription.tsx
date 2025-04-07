@@ -8,6 +8,9 @@ import MainLayout from '../components/MainLayout';
 import { templateService } from '../lib/api/services/templates';
 import { subscriptions } from '../lib/api';
 import type { Template } from '../lib/api/types';
+import SubscriptionForm from '../components/subscriptions/SubscriptionForm';
+import type { SubscriptionTemplate } from '../services/api/template-service';
+import { useToast } from '../components/ui/use-toast';
 
 // Map of icon names to Lucide React components
 const iconMap: Record<string, React.ReactNode> = {
@@ -32,140 +35,34 @@ interface Subscription {
 
 const NewSubscription: React.FC = () => {
   const navigate = useNavigate();
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [userSubscriptions, setUserSubscriptions] = useState<Subscription[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [subscriptionsLoading, setSubscriptionsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
+  const [templates, setTemplates] = useState<SubscriptionTemplate[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchTemplates = async () => {
+      setLoadingTemplates(true);
       try {
-        // Fetch templates
-        setLoading(true);
-        const templatesResponse = await templateService.list(1, 20);
-        
-        if (templatesResponse.error) {
-          throw new Error(templatesResponse.error);
-        }
-        
-        if (templatesResponse.data?.templates) {
-          setTemplates(templatesResponse.data.templates);
+        const response = await templateService.getPublicTemplates({ limit: 50 });
+        if (response.templates) {
+          setTemplates(response.templates);
         } else {
-          setTemplates([]);
-        }
-        
-        // Fetch user's existing subscriptions
-        setSubscriptionsLoading(true);
-        const subscriptionsResponse = await subscriptions.list();
-        
-        if (subscriptionsResponse.error) {
-          console.error('Error fetching subscriptions:', subscriptionsResponse.error);
-        } else if (subscriptionsResponse.data?.subscriptions) {
-          // Add icon information based on subscription type
-          const enhancedSubscriptions = subscriptionsResponse.data.subscriptions.map(sub => ({
-            ...sub,
-            icon: sub.type === 'boe' ? 'FileText' : 
-                 sub.type === 'real-estate' ? 'Building2' : 'Bell'
-          }));
-          setUserSubscriptions(enhancedSubscriptions);
+          console.error('Failed to fetch templates');
         }
       } catch (err) {
-        console.error('Error fetching data:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load data');
-        
-        // In development mode, create mock data for testing
-        if (import.meta.env.DEV) {
-          console.log('Creating mock data for development');
-          
-          // Set mock templates if in dev mode
-          if (templates.length === 0) {
-            setTemplates([
-              {
-                id: 'boe-general',
-                name: 'BOE General',
-                description: 'Seguimiento general del Boletín Oficial del Estado',
-                type: 'boe',
-                prompts: ['disposición', 'ley', 'real decreto'],
-                icon: 'FileText',
-                logo: 'https://www.boe.es/favicon.ico',
-                isBuiltIn: true,
-                metadata: {
-                  category: 'government',
-                  source: 'boe'
-                },
-                frequency: 'daily'
-              },
-              {
-                id: 'boe-subvenciones',
-                name: 'Subvenciones BOE',
-                description: 'Alertas de subvenciones y ayudas públicas',
-                type: 'boe',
-                prompts: ['subvención', 'ayuda', 'convocatoria'],
-                icon: 'Coins',
-                logo: 'https://www.boe.es/favicon.ico',
-                isBuiltIn: true,
-                metadata: {
-                  category: 'government',
-                  source: 'boe'
-                },
-                frequency: 'immediate'
-              },
-              {
-                id: 'real-estate-rental',
-                name: 'Alquiler de Viviendas',
-                description: 'Búsqueda de alquileres en zonas específicas',
-                type: 'real-estate',
-                prompts: ['alquiler', 'piso', 'apartamento'],
-                icon: 'Building2',
-                logo: 'https://example.com/icon.png',
-                isBuiltIn: true,
-                metadata: {
-                  category: 'real-estate',
-                  source: 'property-listings'
-                },
-                frequency: 'immediate'
-              }
-            ]);
-          }
-          
-          // Add mock subscriptions in development mode
-          setUserSubscriptions([
-            {
-              id: 'mock-sub-1',
-              name: 'My BOE Subscription',
-              description: 'Tracking tax law changes',
-              type: 'boe',
-              icon: 'FileText',
-              active: true,
-              frequency: 'daily',
-              prompts: ['impuestos', 'IRPF', 'IVA'],
-              createdAt: new Date().toISOString()
-            },
-            {
-              id: 'mock-sub-2',
-              name: 'Madrid Real Estate',
-              description: 'Looking for apartments in Madrid',
-              type: 'real-estate',
-              icon: 'Building2',
-              active: true,
-              frequency: 'immediate',
-              prompts: ['Madrid', 'apartamento', '2 habitaciones'],
-              createdAt: new Date().toISOString()
-            }
-          ]);
-        }
+        console.error('Error fetching templates:', err);
       } finally {
-        setLoading(false);
-        setSubscriptionsLoading(false);
+        setLoadingTemplates(false);
       }
     };
-
-    fetchData();
+    fetchTemplates();
   }, []);
 
-  const handleSelectTemplate = (templateId: string) => {
-    navigate(`/subscriptions/create/${templateId}`);
+  const handleSuccess = () => {
+    toast({
+      title: 'Subscription created successfully',
+      description: 'The subscription has been created successfully.',
+    });
   };
 
   return (
@@ -190,6 +87,8 @@ const NewSubscription: React.FC = () => {
               <h2 className="text-lg font-semibold mb-4">Your Subscriptions</h2>
               <Separator className="mb-4" />
               
+              {/* Remove the existing subscriptions panel */}
+              {/* 
               {subscriptionsLoading ? (
                 <div className="flex justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -262,35 +161,15 @@ const NewSubscription: React.FC = () => {
                   </div>
                 </>
               )}
+              */}
             </div>
           </div>
           
           {/* Main content - Templates */}
           <div className="md:col-span-2">
-            {loading ? (
+            {loadingTemplates ? (
               <div className="flex justify-center items-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : error && templates.length === 0 ? (
-              <div className="bg-red-50 border border-red-200 rounded-md p-4 text-center">
-                <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-2" />
-                <p className="text-red-600 mb-2">{error}</p>
-                <Button 
-                  variant="outline" 
-                  className="mt-2"
-                  onClick={() => window.location.reload()}
-                >
-                  Try Again
-                </Button>
-              </div>
-            ) : templates.length === 0 ? (
-              <div className="text-center py-12 bg-card rounded-lg border shadow">
-                <Bell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h2 className="text-xl font-semibold mb-2">No templates available</h2>
-                <p className="text-muted-foreground">
-                  There are currently no subscription templates available. 
-                  Please check back later.
-                </p>
               </div>
             ) : (
               <div>
@@ -331,7 +210,7 @@ const NewSubscription: React.FC = () => {
                       <CardFooter>
                         <Button 
                           className="w-full"
-                          onClick={() => handleSelectTemplate(template.id)}
+                          onClick={() => navigate(`/subscriptions/create/${template.id}`)}
                           data-testid={`template-select-button-${template.id}`}
                         >
                           Select
@@ -363,7 +242,7 @@ const NewSubscription: React.FC = () => {
                       <Button 
                         className="w-full" 
                         variant="outline"
-                        onClick={() => handleSelectTemplate('custom')}
+                        onClick={() => navigate('/subscriptions/create/custom')}
                         data-testid="template-select-button-custom"
                       >
                         Create Custom
