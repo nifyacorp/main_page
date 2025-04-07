@@ -159,14 +159,12 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
                 <AlertDialogAction 
-                  onClick={(e) => {
-                    e.stopPropagation(); // Prevent card click
-                    // console.log('!!!! Eliminar PLAIN button clicked INSIDE DIALOG !!!!'); 
+                  onClick={() => {
                     onConfirmDelete(); // Call the callback passed from parent
                   }}
                   className={buttonVariants({ variant: 'destructive' })}
                 >
-                  Eliminar (Inside Dialog)
+                  Eliminar
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
