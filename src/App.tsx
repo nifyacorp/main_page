@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Bell, ClipboardCheck, PieChart } from 'lucide-react';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -21,6 +21,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import Debug from './components/Debug';
 import LoadingPage from './components/LoadingPage';
+import { logger } from './lib/utils/logger';
 
 // Lazy-load the pages
 const LandingPage = lazy(() => import('./pages/Landing'));
@@ -36,6 +37,15 @@ const checkIsAuthenticated = () => {
 // ... existing code ...
 
 export default function App() {
+  // Initialize logger when app mounts
+  useEffect(() => {
+    logger.setup();
+    
+    return () => {
+      logger.restore();
+    };
+  }, []);
+  
   try {
     // console.log('App: Rendering routes'); // Removed debug log
     

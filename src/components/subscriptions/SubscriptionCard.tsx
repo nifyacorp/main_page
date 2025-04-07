@@ -6,7 +6,6 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/card
 import { Badge } from '../ui/badge';
 import { 
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -158,14 +157,12 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction 
-                  onClick={() => {
-                    onConfirmDelete(); // Call the callback passed from parent
-                  }}
-                  className={buttonVariants({ variant: 'destructive' })}
+                <Button 
+                  variant="destructive"
+                  onClick={onConfirmDelete}
                 >
                   Eliminar
-                </AlertDialogAction>
+                </Button>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

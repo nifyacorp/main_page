@@ -193,15 +193,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     
     fetchUnreadCount();
     
-    // Set up a polling interval to check for new notifications periodically
-    const pollingInterval = setInterval(() => {
-      fetchUnreadCount();
-    }, 30000); // Check every 30 seconds
-    
-    // Cleanup
-    return () => {
-      clearInterval(pollingInterval);
-    };
+    // Removed the polling interval - notifications will only be fetched on initial load
+    // and when explicitly triggered by user actions
   }, []);
 
   return (

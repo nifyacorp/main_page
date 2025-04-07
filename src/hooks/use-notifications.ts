@@ -29,7 +29,6 @@ export function useNotifications(params?: NotificationListParams) {
     queryKey: ['notifications', filter],
     queryFn: () => notificationService.getNotifications(filter),
     staleTime: 30000, // 30 seconds
-    refetchInterval: 60000, // Poll every minute for new notifications
     enabled: isAuthenticated, // Only run query if authenticated
   });
 
@@ -57,7 +56,6 @@ export function useNotifications(params?: NotificationListParams) {
       }
     },
     staleTime: 30000, // 30 seconds
-    refetchInterval: 60000, // Poll every minute
     enabled: isAuthenticated, // Only run query if authenticated
   });
 
