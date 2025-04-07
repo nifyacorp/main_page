@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Bell, Loader2, AlertTriangle, RefreshCcw, Trash2 } from 'lucide-react';
+import { Plus, Bell, Loader2, AlertTriangle, RefreshCcw, Trash2, PlusCircle, Edit, Filter, BellOff, BellRing, Search } from 'lucide-react';
 // Removed unused icons: Clock, FileText, Play, Edit, Trash, CheckCircle, Mail
 
 import { useSubscriptions } from '../hooks/use-subscriptions';
@@ -10,7 +10,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
 // UI components
-import { Button } from '../components/ui/button';
+import { Button, buttonVariants } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -26,6 +26,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 // Extracted components
 import SubscriptionCard from '../components/subscriptions/SubscriptionCard';
@@ -185,7 +187,7 @@ export default function Subscriptions() {
         // console.log('[SubscriptionsPage] deleteSubscription mutation finished for ID:', deletingId);
         toast({
           title: "Subscripción eliminada",
-          description: "La subscripción ha sido eliminada exitosamente.",
+          description: `La subscripción "${subscriptionsData.find(sub => sub.id === deletingId)?.name || deletingId}" ha sido eliminada.`,
           variant: "default",
         });
         setDeletingId(null); // Close the dialog on success
@@ -327,7 +329,6 @@ export default function Subscriptions() {
           isDeleting={deletingId === subscription.id}
           onProcess={handleProcess}
           onDelete={handleDelete}
-          onConfirmDelete={confirmDelete}
         />
       ))}
     </div>
@@ -465,6 +466,35 @@ export default function Subscriptions() {
            </>)
         : null /* Handle case where there's an error but we don't show the error state (e.g., mock banner) */
       }
+
+      {/* Single Delete Confirmation Dialog (Centralized) */}
+      <AlertDialog 
+        open={!!deletingId} 
+        onOpenChange={(isOpen) => {
+            if (!isOpen) {
+              setDeletingId(null); // Close dialog if opened state becomes false
+            }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción eliminará la subscripción "{subscriptionsData.find(sub => sub.id === deletingId)?.name || deletingId}" permanentemente. 
+              No podrás deshacer esta acción.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeletingId(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete} // Call the confirm function
+              className={buttonVariants({ variant: 'destructive' })}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
