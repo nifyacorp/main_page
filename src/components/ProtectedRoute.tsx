@@ -47,13 +47,16 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     }
   }, [isAuthenticated, isLoading, navigate]);
 
-  // Show loading while checking auth status
-  if (isLoading) {
+  // Show loading while checking auth status or preparing redirect
+  if (isLoading || (!isAuthenticated && !isLoading)) {
+    // If not authenticated and not loading, we should be redirecting.
+    // Show loading indicator until navigation happens.
     return <LoadingPage />;
   }
 
   // Only render the children if authenticated
-  return isAuthenticated ? <DashboardLayout>{children}</DashboardLayout> : null;
+  // This line should only be reached if isLoading is false AND isAuthenticated is true
+  return <DashboardLayout>{children}</DashboardLayout>;
 };
 
 export default ProtectedRoute;
