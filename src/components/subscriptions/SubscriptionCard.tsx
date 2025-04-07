@@ -33,11 +33,12 @@ interface Subscription {
 interface SubscriptionCardProps {
   subscription: Subscription;
   emailNotificationsEnabled: boolean;
-  isProcessing?: boolean;
-  isCompleted?: boolean;
-  isDeleting?: boolean;
+  isProcessing: boolean;
+  isCompleted: boolean;
+  isDeleting: boolean;
   onProcess: (id: string) => void;
   onDelete: (id: string) => void;
+  onConfirmDelete: () => void;
 }
 
 const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
@@ -48,6 +49,7 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
   isDeleting,
   onProcess,
   onDelete,
+  onConfirmDelete,
 }) => {
   const keywords = subscription.keywords || subscription.prompts || [];
   const frequencyText = 
@@ -132,19 +134,57 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
             </Link>
           </Button>
           
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="text-destructive hover:bg-destructive/10" 
-            onClick={(e) => {
-              e.stopPropagation(); // Prevent card click through
-              onDelete(subscription.id); // Call onDelete passed from parent
-            }}
-            disabled={isDeleting} // Keep disabled state if needed
-            aria-label={`Delete subscription ${subscription.name}`}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-destructive hover:bg-destructive/10" 
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent card click through
+                  onDelete(subscription.id); // Call onDelete passed from parent HERE
+                }}
+              >
+                <Trash className="h-4 w-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta acción eliminará la subscripción "{subscription.name}" permanentemente. 
+                  No podrás deshacer esta acción.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent card click
+                    // console.log('!!!! Eliminar PLAIN button clicked INSIDE DIALOG !!!!'); 
+                    onConfirmDelete(); // Call the callback passed from parent
+                  }}
+                  className={buttonVariants({ variant: 'destructive' })}
+                >
+                  Eliminar (Inside Dialog)
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          {/* --- TEMPORARY DIAGNOSTIC BUTTON --- */}
+          <button 
+             type="button"
+             onClick={() => { 
+               console.log('!!!! TEST DELETE BUTTON CLICKED (OUTSIDE DIALOG) !!!!'); 
+               // Optionally call onDelete directly for testing, but log is key
+               // onDelete(subscription.id); 
+             }} 
+             className="bg-yellow-500 text-black p-1 rounded text-xs ml-2"
           >
-            {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash className="h-4 w-4" />}
-          </Button>
+            Test Delete
+          </button>
+          {/* --- END TEMPORARY DIAGNOSTIC BUTTON --- */}
 
         </div>
       </CardFooter>

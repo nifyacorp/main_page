@@ -1,7 +1,6 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import { visualizer } from 'rollup-plugin-visualizer';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -12,34 +11,20 @@ export default defineConfig(({ mode }) => {
   // Log configuration
   console.log(`🚀 Vite Config: ${mode} mode`);
   
-  // Add visualizer plugin for bundle analysis in analyze mode
-  const plugins = [
-    react({
-      // Use React production mode in production builds
-      jsxRuntime: mode === 'production' ? 'automatic' : 'classic',
-      // Use Babel to ensure proper JSX transformation
-      babel: {
-        presets: ['@babel/preset-react'],
-        plugins: ['@babel/plugin-transform-react-jsx'],
-        babelrc: false,
-        configFile: false,
-      }
-    }),
-  ];
-  
-  if (mode === 'analyze') {
-    plugins.push(
-      visualizer({
-        open: true,
-        filename: 'dist/stats.html',
-        gzipSize: true,
-        brotliSize: true,
-      })
-    );
-  }
-  
   return {
-    plugins,
+    plugins: [
+      react({
+        // Use React production mode in production builds
+        jsxRuntime: mode === 'production' ? 'automatic' : 'classic',
+        // Use Babel to ensure proper JSX transformation
+        babel: {
+          presets: ['@babel/preset-react'],
+          plugins: ['@babel/plugin-transform-react-jsx'],
+          babelrc: false,
+          configFile: false,
+        }
+      }),
+    ],
     server: {
       historyApiFallback: true,
       proxy: {
@@ -75,14 +60,7 @@ export default defineConfig(({ mode }) => {
     },
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, './src'),
-        '@api': path.resolve(__dirname, './src/api'),
-        '@features': path.resolve(__dirname, './src/features'),
-        '@design-system': path.resolve(__dirname, './src/design-system'),
-        '@store': path.resolve(__dirname, './src/store'),
-        '@assets': path.resolve(__dirname, './src/assets'),
-        '@components': path.resolve(__dirname, './src/components'),
-        '@utils': path.resolve(__dirname, './src/utils'),
+        '@': path.resolve(__dirname, './src')
       }
     },
     define: {
@@ -107,46 +85,17 @@ export default defineConfig(({ mode }) => {
       minify: 'terser',
       terserOptions: {
         compress: {
-          drop_console: mode === 'production', // Only drop console in production
+          drop_console: false,  // Keep console logs for now
           drop_debugger: true
         }
       },
-      // Split chunks for better caching
+      // Avoid empty chunks in production and handle external scripts
       rollupOptions: {
         output: {
-          manualChunks: (id) => {
-            // Split vendor chunks
-            if (id.includes('node_modules')) {
-              if (id.includes('react') || id.includes('scheduler') || id.includes('prop-types')) {
-                return 'vendor-react';
-              }
-              if (id.includes('@tanstack/react-query')) {
-                return 'vendor-query';
-              }
-              if (id.includes('radix')) {
-                return 'vendor-radix';
-              }
-              if (id.includes('lucide')) {
-                return 'vendor-icons';
-              }
-              return 'vendor';
-            }
-            
-            // Split feature chunks
-            if (id.includes('/features/')) {
-              const feature = id.split('/features/')[1].split('/')[0];
-              return `feature-${feature}`;
-            }
-          }
+          manualChunks: undefined
         },
         external: ['/assets/env-config.js'] // Mark env-config.js as external
       }
-    },
-    // Improve development experience
-    esbuild: {
-      // Speed up builds in development
-      legalComments: 'none',
-      drop: mode === 'production' ? ['console', 'debugger'] : [],
     }
   };
 });

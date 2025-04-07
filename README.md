@@ -12,106 +12,233 @@ NIFYA is a modern platform that leverages artificial intelligence to provide per
 - **📊 Comprehensive Dashboard**: Overview of all active subscriptions and recent notifications
 - **📱 Responsive Design**: Interface adaptable to all devices with optimized mobile navigation
 
-## 🚀 New Feature-Based Architecture
-
-The frontend has been completely rebuilt with a feature-based architecture for better organization, maintainability, and scalability. Key improvements include:
-
-- **📂 Feature-based folder structure** for better code organization
-- **🔄 Enhanced API client** with automatic token refresh and error handling
-- **🔐 Improved authentication** with secure token management
-- **📊 Standardized design system** for consistent UI components
-- **⚡ Performance optimizations** with code splitting and lazy loading
-- **📱 Mobile-first responsive design** for all screen sizes
-- **♿ Improved accessibility** following WCAG guidelines
-
 ## 🛠️ Technology Stack
 
 - **Frontend Framework**: React 18 with TypeScript
 - **Build Tool**: Vite
-- **State Management**: React Query and Context API
+- **State Management**: React Context API and React Query
 - **Styling**: TailwindCSS
 - **Routing**: React Router v6
 - **HTTP Client**: Axios
-- **UI Components**: Radix UI
-- **Form Validation**: Zod
-- **Testing**: React Testing Library (in progress)
+- **Real-time Updates**: Socket.IO
+- **Testing**: Vitest (in progress)
 
-## 📂 New Project Structure
+## 📂 Project Structure
 
 ```
 frontend/
-├── src/
-│   ├── api/               # API client and hooks
-│   │   ├── clients/       # API client implementation
-│   │   ├── hooks/         # React Query hooks
-│   │   ├── schemas/       # Zod validation schemas
-│   │   └── utils/         # API utilities
-│   ├── assets/            # Static assets
-│   ├── components/        # Shared UI components
-│   ├── design-system/     # Design system
-│   │   ├── components/    # Base design components
-│   │   ├── themes/        # Theme management
-│   │   └── tokens/        # Design tokens
-│   ├── features/          # Feature modules
-│   │   ├── auth/          # Authentication feature
-│   │   │   ├── components/
-│   │   │   ├── hooks/
-│   │   │   ├── pages/
-│   │   │   └── services/
-│   │   ├── common/        # Shared components
-│   │   ├── dashboard/     # Dashboard feature
-│   │   ├── notifications/ # Notifications feature
-│   │   ├── settings/      # User settings feature
-│   │   ├── subscriptions/ # Subscription management
-│   │   └── templates/     # Template management
-│   ├── store/             # State management
-│   ├── App.tsx            # Main app component
-│   ├── main.tsx           # Entry point
-│   └── routes.tsx         # Routing configuration
-└── tests/                 # Test utilities
+├── src/                        # Source code
+│   ├── components/             # Reusable components
+│   │   ├── ui/                 # Base UI components
+│   │   ├── notifications/      # Notification components
+│   │   └── settings/           # Settings components
+│   ├── contexts/               # React contexts
+│   │   ├── AuthContext.tsx     # Authentication state management
+│   │   └── NotificationContext.tsx # Notification state management
+│   ├── hooks/                  # Custom React hooks
+│   │   ├── use-auth.ts         # Authentication hook
+│   │   ├── use-notifications.ts # Notifications hook
+│   │   └── use-subscriptions.ts # Subscription management hook
+│   ├── lib/                    # Utilities and helpers
+│   │   ├── api/                # API services and types
+│   │   └── utils/              # Utility functions
+│   ├── pages/                  # Page components
+│   ├── App.tsx                 # Main app component
+│   └── main.tsx                # Entry point
+├── public/                     # Static assets
+└── dist/                       # Build output (generated)
 ```
 
-## ✨ Key Architectural Improvements
+## ✨ Core Components and Functions
 
-### 1. Enhanced API Layer
+### Authentication
 
-The new API client provides:
+#### `src/contexts/AuthContext.tsx`
+Provides authentication state and methods across the application.
 
-- Centralized request handling
-- Automatic token refresh
-- Standardized error handling
-- Type-safe responses with Zod validation
-- Request/response interceptors
-- Retry mechanisms for failed requests
+```typescript
+// Key exported values:
+interface AuthContextType {
+  isAuthenticated: boolean;
+  user: User | null;
+  token: string | null;
+  login: (email: string, password: string) => Promise<User>;
+  logout: () => void;
+  signup: (email: string, password: string, name: string) => Promise<User>;
+  isLoading: boolean;
+  error: string | null;
+}
+```
 
-### 2. Authentication Improvements
+#### `src/hooks/use-auth.ts`
+Custom hook for consuming the auth context.
 
-- Secure token storage
-- Automatic token refresh
-- Session management with expiry
-- Improved error handling for auth failures
-- Multi-provider authentication support
+```typescript
+// Usage:
+const { 
+  isAuthenticated, 
+  user, 
+  login, 
+  logout 
+} = useAuth();
+```
 
-### 3. Feature Organization
+### Subscriptions
 
-Each feature module includes:
+#### `src/lib/api/services/subscriptions.ts`
+API service for subscription management.
 
-- Components specific to the feature
-- Custom hooks for feature functionality
-- Feature-specific services
-- Pages and layouts
-- Feature-specific types and utilities
+```typescript
+// Main functions:
+const subscriptionsService = {
+  // Get all user subscriptions
+  getSubscriptions: async () => {...},
+  
+  // Get subscription details
+  getSubscription: async (id: string) => {...},
+  
+  // Create new subscription
+  createSubscription: async (data: CreateSubscriptionDto) => {...},
+  
+  // Update subscription
+  updateSubscription: async (id: string, data: UpdateSubscriptionDto) => {...},
+  
+  // Delete subscription
+  deleteSubscription: async (id: string) => {...},
+  
+  // Process subscription
+  processSubscription: async (id: string) => {...}
+};
+```
 
-### 4. Design System
+#### `src/hooks/use-subscriptions.ts`
+Hook for subscription operations.
 
-The new design system provides:
+```typescript
+// Usage:
+const {
+  subscriptions,
+  isLoading,
+  error,
+  createSubscription,
+  updateSubscription,
+  deleteSubscription,
+  processSubscription
+} = useSubscriptions();
+```
 
-- Consistent color tokens
-- Typography system
-- Spacing standards
-- Responsive breakpoints
-- Animation guidelines
-- Theme switching (light/dark)
+#### `src/hooks/use-subscriptions-enhanced.ts`
+Enhanced subscription hook with additional functionality.
+
+```typescript
+// Returns additional data:
+interface EnhancedSubscriptionHook {
+  subscriptions: Subscription[];
+  isLoading: boolean;
+  error: Error | null;
+  createSubscription: (data: CreateSubscriptionDto) => Promise<Subscription>;
+  updateSubscription: (id: string, data: UpdateSubscriptionDto) => Promise<Subscription>;
+  deleteSubscription: (id: string) => Promise<void>;
+  processSubscription: (id: string) => Promise<ProcessingResult>;
+  subscriptionsByType: Record<string, Subscription[]>;
+  activeSubscriptions: Subscription[];
+  pendingSubscriptions: Subscription[];
+  processingSubscriptions: Subscription[];
+  getSubscriptionStatus: (id: string) => SubscriptionStatus;
+}
+```
+
+### Notifications
+
+#### `src/lib/api/services/notifications.ts`
+API service for notifications.
+
+```typescript
+// Main functions:
+const notificationsService = {
+  // Get all notifications
+  getNotifications: async (params?: NotificationQueryParams) => {...},
+  
+  // Mark notification as read
+  markAsRead: async (id: string) => {...},
+  
+  // Mark all notifications as read
+  markAllAsRead: async () => {...},
+  
+  // Delete notification
+  deleteNotification: async (id: string) => {...}
+};
+```
+
+#### `src/hooks/use-notifications.ts`
+Hook for notification operations.
+
+```typescript
+// Usage:
+const {
+  notifications,
+  isLoading,
+  error,
+  unreadCount,
+  markAsRead,
+  markAllAsRead,
+  deleteNotification
+} = useNotifications();
+```
+
+### WebSocket Connection
+
+#### `src/lib/api/websocket.ts`
+Manages real-time connections for notifications.
+
+```typescript
+// Main functions:
+export const socketService = {
+  // Connect to notification socket
+  connect: (token: string) => {...},
+  
+  // Disconnect socket
+  disconnect: () => {...},
+  
+  // Subscribe to notification events
+  onNotification: (callback: (notification: Notification) => void) => {...},
+  
+  // Handle processing status updates
+  onProcessingUpdate: (callback: (update: ProcessingUpdate) => void) => {...}
+};
+```
+
+### Form Components
+
+#### `src/components/subscriptions/SubscriptionForm.tsx`
+Reusable form for creating and editing subscriptions.
+
+```typescript
+// Props:
+interface SubscriptionFormProps {
+  initialValues?: Partial<CreateSubscriptionDto>;
+  onSubmit: (values: CreateSubscriptionDto) => Promise<void>;
+  isEdit?: boolean;
+  subscriptionTypes?: SubscriptionType[];
+}
+```
+
+#### `src/components/ui/button.tsx`
+Core button component with multiple variants.
+
+```typescript
+// Variants:
+type ButtonVariant = 
+  | "default"
+  | "destructive"
+  | "outline"
+  | "secondary"
+  | "ghost"
+  | "link";
+
+// Sizes:
+type ButtonSize = "default" | "sm" | "lg" | "icon";
+```
 
 ## 🚀 Development Guide
 
@@ -133,9 +260,7 @@ npm run dev
 - `npm run build` - Build for production
 - `npm run build:netlify` - Build specifically for Netlify
 - `npm run lint` - Run ESLint
-- `npm run lint:fix` - Fix ESLint issues
 - `npm run type-check` - Run TypeScript type checking
-- `npm run analyze` - Analyze bundle size
 
 ### Environment Configuration
 
@@ -230,10 +355,27 @@ npm run dev
 
 For API testing, consider using the testing tools from `/testing-tools` directory in the project root.
 
+## 📋 Recent Updates
+
+### WebSocket Connection Removal
+
+- Removed WebSocket connection code as it's not needed in this project
+- Replaced real-time updates with polling for notifications
+- Added environment variable `VITE_DISABLE_WEBSOCKET=true` to explicitly disable WebSockets
+- Fixed console errors related to WebSocket connection failures
+
+### User Synchronization
+
+Recent changes include improved user synchronization between the authentication service and backend database:
+
+- Users authenticated with valid JWT tokens are now automatically created in the backend database if they don't exist
+- This fixes foreign key constraint errors when creating subscriptions for users that exist in auth but not in backend
+- CORS configuration has been updated to allow connections from all Cloud Run domains
+
 ## 🤝 Contributing
 
 When contributing to this codebase:
-1. Follow the feature-based architecture
+1. Follow the existing code style and architecture
 2. Maintain TypeScript type safety
 3. Add appropriate documentation for new features
 4. Test all changes thoroughly before submitting

@@ -1,8 +1,23 @@
 import React, { StrictMode } from 'react';
 import * as ReactDOM from 'react-dom/client';
 import { BrowserRouter as Router } from 'react-router-dom';
-import App from './App';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import App from './App.tsx';
 import './index.css';
+
+// Ensure React is available in the global scope for debugging
+window.React = React;
+window.ReactDOM = ReactDOM;
+
+// Create a client
+const queryClient = new QueryClient();
+
+// Debug environment variables
+// console.log('Environment variables:');
+// console.log('VITE_AUTH_URL:', import.meta.env.VITE_AUTH_URL);
+// console.log('VITE_BACKEND_URL:', import.meta.env.VITE_BACKEND_URL);
+// console.log('VITE_SUBSCRIPTION_WORKER:', import.meta.env.VITE_SUBSCRIPTION_WORKER);
+// console.log('VITE_ENV:', import.meta.env.VITE_ENV);
 
 // Set up global error handler
 window.addEventListener('error', (event) => {
@@ -23,21 +38,31 @@ window.addEventListener('unhandledrejection', (event) => {
   });
 });
 
+// console.log('Application starting...');
+
 try {
   const rootElement = document.getElementById('root');
   if (!rootElement) {
     throw new Error('Root element not found');
   }
   
+  // console.log('Creating React root...');
+  // Use ReactDOM explicitly to avoid potential issues
   const root = ReactDOM.createRoot(rootElement);
   
+  // console.log('Rendering application...');
+  // Use explicit JSX with React
   root.render(
-    <StrictMode>
-      <Router>
-        <App />
-      </Router>
-    </StrictMode>
+    React.createElement(StrictMode, null, 
+      React.createElement(Router, null,
+        React.createElement(QueryClientProvider, { client: queryClient },
+          React.createElement(App, null)
+        )
+      )
+    )
   );
+  
+  // console.log('Application rendered successfully');
 } catch (error) {
   console.error('Fatal error during application initialization:', error);
   // Render fallback UI

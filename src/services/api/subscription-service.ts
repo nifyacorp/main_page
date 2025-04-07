@@ -687,85 +687,48 @@ class SubscriptionService {
   }
 
   /**
-   * Delete a subscription (with improved error handling)
+   * Delete a subscription (Simplified)
    */
   async deleteSubscription(id: string): Promise<{ success: boolean; message?: string; status?: number }> {
     try {
       console.log(`Attempting to delete subscription with ID: ${id}`);
       
-      // Log detailed information about the request we're about to make
-      console.log('Request details:', {
-        method: 'DELETE',
-        url: `/v1/subscriptions/${id}`,
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      // First try with axios delete with empty data object
-      try {
-        const response = await apiClient.delete(`/v1/subscriptions/${id}`, {
-          data: {} // Ensure content-type is set correctly with empty object
-        });
-        
-        console.log('Delete response:', response.data, 'Status:', response.status);
-        return {
-          success: true,
-          message: response.data?.message || 'Subscription deleted successfully',
-          status: response.status
-        };
-      } catch (axiosError) {
-        console.error('Axios delete failed, trying fetch API as fallback:', axiosError);
-        
-        // Try fetch API as fallback with explicit headers
-        const fetchResponse = await fetch(`/api/v1/subscriptions/${id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({}) // Empty JSON body
-        });
-        
-        if (fetchResponse.ok) {
-          console.log('Fetch DELETE succeeded:', fetchResponse.status);
-          const responseData = await fetchResponse.json().catch(() => ({}));
-          return {
-            success: true,
-            message: responseData?.message || 'Subscription deleted successfully via fallback',
-            status: fetchResponse.status
-          };
-        }
-        
-        // If fetch also failed, throw to be caught by outer catch
-        throw new Error(`Fetch DELETE failed with status ${fetchResponse.status}`);
-      }
+      // Directly attempt the DELETE request
+      const response = await apiClient.delete(`/v1/subscriptions/${id}`);
+      // console.log('Delete subscription response:', response.data, 'Status:', response.status);
+
+      // Assume success if axios doesn't throw (status 2xx)
+      return {
+        success: true,
+        message: response.data?.message || 'Subscription deleted successfully',
+        status: response.status
+      };
+
     } catch (error: any) {
       console.error(`Error deleting subscription ${id}:`, error);
-      
-      // Log more detailed info about the error
+
+      // Check if it's an Axios error with a response
       if (error.response) {
-        console.log('Response status:', error.response.status);
-        console.log('Response headers:', error.response.headers);
-        console.log('Response data:', error.response.data);
+        // console.error('Axios error response:', {
+        //   status: error.response.status,
+        //   data: error.response.data
+        // });
+        // If it's a 404, treat it as success because the subscription is gone
+        if (error.response.status === 404) {
+          console.log(`Subscription ${id} not found (404), treating as successful deletion.`);
+          return {
+            success: true, // Treat 404 as success in this context
+            message: 'Subscription already removed or not found',
+            status: 404
+          };
+        }
+        // Re-throw other API errors to be handled by the mutation hook
+        throw error;
+      } else {
+        // Network error or other issue
+        console.error('Non-API error during deletion:', error.message);
+        throw new Error('A network error occurred while trying to delete the subscription.');
       }
-      
-      // Special case: if it's a 404, treat as success because subscription is gone
-      if (error.response?.status === 404) {
-        return {
-          success: true,
-          message: 'Subscription already removed or not found',
-          status: 404
-        };
-      }
-      
-      // Return formatted error
-      return {
-        success: false,
-        message: error.message || 'Failed to delete subscription',
-        status: error.response?.status || 500
-      };
     }
   }
 
@@ -944,8 +907,7 @@ class SubscriptionService {
         error: 'Unexpected response format from server'
       };
     } catch (error) {
-      // Log but don't show as error in console
-      console.log(`Error fetching processing status for subscription ${id}:`, error);
+      console.error(`Error fetching processing status for subscription ${id}:`, error);
       
       // Try a fallback API path
       try {
@@ -1020,10 +982,4 @@ class SubscriptionService {
   }
 }
 
-const subscriptionServiceInstance = new SubscriptionService();
-
-// Add a named export to fix imports in other files
-export const subscriptionService = subscriptionServiceInstance;
-
-// Keep the default export for backward compatibility
-export default subscriptionServiceInstance;
+export default new SubscriptionService();

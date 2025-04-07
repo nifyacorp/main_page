@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Bell, Loader2, AlertTriangle, RefreshCcw, Trash2, PlusCircle, Edit, Filter, BellOff, BellRing, Search } from 'lucide-react';
+import { Plus, Bell, Loader2, AlertTriangle, RefreshCcw, Trash2 } from 'lucide-react';
 // Removed unused icons: Clock, FileText, Play, Edit, Trash, CheckCircle, Mail
 
 import { useSubscriptions } from '../hooks/use-subscriptions';
@@ -10,7 +10,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
 // UI components
-import { Button, buttonVariants } from '../components/ui/button';
+import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -26,14 +26,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 
 // Extracted components
 import SubscriptionCard from '../components/subscriptions/SubscriptionCard';
 import SubscriptionFilterBar from '@/components/subscriptions/SubscriptionFilterBar';
 import { SubscriptionForm } from '@/components/subscriptions/SubscriptionForm';
-import DeleteSubscriptionDialog from '../components/subscriptions/DeleteSubscriptionDialog';
 
 // Define Subscription type (can be shared or defined closer to hook if preferred)
 interface Subscription {
@@ -180,45 +177,34 @@ export default function Subscriptions() {
   };
 
   const confirmDelete = async () => {
-    console.log('confirmDelete called with ID:', deletingId);
+    if (!deletingId) return;
+    // console.log('[SubscriptionsPage] Calling deleteSubscription mutation for ID:', deletingId);
     
-    if (!deletingId) {
-      console.error('No deletingId found when trying to confirm delete');
-      return;
-    }
-    
-    try {
-      console.log('Calling deleteSubscription.mutate for ID:', deletingId);
-      
-      deleteSubscription.mutate(deletingId, {
-        onSuccess: (data) => {
-          console.log('Delete succeeded:', data);
-          toast({
-            title: "Subscripción eliminada",
-            description: `La subscripción "${subscriptionsData.find(sub => sub.id === deletingId)?.name || deletingId}" ha sido eliminada.`,
-            variant: "default",
-          });
-          setDeletingId(null); // Close the dialog on success
-        },
-        onError: (error) => {
-          console.error('Delete failed:', error);
-          toast({
-            title: "Error al eliminar",
-            description: error.message || "No se pudo eliminar la subscripción.",
-            variant: "destructive",
-          });
-          setDeletingId(null); // Also close the dialog on error
-        }
-      });
-    } catch (error) {
-      console.error('Exception during deleteSubscription.mutate call:', error);
-      toast({
-        title: "Error al eliminar",
-        description: "Ocurrió un error inesperado al procesar la solicitud.",
-        variant: "destructive",
-      });
-      setDeletingId(null);
-    }
+    deleteSubscription.mutate(deletingId, {
+      onSuccess: () => {
+        // console.log('[SubscriptionsPage] deleteSubscription mutation finished for ID:', deletingId);
+        toast({
+          title: "Subscripción eliminada",
+          description: "La subscripción ha sido eliminada exitosamente.",
+          variant: "default",
+        });
+        setDeletingId(null); // Close the dialog on success
+        // queryClient.invalidateQueries({ queryKey: ['subscriptions'] }); // Invalidation is handled by the hook
+      },
+      onError: (error) => {
+        // console.error('[SubscriptionsPage] Error deleting subscription:', error);
+        toast({
+          title: "Error al eliminar",
+          description: error.message || "No se pudo eliminar la subscripción.",
+          variant: "destructive",
+        });
+        setDeletingId(null); // Also close the dialog on error
+      },
+      // onSettled: () => {
+      //   console.log('[SubscriptionsPage] Resetting deletingId after attempt for ID:', deletingId);
+      //   setDeletingId(null);
+      // } Removed onSettled as we handle closing in onSuccess/onError
+    });
   };
 
   // Handle deleting ALL subscriptions
@@ -341,6 +327,7 @@ export default function Subscriptions() {
           isDeleting={deletingId === subscription.id}
           onProcess={handleProcess}
           onDelete={handleDelete}
+          onConfirmDelete={confirmDelete}
         />
       ))}
     </div>
@@ -478,44 +465,6 @@ export default function Subscriptions() {
            </>)
         : null /* Handle case where there's an error but we don't show the error state (e.g., mock banner) */
       }
-
-      {/* Single Delete Confirmation Dialog - Direct implementation */}
-      {deletingId && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full mx-4 overflow-hidden">
-            <div className="p-6">
-              <h3 className="text-lg font-semibold text-destructive">¿Estás seguro?</h3>
-              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                Esta acción eliminará la subscripción "{subscriptionsData.find(sub => sub.id === deletingId)?.name || deletingId}" permanentemente. 
-                No podrás deshacer esta acción.
-              </p>
-              
-              <div className="mt-6 flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setDeletingId(null)}
-                  disabled={deleteSubscription.isPending}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => {
-                    console.log('Direct Delete button clicked for ID:', deletingId);
-                    confirmDelete();
-                  }}
-                  disabled={deleteSubscription.isPending}
-                >
-                  {deleteSubscription.isPending && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  {deleteSubscription.isPending ? 'Eliminando...' : 'Eliminar'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
