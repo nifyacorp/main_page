@@ -217,10 +217,10 @@ export default function Subscriptions() {
       // Use the dedicated mutation or call the service method directly
       // Assuming subscriptionService has a deleteAll method now
       const subscriptionService = (await import('@/services/api/subscription-service')).default;
-      // const response = await subscriptionService.deleteAllSubscriptions(); // Call the new bulk delete method - COMMENTED OUT FOR NOW
+      const response = await subscriptionService.deleteAllSubscriptions(); // Call the new bulk delete method - UNCOMMENTED
       
-      // Placeholder response until backend/service call is implemented
-      const response = { success: false, deletedCount: 0, message: "Bulk delete not implemented yet." };
+      // Placeholder response until backend/service call is implemented - REMOVED
+      // const response = { success: false, deletedCount: 0, message: "Bulk delete not implemented yet." };
 
       // console.log('[SubscriptionsPage] Delete All response:', response);
       

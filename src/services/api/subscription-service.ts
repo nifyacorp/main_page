@@ -937,6 +937,49 @@ class SubscriptionService {
       };
     }
   }
+
+  /**
+   * Deletes all subscriptions for the current user.
+   * Calls the backend endpoint DELETE /api/v1/subscriptions/
+   */
+  async deleteAllSubscriptions(): Promise<ApiResponse<{ success: boolean; deletedCount: number; message?: string }>> {
+    // console.log('Attempting to delete all subscriptions via API');
+    try {
+      // Ensure apiClient is imported or available in this scope
+      const response = await apiClient.delete('/v1/subscriptions/'); // Use the bulk delete endpoint
+      
+      // console.log('Delete all subscriptions response:', response.data);
+      
+      // Check for success based on status code and potentially response data structure
+      if (response.status === 200 && response.data?.success) {
+        return {
+          success: true,
+          deletedCount: response.data.deletedCount || 0,
+          message: response.data.message
+        };
+      } else {
+        // Handle cases where API returns 200 but indicates failure in the body
+        // or other non-200 success codes like 204 No Content if backend uses that
+        return {
+          success: false,
+          deletedCount: 0,
+          message: response.data?.message || `Backend returned status ${response.status}`
+        };
+      }
+    } catch (error) {
+      // console.error('Error deleting all subscriptions:', error);
+      // Rethrow or return a structured error response
+      const message = error instanceof Error ? error.message : 'An unknown error occurred during bulk deletion.';
+      const status = error?.response?.status || 500;
+      // Return a failed ApiResponse structure
+      return {
+        success: false,
+        deletedCount: 0,
+        message: `Failed to delete all subscriptions (Status: ${status}): ${message}`,
+        error: error // Optionally include original error
+      };
+    }
+  }
 }
 
 export default new SubscriptionService();
