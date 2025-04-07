@@ -233,16 +233,16 @@ export function useSubscriptions(params?: SubscriptionListParams) {
   }, [data]);
 
   // Log processed data for debugging
-  useEffect(() => {
-    if (processedData) {
-      // console.log('Subscription data updated:', {
-      //   count: processedData.subscriptions.length,
-      //   hasData: processedData.subscriptions.length > 0,
-      //   filter: currentFilter,
-      //   metadata: processedData.metadata
-      // });
-    }
-  }, [processedData, currentFilter]);
+  // useEffect(() => {
+  //   if (processedData) {
+  //     console.log('Subscription data updated:', {
+  //       count: processedData.subscriptions.length,
+  //       hasData: processedData.subscriptions.length > 0,
+  //       filter: currentFilter, // Ensure currentFilter is defined if uncommenting
+  //       metadata: processedData.metadata
+  //     });
+  //   }
+  // }, [processedData, currentFilter]); // Ensure dependencies are correct if uncommenting
 
   // Extract subscriptions with better format handling
   const getSubscriptionsArray = () => {

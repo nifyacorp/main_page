@@ -337,6 +337,7 @@ export default function Subscriptions() {
           isDeleting={deletingId === subscription.id}
           onProcess={handleProcess}
           onDelete={handleDelete}
+          onConfirmDelete={confirmDelete}
         />
       ))}
     </div>
