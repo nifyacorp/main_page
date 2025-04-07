@@ -39,14 +39,6 @@ apiClient.interceptors.request.use(
     // Verify and fix auth headers before making the request
     verifyAuthHeaders();
     
-    // Log authentication state for debugging
-    console.log('AuthContext: Checking auth state', {
-      isAuthenticated: localStorage.getItem('isAuthenticated') === 'true',
-      hasAccessToken: !!localStorage.getItem('accessToken'),
-      userId: localStorage.getItem('userId'),
-      email: localStorage.getItem('userEmail')
-    });
-    
     // Get auth token with fallbacks
     const token = localStorage.getItem('accessToken') || localStorage.getItem(AUTH_TOKEN_KEY);
     const userId = localStorage.getItem('userId');
@@ -60,10 +52,8 @@ apiClient.interceptors.request.use(
       // Check if token already has Bearer prefix
       if (token.startsWith('Bearer ')) {
         config.headers.Authorization = token;
-        console.log('Using token with existing Bearer prefix');
       } else {
         config.headers.Authorization = `Bearer ${token}`;
-        console.log('Added Bearer prefix to token');
       }
       
       // Add user ID header with proper case for backend compatibility
@@ -73,26 +63,6 @@ apiClient.interceptors.request.use(
         config.headers['X-User-ID'] = userId;
       }
     }
-    
-    console.log('Request details:', {
-      method: config.method,
-      endpoint: config.url,
-      headers: config.headers ? 'Headers present' : 'No headers'
-    });
-    
-    console.log('Auth headers:', {
-      hasAccessToken: !!config.headers?.Authorization,
-      hasUserId: !!userId,
-      tokenFormat: config.headers?.Authorization ? 
-                  config.headers.Authorization.startsWith('Bearer ') ? 'Bearer' : 'other' : 
-                  'none'
-    });
-    
-    console.log('Final request options:', {
-      method: config.method,
-      headers: config.headers ? 'Headers present' : 'No headers',
-      credentials: 'include'  // Ensure cookies are sent with requests
-    });
     
     // Ensure credentials are included for CORS requests
     config.withCredentials = true;
@@ -107,22 +77,6 @@ apiClient.interceptors.request.use(
 // Response interceptor for handling errors and token refresh
 apiClient.interceptors.response.use(
   (response: AxiosResponse): AxiosResponse => {
-    console.log('Response received:', {
-      status: response.status,
-      url: response.config.url,
-    });
-    
-    console.log('Parsed JSON response:', {
-      type: typeof response.data,
-      hasData: !!response.data
-    });
-    
-    console.log('Final API response object:', {
-      status: response.status,
-      statusText: response.statusText,
-      hasData: !!response.data
-    });
-    
     return response;
   },
   async (error: AxiosError): Promise<any> => {

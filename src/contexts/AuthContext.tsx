@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { user as userService, auth } from '../lib/api';
 import { toast } from '../components/ui/use-toast';
 
@@ -33,15 +33,17 @@ interface AuthProviderProps {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null); // State to track auth errors
   
-  const logout = () => {
+  const logout = useCallback(() => {
+    console.log('AuthContext: Logging out user');
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('userId');
     // Keep email for convenience
     setUser(null);
-  };
+  }, []);
   
   // Check for token expired flag
   useEffect(() => {
@@ -75,9 +77,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   // Check for existing auth on mount
   useEffect(() => {
+    let isMounted = true; // Flag to prevent state updates on unmounted component
     const checkAuth = async () => {
+      setIsLoading(true); // Start loading
+      setAuthError(null); // Clear previous errors
       try {
-        // Check if user is authenticated via the new API client system
         const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
         let accessToken = localStorage.getItem('accessToken');
         let userId = localStorage.getItem('userId');
@@ -115,63 +119,57 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
         
         if (isAuthenticated && accessToken) {
+          // Profile fetch is now primary source of truth after initial check
+          console.log('AuthContext: Attempting to load user profile for authenticated user');
           try {
-            // Check session validity with auth service first
-            console.log('AuthContext: Validating session with auth service');
-            const sessionResponse = await auth.getSession();
-            
-            if (sessionResponse.data?.authenticated && sessionResponse.data.user) {
-              console.log('AuthContext: Session is valid, using user data from session');
-              setUser(sessionResponse.data.user);
-              localStorage.setItem('isAuthenticated', 'true');
-              return;
-            } else if (sessionResponse.error || (sessionResponse.data && !sessionResponse.data.authenticated)) {
-              console.log('AuthContext: Session invalid, attempting fallback to user profile');
-            }
-            
-            // Fallback to getting user profile
-            console.log('AuthContext: Attempting to load user profile');
             const response = await userService.getProfile();
-            if (response.data && !response.error) {
-              setUser(response.data);
-              console.log('AuthContext: User loaded from API', response.data);
-            } else {
-              // If API call fails, use basic user info from localStorage
-              console.log('API returned error:', response.error);
-              setUser({
-                id: userId || '00000000-0000-0000-0000-000000000001',
-                email: userEmail || 'user@example.com'
-              });
-              console.log('AuthContext: Using fallback user data', { id: userId || '00000000-0000-0000-0000-000000000001' });
+            if (isMounted) {
+              if (response.data && !response.error) {
+                setUser(response.data.profile);
+                console.log('AuthContext: User profile loaded successfully', response.data.profile);
+              } else {
+                console.error('AuthContext: Failed to load user profile, logging out.', response.error);
+                setAuthError('Failed to load user profile. Please try logging in again.');
+                logout(); // Log out if profile fetch fails
+              }
             }
           } catch (apiError) {
-            console.error('Error fetching user profile:', apiError);
-            
-            // Use fallback user data from localStorage
-            setUser({
-              id: userId || '00000000-0000-0000-0000-000000000001',
-              email: userEmail || 'user@example.com'
-            });
+            console.error('AuthContext: Error fetching user profile during initial check:', apiError);
+            if (isMounted) {
+              setAuthError('An error occurred while verifying your session. Please try logging in again.');
+              logout(); // Log out on critical API error
+            }
           }
         } else {
-          console.log('AuthContext: No valid auth tokens found');
+          console.log('AuthContext: No valid auth tokens/state found, user is logged out.');
+          if (isMounted) {
+             setUser(null); // Ensure user state is null if not authenticated
+          }
         }
       } catch (error) {
-        console.error('Auth check failed:', error);
-        
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('isAuthenticated');
-        localStorage.removeItem('userId');
+        console.error('AuthContext: Auth check failed catastrophically:', error);
+        if (isMounted) {
+          setAuthError('An unexpected error occurred during authentication check.');
+          logout();
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false); // Stop loading
+        }
       }
     };
     
     checkAuth();
-  }, []);
+
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
+  }, [logout]);
   
-  const login = async (token: string) => {
+  const login = useCallback(async (token: string) => {
+    setIsLoading(true);
+    setAuthError(null);
     try {
       // Ensure token has Bearer prefix
       const formattedToken = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
@@ -202,54 +200,43 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         console.error('Failed to extract userId from login token:', tokenError);
       }
       
-      // Set user information immediately
-      const userEmail = email || localStorage.getItem('email') || 'user@example.com';
-      setUser({
-        id: userId || localStorage.getItem('userId') || '00000000-0000-0000-0000-000000000001',
-        email: userEmail
-      });
+      // Set user information immediately based on token (temporary)
+      const tempUser: User = {
+        id: userId || 'unknown-id',
+        email: email || 'unknown-email'
+      };
+      setUser(tempUser);
+      console.log('AuthContext: Set temporary user data from token', tempUser);
       
-      // After setting tokens, immediately try to get the user profile
+      // After setting tokens, fetch the user profile to get full details
       try {
-        // Wait a brief moment for token to be set
-        setTimeout(async () => {
-          try {
-            const response = await userService.getProfile();
-            if (response.data && !response.error) {
-              setUser(response.data);
-              console.log('AuthContext: User loaded from API after login', response.data);
-            }
-          } catch (apiError) {
-            console.warn('Failed to load user profile after login, using token data:', apiError);
-          }
-        }, 500);
+        console.log('AuthContext: Fetching profile immediately after login');
+        const response = await userService.getProfile();
+        if (response.data && !response.error) {
+          setUser(response.data.profile);
+          console.log('AuthContext: User profile loaded successfully after login', response.data.profile);
+        } else {
+          console.warn('AuthContext: Failed to load profile immediately after login, using token data.', response.error);
+          // Keep the temporary user data from token
+          setAuthError('Could not load full profile details. Some features might be limited.');
+        }
       } catch (profileError) {
-        console.warn('Error fetching profile after login, using token data:', profileError);
+        console.error('AuthContext: Error fetching profile after login:', profileError);
+        // Keep the temporary user data from token
+        setAuthError('Error loading profile after login. Please refresh or re-login if issues persist.');
       }
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error('AuthContext: Login failed:', error);
+      setAuthError('Login process failed.');
+      logout(); // Ensure cleanup on login failure
       throw error;
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [logout]);
   
-  // Compute authentication state from both user and localStorage
-  const computeIsAuthenticated = () => {
-    // If we have a user, we're definitely authenticated
-    if (user) return true;
-    
-    // If we're still loading, check localStorage as a fallback
-    if (isLoading) {
-      // Check localStorage for auth flag and token
-      const hasAuthFlag = localStorage.getItem('isAuthenticated') === 'true';
-      const hasToken = !!localStorage.getItem('accessToken');
-      return hasAuthFlag && hasToken;
-    }
-    
-    // If we're not loading and don't have a user, we're not authenticated
-    return false;
-  };
-
-  const isAuthenticated = computeIsAuthenticated();
+  // Compute authentication state based ONLY on the user state
+  const isAuthenticated = !!user;
   
   // Effect to log authentication state changes for debugging
   useEffect(() => {

@@ -186,22 +186,22 @@ class SubscriptionService {
       const response = await apiClient.get('/v1/subscriptions', { params: apiParams });
       
       // Log the response for debugging
-      console.log('Subscriptions API response:', response.data);
+      // console.log('Subscriptions API response:', response.data);
       
       // Deep inspect the response structure
-      console.log('Subscription API response structure:', JSON.stringify({
-        hasData: !!response.data,
-        isArray: Array.isArray(response.data),
-        hasStatus: !!response.data?.status,
-        statusValue: response.data?.status,
-        hasSubscriptionsAtRoot: Array.isArray(response.data?.subscriptions),
-        hasDataProperty: !!response.data?.data,
-        isDataArray: Array.isArray(response.data?.data),
-        hasSubscriptionsInData: Array.isArray(response.data?.data?.subscriptions),
-        hasNestedData: Array.isArray(response.data?.data?.data),
-        hasTopLevelSubscriptions: !!response.data?.subscriptions,
-        numberOfTopLevelSubscriptions: response.data?.subscriptions?.length
-      }));
+      // console.log('Subscription API response structure:', JSON.stringify({
+      //   hasData: !!response.data,
+      //   isArray: Array.isArray(response.data),
+      //   hasStatus: !!response.data?.status,
+      //   statusValue: response.data?.status,
+      //   hasSubscriptionsAtRoot: Array.isArray(response.data?.subscriptions),
+      //   hasDataProperty: !!response.data?.data,
+      //   isDataArray: Array.isArray(response.data?.data),
+      //   hasSubscriptionsInData: Array.isArray(response.data?.data?.subscriptions),
+      //   hasNestedData: Array.isArray(response.data?.data?.data),
+      //   hasTopLevelSubscriptions: !!response.data?.subscriptions,
+      //   numberOfTopLevelSubscriptions: response.data?.subscriptions?.length
+      // }));
       
       // New format: [{ id: '...', name: '...' }] - Direct array response
       if (Array.isArray(response.data)) {
@@ -695,7 +695,7 @@ class SubscriptionService {
       
       // Directly attempt the DELETE request
       const response = await apiClient.delete(`/v1/subscriptions/${id}`);
-      console.log('Delete subscription response:', response.data, 'Status:', response.status);
+      // console.log('Delete subscription response:', response.data, 'Status:', response.status);
 
       // Assume success if axios doesn't throw (status 2xx)
       return {
@@ -709,10 +709,10 @@ class SubscriptionService {
 
       // Check if it's an Axios error with a response
       if (error.response) {
-        console.error('Axios error response:', {
-          status: error.response.status,
-          data: error.response.data
-        });
+        // console.error('Axios error response:', {
+        //   status: error.response.status,
+        //   data: error.response.data
+        // });
         // If it's a 404, treat it as success because the subscription is gone
         if (error.response.status === 404) {
           console.log(`Subscription ${id} not found (404), treating as successful deletion.`);

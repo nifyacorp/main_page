@@ -6,6 +6,7 @@ import type { UserProfile } from '../lib/api/types';
 import { user } from '../lib/api';
 import { NotificationBadge } from './notifications/NotificationBadge';
 import { NotificationProvider } from '../contexts/NotificationContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const menuItems = [
   { icon: Home, label: 'Inicio', href: '/dashboard' },
@@ -21,100 +22,21 @@ const menuItems = [
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user: profile, isLoading: authLoading, logout } = useAuth();
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        console.group('🔒 User Profile Flow');
-        console.log('Step 1: Checking authentication state');
-        
-        const token = localStorage.getItem('accessToken');
-        
-        console.log('Current auth state:', {
-          hasToken: !!token,
-          tokenValue: token ? `${token.substring(0, 10)}...` : null
-        });
-        
-        if (!token) {
-          console.error('Step 1 Failed: Missing authentication token');
-          console.groupEnd();
-          handleLogout();
-          return;
-        }
-
-        console.log('Step 2: Fetching user profile from API');
-        console.log('Making request to /api/users/me endpoint');
-
-        const { data, error } = await user.getProfile();
-        
-        if (error) {
-          console.error('Step 2 Failed: API request error', error);
-          if (error.toLowerCase().includes('unauthorized')) {
-            console.error('Unauthorized access - clearing session');
-            handleLogout();
-            return;
-          }
-          throw new Error(error);
-        }
-
-        console.log('Step 3: Processing API response');
-        console.log('Response data:', {
-          ...data,
-          profile: data?.profile ? {
-            ...data.profile,
-            email: '***@***.***', // Mask sensitive data
-            id: '***' // Mask sensitive data
-          } : null
-        });
-
-        if (data?.profile) {
-          console.log('Step 3 Success: Valid profile data received');
-          setProfile(data.profile);
-        } else {
-          console.error('Step 3 Failed: Invalid or missing profile data');
-          throw new Error('Invalid profile data received');
-        }
-        
-        console.log('✅ Profile fetch completed successfully');
-        console.groupEnd();
-      } catch (err) {
-        console.error('❌ Profile fetch failed:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load user profile');
-        if (err instanceof Error && err.message.toLowerCase().includes('unauthorized')) {
-          console.log('Unauthorized error detected - initiating logout');
-          handleLogout();
-        }
-        console.groupEnd();
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUserProfile();
-  }, []);
 
   const handleLogout = async () => {
     try {
       console.group('🚪 Logout Process');
-      console.log('Starting logout process');
+      console.log('Starting logout process - using AuthContext');
       
-      // First clear user state
-      setProfile(null);
+      logout();
       
-      console.log('Clearing auth data from storage');
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('userId');
-      localStorage.removeItem('isAuthenticated');
-      
-      console.log('Auth data cleared successfully');
+      console.log('Logout initiated via AuthContext');
       console.groupEnd();
       
     } catch (err) {
-      console.error('Unexpected error during logout:', err);
+      console.error('Unexpected error during logout initiation:', err);
       console.groupEnd();
     } finally {
       navigate('/auth');
@@ -142,7 +64,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
           {/* User Section */}
           <div className="p-6 border-b border-border">
-            {loading ? (
+            {authLoading ? (
               <div className="animate-pulse">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-full bg-secondary">
@@ -154,7 +76,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                   </div>
                 </div>
               </div>
-            ) : user ? (
+            ) : profile ? (
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-full bg-secondary">
                   {profile?.avatar ? (

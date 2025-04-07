@@ -6,15 +6,14 @@ import { Plus, Bell, Loader2, AlertTriangle, RefreshCcw, Trash2 } from 'lucide-r
 import { useSubscriptions } from '../hooks/use-subscriptions';
 import { useEmailPreferences } from '../hooks/use-email-preferences';
 import { useToast } from '@/components/ui/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 
 // UI components
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-// Removed unused UI: Input, Badge, Separator, AlertDialog components (now handled in card)
-
-// Extracted components
-import SubscriptionCard from '../components/subscriptions/SubscriptionCard';
-import SubscriptionFilterBar from '../components/subscriptions/SubscriptionFilterBar';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,6 +26,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
+
+// Extracted components
+import SubscriptionCard from '../components/subscriptions/SubscriptionCard';
+import SubscriptionFilterBar from '../components/subscriptions/SubscriptionFilterBar';
+import SubscriptionForm from '@/components/subscriptions/SubscriptionForm';
 
 // Define Subscription type (can be shared or defined closer to hook if preferred)
 interface Subscription {
@@ -51,6 +55,9 @@ export default function Subscriptions() {
   const [showMockBanner, setShowMockBanner] = useState(false);
   const [emailPreferences, setEmailPreferences] = useState({ email_notifications: false });
   const [isDeletingAll, setIsDeletingAll] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
   
   const ITEMS_PER_PAGE = 9;
 
@@ -163,26 +170,41 @@ export default function Subscriptions() {
   }, [processSubscription, toast]);
   
   // Handle deleting a subscription
-  const handleDelete = useCallback(async (id: string) => {
-    console.log(`[SubscriptionsPage] handleDelete called for ID: ${id}`);
-    setDeletingId(id); // Set loading state immediately
+  const handleDelete = (id: string) => {
+    // console.log('[SubscriptionsPage] handleDelete called for ID:', id);
+    setDeletingId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingId) return;
+    // console.log('[SubscriptionsPage] Calling deleteSubscription mutation for ID:', deletingId);
     
-    try {
-      console.log(`[SubscriptionsPage] Calling deleteSubscription mutation for ID: ${id}`);
-      // The mutation hook now handles success/error toasts and query invalidation
-      await deleteSubscription.mutateAsync(id);
-      console.log(`[SubscriptionsPage] deleteSubscription mutation finished for ID: ${id}`);
-      
-      // Note: Success toast is handled by the hook's onSuccess
-      
-    } catch (error) {
-      console.error(`[SubscriptionsPage] Error caught from deleteSubscription mutation for ID ${id}:`, error);
-      // Note: Error toast is handled by the hook's onError
-    } finally {
-      console.log(`[SubscriptionsPage] Resetting deletingId after attempt for ID: ${id}`);
-      setDeletingId(null); // Reset loading state regardless of outcome
-    }
-  }, [deleteSubscription, toast]); // Ensure toast dependency is still needed if used elsewhere, remove if not
+    deleteSubscription.mutate(deletingId, {
+      onSuccess: () => {
+        // console.log('[SubscriptionsPage] deleteSubscription mutation finished for ID:', deletingId);
+        toast({
+          title: "Subscripción eliminada",
+          description: "La subscripción ha sido eliminada exitosamente.",
+          variant: "default",
+        });
+        setDeletingId(null); // Close the dialog on success
+        // queryClient.invalidateQueries({ queryKey: ['subscriptions'] }); // Invalidation is handled by the hook
+      },
+      onError: (error) => {
+        // console.error('[SubscriptionsPage] Error deleting subscription:', error);
+        toast({
+          title: "Error al eliminar",
+          description: error.message || "No se pudo eliminar la subscripción.",
+          variant: "destructive",
+        });
+        setDeletingId(null); // Also close the dialog on error
+      },
+      // onSettled: () => {
+      //   console.log('[SubscriptionsPage] Resetting deletingId after attempt for ID:', deletingId);
+      //   setDeletingId(null);
+      // } Removed onSettled as we handle closing in onSuccess/onError
+    });
+  };
 
   // Handle deleting ALL subscriptions
   const handleDeleteAll = useCallback(async () => {

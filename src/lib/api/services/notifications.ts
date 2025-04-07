@@ -238,8 +238,8 @@ export const notificationService = {
    * @returns Promise with notifications response
    */
   async list(options: NotificationOptions = {}): Promise<ApiResponse<NotificationsResponse>> {
-    console.group('Notifications API - list');
-    console.log('Listing notifications with options:', options);
+    // console.group('Notifications API - list'); // Reduced logging
+    // console.log('Listing notifications with options:', options);
     
     // First check if we are authenticated
     const accessToken = localStorage.getItem('accessToken');
@@ -247,7 +247,7 @@ export const notificationService = {
     
     if (!isAuthenticated || !accessToken) {
       console.warn('User not authenticated, returning empty notifications list');
-      console.groupEnd();
+      // console.groupEnd(); // Reduced logging
       return {
         status: 200,
         ok: true,
@@ -284,11 +284,11 @@ export const notificationService = {
       });
       
       // Process and validate the response
-      console.log('Raw API response received:', {
-        status: response.status,
-        hasData: !!response.data,
-        notificationCount: response.data?.notifications?.length || 0
-      });
+      // console.log('Raw API response received:', {
+      //   status: response.status,
+      //   hasData: !!response.data,
+      //   notificationCount: response.data?.notifications?.length || 0
+      // });
       
       // Ensure we have a valid response with notifications array
       if (!response.data || !Array.isArray(response.data.notifications)) {
@@ -336,17 +336,17 @@ export const notificationService = {
         })
         .filter(Boolean) as Notification[];
       
-      // Log notification processing results
-      console.log('Processed notifications:', {
-        originalCount: response.data.notifications.length,
-        processedCount: processedNotifications.length,
-        firstNotification: processedNotifications.length > 0 ? {
-          id: processedNotifications[0].id,
-          hasId: !!processedNotifications[0].id,
-          entityType: processedNotifications[0].entity_type,
-          title: processedNotifications[0].title
-        } : 'none'
-      });
+      // Log notification processing results - Reduced logging
+      // console.log('Processed notifications:', {
+      //   originalCount: response.data.notifications.length,
+      //   processedCount: processedNotifications.length,
+      //   firstNotification: processedNotifications.length > 0 ? {
+      //     id: processedNotifications[0].id,
+      //     hasId: !!processedNotifications[0].id,
+      //     entityType: processedNotifications[0].entity_type,
+      //     title: processedNotifications[0].title
+      //   } : 'none'
+      // });
       
       // Return processed response
       const result = {
@@ -357,12 +357,12 @@ export const notificationService = {
         }
       };
       
-      console.log('Returning processed notifications response');
-      console.groupEnd();
+      // console.log('Returning processed notifications response'); // Reduced logging
+      // console.groupEnd(); // Reduced logging
       return result;
     } catch (error) {
       console.error('Error fetching notifications:', error);
-      console.groupEnd();
+      // console.groupEnd(); // Ensure groupEnd is called even on error if group was started
       
       // Try to recover from auth errors
       if (error && (error.status === 401 || (typeof error === 'object' && error.error === 'MISSING_HEADERS'))) {

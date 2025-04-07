@@ -114,33 +114,18 @@ export function useSubscriptions(params?: SubscriptionListParams) {
 
   // Delete subscription mutation - simplified for debugging
   const deleteSubscription = useMutation({
-    mutationFn: (id: string) => {
-      console.log(`[useSubscriptions] mutationFn: Deleting subscription ${id}`);
-      // Calls the simplified service function
-      return subscriptionService.deleteSubscription(id);
+    mutationFn: async (id: string) => {
+      // console.log('[useSubscriptions] mutationFn: Deleting subscription', id);
+      const response = await subscriptionService.deleteSubscription(id);
+      // console.log('[useSubscriptions] onSuccess: Subscription', id, 'deleted. Result:', response);
+      return { id, ...response }; // Pass ID along with response
     },
-    onSuccess: (result, id) => {
-      console.log(`[useSubscriptions] onSuccess: Subscription ${id} deleted. Result:`, result);
-
-      // Show success toast
-      toast({
-        title: 'Subscription deleted',
-        description: result?.message || 'Your subscription has been deleted successfully.',
-        variant: 'default',
-      });
-
-      // Invalidate queries to refetch data after successful deletion
-      console.log(`[useSubscriptions] Invalidating queries after delete for ID: ${id}`);
+    onSuccess: (data) => {
+      // console.log('[useSubscriptions] Invalidating queries after delete for ID:', data.id);
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
       queryClient.invalidateQueries({ queryKey: ['subscriptionStats'] });
       // Remove specific subscription query cache if it exists
-      queryClient.removeQueries({ queryKey: ['subscription', id] });
-
-      // Optional: Force immediate refetch if needed, but invalidation is usually enough
-      // setTimeout(() => { 
-      //   console.log(`[useSubscriptions] Refetching subscriptions query after delete`);
-      //   queryClient.refetchQueries({ queryKey: ['subscriptions'] }); 
-      // }, 100);
+      queryClient.removeQueries({ queryKey: ['subscription', data.id] });
     },
     onError: (error: any, id) => {
       console.error(`[useSubscriptions] onError deleting subscription ${id}:`, error);
@@ -232,6 +217,32 @@ export function useSubscriptions(params?: SubscriptionListParams) {
       });
     }
   }, [data, filter]);
+
+  // Log data format only in development
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && data) {
+      // console.log('Subscriptions data format:', {
+      //   hasSubscriptionsArray: Array.isArray(data.subscriptions),
+      //   hasDataProperty: 'data' in data,
+      //   isDataArray: Array.isArray(data.data),
+      //   hasSubscriptionsProperty: 'subscriptions' in data,
+      //   topLevelType: typeof data,
+      //   subscriptionCount: data?.subscriptions?.length || (Array.isArray(data.data) ? data.data.length : undefined),
+      // });
+    }
+  }, [data]);
+
+  // Log processed data for debugging
+  useEffect(() => {
+    if (processedData) {
+      // console.log('Subscription data updated:', {
+      //   count: processedData.subscriptions.length,
+      //   hasData: processedData.subscriptions.length > 0,
+      //   filter: currentFilter,
+      //   metadata: processedData.metadata
+      // });
+    }
+  }, [processedData, currentFilter]);
 
   // Extract subscriptions with better format handling
   const getSubscriptionsArray = () => {
