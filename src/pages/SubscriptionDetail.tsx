@@ -62,54 +62,24 @@ export default function SubscriptionDetail() {
     error
   } = fetchSubscription(id || '');
   
-  // Handle error states more intelligently - try to verify if blacklisted subscription still exists
+  // Handle error states cleanly without using blacklist
   React.useEffect(() => {
-    if (isError && error && (error.status === 404 || error.message?.includes('not found'))) {
-      // Check if this might be a false positive in the deletion blacklist
-      const deletedIds = JSON.parse(localStorage.getItem('deletedSubscriptionIds') || '[]');
-      
-      // If this subscription is in the blacklist, check if it might exist using force=true
-      if (id && deletedIds.includes(id)) {
-        console.log(`Subscription ${id} is in blacklist but might still exist. Checking with force=true...`);
-        
-        // Try to fetch the subscription directly with force=true
-        // We're using a direct apiClient call to avoid reactive state issues
-        apiClient.get(`/v1/subscriptions/${id}`)
-          .then(response => {
-            console.log(`Force check response:`, response);
-            
-            // If we got a subscription back, it exists despite being in the blacklist
-            if (response.status === 200 && response.data) {
-              console.log(`Subscription ${id} actually exists! Removing from blacklist.`);
-              
-              // Remove from blacklist
-              const updatedDeletedIds = deletedIds.filter(deletedId => deletedId !== id);
-              localStorage.setItem('deletedSubscriptionIds', JSON.stringify(updatedDeletedIds));
-              
-              // Reload the page to refresh data without the blacklist blocking
-              window.location.reload();
-              return;
-            }
-          })
-          .catch(checkError => {
-            console.log(`Confirmed subscription ${id} doesn't exist with direct check:`, checkError);
-            
-            // Show redirect toast and navigate away
-            toast({
-              title: "Subscription not found",
-              description: "The subscription you're looking for doesn't exist or has been deleted.",
-              variant: "destructive",
-            });
-            navigate('/subscriptions');
-          });
-      } else {
-        // Normal 404 handling - subscription truly doesn't exist
+    if (isError && error) {
+      // If we get a 404 or not found error, simply inform the user and redirect
+      if (error.status === 404 || error.message?.includes('not found')) {
         toast({
           title: "Subscription not found",
           description: "The subscription you're looking for doesn't exist or has been deleted.",
           variant: "destructive",
         });
         navigate('/subscriptions');
+      } else {
+        // For other errors, show the error but stay on the page
+        toast({
+          title: "Error loading subscription",
+          description: error instanceof Error ? error.message : "There was a problem loading the subscription details.",
+          variant: "destructive",
+        });
       }
     }
   }, [id, isError, error, navigate, toast]);
@@ -154,18 +124,28 @@ export default function SubscriptionDetail() {
     if (!id) return;
     
     try {
-      await deleteSubscription.mutateAsync(id);
+      const result = await deleteSubscription.mutateAsync(id);
       
       // Close the dialog programmatically
       if (openAlertDialog) {
         openAlertDialog.close();
       }
       
-      toast({
-        title: "Suscripción eliminada",
-        description: "La suscripción ha sido eliminada correctamente.",
-        variant: "default",
-      });
+      // Check if the subscription was actually deleted in the database
+      if (result.actuallyDeleted) {
+        toast({
+          title: "Subscription deleted",
+          description: "The subscription has been successfully deleted from the database.",
+          variant: "default",
+        });
+      } else {
+        // The deletion request was successful but the database delete might have failed
+        toast({
+          title: "Subscription removal processed",
+          description: "The subscription was marked for deletion, but there might have been an issue with the database operation.",
+          variant: "default",
+        });
+      }
       
       // Always navigate back to subscriptions list
       setTimeout(() => {
@@ -177,17 +157,13 @@ export default function SubscriptionDetail() {
         openAlertDialog.close();
       }
       
-      // Always show success and navigate away, even if there's an error
       toast({
-        title: "Suscripción eliminada",
-        description: "La suscripción ha sido eliminada de tu vista.",
-        variant: "default",
+        title: "Error deleting subscription",
+        description: error instanceof Error ? error.message : "There was a problem deleting the subscription.",
+        variant: "destructive",
       });
       
-      // Always navigate back to subscriptions list
-      setTimeout(() => {
-        navigate('/subscriptions');
-      }, 100);
+      // Don't navigate away in case of error - let the user try again
     }
   };
 

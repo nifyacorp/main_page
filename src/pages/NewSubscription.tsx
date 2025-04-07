@@ -183,90 +183,9 @@ const NewSubscription: React.FC = () => {
           <h1 className="text-2xl font-bold">Create New Subscription</h1>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Left sidebar - Your current subscriptions */}
-          <div className="md:col-span-1">
-            <div className="bg-card rounded-lg border shadow p-5">
-              <h2 className="text-lg font-semibold mb-4">Your Subscriptions</h2>
-              <Separator className="mb-4" />
-              
-              {subscriptionsLoading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : userSubscriptions.length === 0 ? (
-                <div className="text-center py-4">
-                  <p className="text-sm text-muted-foreground">You don't have any subscriptions yet.</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {userSubscriptions.map(subscription => (
-                    <Link 
-                      key={subscription.id}
-                      to={`/subscriptions/${subscription.id}`}
-                      className="block"
-                    >
-                      <div className="p-3 rounded-md bg-accent/40 hover:bg-accent transition-colors">
-                        <div className="flex items-start gap-3">
-                          <div className={`p-2 rounded-full bg-primary/10 flex-shrink-0 ${!subscription.active && 'opacity-50'}`}>
-                            {iconMap[subscription.icon || 'Bell']}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-medium">{subscription.name}</h3>
-                              {subscription.active ? (
-                                <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800">
-                                  <CheckCircle className="h-3 w-3 mr-1" />
-                                  Active
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-800">
-                                  Inactive
-                                </span>
-                              )}
-                            </div>
-                            <div className="mt-1 text-xs text-muted-foreground">
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                <span>{subscription.frequency === 'immediate' ? 'Immediate' : 'Daily'}</span>
-                              </div>
-                            </div>
-                            {subscription.prompts && subscription.prompts.length > 0 && (
-                              <div className="mt-2">
-                                <p className="text-xs text-muted-foreground truncate">
-                                  Monitoring: {subscription.prompts.slice(0, 2).join(', ')}
-                                  {subscription.prompts.length > 2 ? '...' : ''}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-              
-              {!subscriptionsLoading && (
-                <>
-                  <Separator className="my-4" />
-                  <div className="text-center">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => navigate('/subscriptions')}
-                      className="w-full text-sm"
-                    >
-                      View All Subscriptions
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-          
+        <div>
           {/* Main content - Templates */}
-          <div className="md:col-span-2">
+          <div>
             {loading ? (
               <div className="flex justify-center items-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
