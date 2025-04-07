@@ -46,15 +46,21 @@ export function useSubscriptionStatus(
         setPollCount((prev) => prev + 1);
       }
     },
-    onError: () => {
-      // If we get an error while polling, increment error count
-      console.log(`Error during status poll ${pollCount}`);
+    onError: (err) => {
+      // If we get an error while polling, log it but don't stop polling for expected errors
+      console.log(`Error during status poll ${pollCount}:`, err?.message || 'Unknown error');
       
-      // If we've been polling for a while with errors, stop
-      if (pollCount >= 5) {
-        console.log(`Auto-stopping status polling after ${pollCount} polls due to errors`);
+      // Check if this is a 500 error which is expected while schema is being migrated
+      const is500Error = err?.status === 500 || 
+                         err?.response?.status === 500 ||
+                         (err?.message && err.message.includes('500'));
+      
+      // Only stop polling for unexpected errors and after several attempts
+      if (!is500Error && pollCount >= 5) {
+        console.log(`Auto-stopping status polling after ${pollCount} polls due to unexpected errors`);
         setIsPolling(false);
       } else {
+        // For expected errors like 500s from schema updates, keep polling but increase count
         setPollCount((prev) => prev + 1);
       }
     },

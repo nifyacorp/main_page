@@ -49,13 +49,23 @@ export function useSubscriptions(params?: SubscriptionListParams) {
     retry: 2
   });
 
-  // Fetch single subscription
+  // Fetch single subscription - modified to work correctly
   const fetchSubscription = (id: string) => {
+    if (!id) return { 
+      data: undefined, 
+      isLoading: false, 
+      isError: true, 
+      error: new Error('Subscription ID is required') 
+    };
+    
+    // Use the returned result of useQuery instead of returning useQuery itself
     return useQuery({
       queryKey: ['subscription', id],
       queryFn: () => subscriptionService.getSubscription(id),
-      enabled: !!id,
+      enabled: true,
       staleTime: 30000, // 30 seconds
+      retry: 2,
+      refetchOnWindowFocus: false,
     });
   };
 
@@ -115,13 +125,18 @@ export function useSubscriptions(params?: SubscriptionListParams) {
   // Delete subscription mutation - simplified for debugging
   const deleteSubscription = useMutation({
     mutationFn: async (id: string) => {
-      // console.log('[useSubscriptions] mutationFn: Deleting subscription', id);
-      const response = await subscriptionService.deleteSubscription(id);
-      // console.log('[useSubscriptions] onSuccess: Subscription', id, 'deleted. Result:', response);
-      return { id, ...response }; // Pass ID along with response
+      console.log('[useSubscriptions] mutationFn: Deleting subscription', id);
+      try {
+        const response = await subscriptionService.deleteSubscription(id);
+        console.log('[useSubscriptions] deleteSubscription response:', response);
+        return { id, ...response }; // Pass ID along with response
+      } catch (error) {
+        console.error('[useSubscriptions] Error in deleteSubscription mutationFn:', error);
+        throw error; // Re-throw to be handled by onError
+      }
     },
     onSuccess: (data) => {
-      // console.log('[useSubscriptions] Invalidating queries after delete for ID:', data.id);
+      console.log('[useSubscriptions] Delete successful for ID:', data.id, 'Invalidating queries');
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
       queryClient.invalidateQueries({ queryKey: ['subscriptionStats'] });
       // Remove specific subscription query cache if it exists
@@ -154,7 +169,6 @@ export function useSubscriptions(params?: SubscriptionListParams) {
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
       queryClient.invalidateQueries({ queryKey: ['subscriptionStats'] });
     },
-    // Removed onMutate and onSettled for simplification
   });
 
   // Process subscription mutation

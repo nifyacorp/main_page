@@ -179,34 +179,45 @@ export default function Subscriptions() {
   };
 
   const confirmDelete = async () => {
-    if (!deletingId) return;
-    // console.log('[SubscriptionsPage] Calling deleteSubscription mutation for ID:', deletingId);
+    console.log('confirmDelete called with ID:', deletingId);
     
-    deleteSubscription.mutate(deletingId, {
-      onSuccess: () => {
-        // console.log('[SubscriptionsPage] deleteSubscription mutation finished for ID:', deletingId);
-        toast({
-          title: "Subscripción eliminada",
-          description: `La subscripción "${subscriptionsData.find(sub => sub.id === deletingId)?.name || deletingId}" ha sido eliminada.`,
-          variant: "default",
-        });
-        setDeletingId(null); // Close the dialog on success
-        // queryClient.invalidateQueries({ queryKey: ['subscriptions'] }); // Invalidation is handled by the hook
-      },
-      onError: (error) => {
-        // console.error('[SubscriptionsPage] Error deleting subscription:', error);
-        toast({
-          title: "Error al eliminar",
-          description: error.message || "No se pudo eliminar la subscripción.",
-          variant: "destructive",
-        });
-        setDeletingId(null); // Also close the dialog on error
-      },
-      // onSettled: () => {
-      //   console.log('[SubscriptionsPage] Resetting deletingId after attempt for ID:', deletingId);
-      //   setDeletingId(null);
-      // } Removed onSettled as we handle closing in onSuccess/onError
-    });
+    if (!deletingId) {
+      console.error('No deletingId found when trying to confirm delete');
+      return;
+    }
+    
+    try {
+      console.log('Calling deleteSubscription.mutate for ID:', deletingId);
+      
+      deleteSubscription.mutate(deletingId, {
+        onSuccess: (data) => {
+          console.log('Delete succeeded:', data);
+          toast({
+            title: "Subscripción eliminada",
+            description: `La subscripción "${subscriptionsData.find(sub => sub.id === deletingId)?.name || deletingId}" ha sido eliminada.`,
+            variant: "default",
+          });
+          setDeletingId(null); // Close the dialog on success
+        },
+        onError: (error) => {
+          console.error('Delete failed:', error);
+          toast({
+            title: "Error al eliminar",
+            description: error.message || "No se pudo eliminar la subscripción.",
+            variant: "destructive",
+          });
+          setDeletingId(null); // Also close the dialog on error
+        }
+      });
+    } catch (error) {
+      console.error('Exception during deleteSubscription.mutate call:', error);
+      toast({
+        title: "Error al eliminar",
+        description: "Ocurrió un error inesperado al procesar la solicitud.",
+        variant: "destructive",
+      });
+      setDeletingId(null);
+    }
   };
 
   // Handle deleting ALL subscriptions
@@ -486,11 +497,14 @@ export default function Subscriptions() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setDeletingId(null)}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction asChild>
-              <button
-                onClick={confirmDelete} // Call the confirm function
-                className={buttonVariants({ variant: 'destructive' })}
-              >Eliminar</button>
+            <AlertDialogAction 
+              onClick={() => {
+                console.log('Delete button clicked', deletingId);
+                confirmDelete(); // Call the confirm function
+              }}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -5,23 +5,27 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SubscriptionForm } from "@/components/subscriptions/SubscriptionForm";
-import { useSubscriptions } from "@/hooks/use-subscriptions";
+import { useQuery } from "@tanstack/react-query";
+import subscriptionService from "@/services/api/subscription-service";
 
 export default function EditSubscription() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
 
-  // Get the fetchSubscription function from our custom hook
-  const { fetchSubscription } = useSubscriptions();
-  
-  // Use the function to fetch the subscription
+  // Directly use useQuery to fetch the subscription
   const { 
     data: subscription,
     isLoading,
     isError,
     error: subscriptionError
-  } = fetchSubscription(id || "");
+  } = useQuery({
+    queryKey: ['subscription', id],
+    queryFn: () => subscriptionService.getSubscription(id || ""),
+    enabled: !!id,
+    staleTime: 30000,
+    retry: 2,
+  });
 
   // Check for error state
   useEffect(() => {
