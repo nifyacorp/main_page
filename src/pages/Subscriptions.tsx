@@ -56,6 +56,7 @@ export default function Subscriptions() {
   const [emailPreferences, setEmailPreferences] = useState({ email_notifications: false });
   const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   
@@ -207,58 +208,47 @@ export default function Subscriptions() {
   };
 
   // Handle deleting ALL subscriptions
-  const handleDeleteAll = useCallback(async () => {
-    console.log("[SubscriptionsPage] handleDeleteAll called");
-    if (subscriptionsData.length === 0) {
-      toast({
-        title: "No subscriptions to delete",
-        variant: "default",
-      });
-      return;
-    }
+  const handleDeleteAll = async () => {
+    // console.log('[SubscriptionsPage] handleDeleteAll called');
+    setShowDeleteAllConfirm(false); // Close the confirmation dialog first
+    setIsDeletingAll(true); // Show loading state/indicator
     
-    setIsDeletingAll(true); // Set loading state
-    let deletedCount = 0;
-    let errorCount = 0;
+    try {
+      // Use the dedicated mutation or call the service method directly
+      // Assuming subscriptionService has a deleteAll method now
+      const subscriptionService = (await import('@/services/api/subscription-service')).default;
+      // const response = await subscriptionService.deleteAllSubscriptions(); // Call the new bulk delete method - COMMENTED OUT FOR NOW
+      
+      // Placeholder response until backend/service call is implemented
+      const response = { success: false, deletedCount: 0, message: "Bulk delete not implemented yet." };
 
-    console.log(`[SubscriptionsPage] Starting deletion for ${subscriptionsData.length} subscriptions.`);
-    
-    // Sequentially delete each subscription
-    for (const subscription of subscriptionsData) {
-      try {
-        console.log(`[SubscriptionsPage] Deleting subscription ${subscription.id} as part of Delete All`);
-        await deleteSubscription.mutateAsync(subscription.id);
-        deletedCount++;
-      } catch (error) {
-        console.error(`[SubscriptionsPage] Error deleting subscription ${subscription.id} during Delete All:`, error);
-        errorCount++;
-        // Continue to next subscription even if one fails
+      // console.log('[SubscriptionsPage] Delete All response:', response);
+      
+      if (response.success) {
+        toast({
+          title: "Todas las subscripciones eliminadas",
+          description: `Se eliminaron ${response.deletedCount} subscripciones.`, // Use count from response
+          variant: "default",
+        });
+        // Invalidate relevant queries to refresh the list and stats
+        queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+        queryClient.invalidateQueries({ queryKey: ['subscriptionStats'] });
+      } else {
+        throw new Error(response.message || 'Failed to delete all subscriptions');
       }
-    }
-
-    console.log(`[SubscriptionsPage] Delete All finished. Deleted: ${deletedCount}, Errors: ${errorCount}`);
-
-    // Show summary toast
-    if (errorCount === 0) {
+    } catch (error) {
+      // console.error('[SubscriptionsPage] Error deleting all subscriptions:', error);
+      // Type check the error
+      const errorMessage = error instanceof Error ? error.message : "No se pudieron eliminar todas las subscripciones.";
       toast({
-        title: `All ${deletedCount} subscriptions deleted successfully`,
-        variant: "default",
-      });
-    } else {
-      toast({
-        title: `Deletion completed with errors`,
-        description: `${deletedCount} deleted successfully, ${errorCount} failed. Check console for details.`,
+        title: "Error al eliminar todo",
+        description: errorMessage,
         variant: "destructive",
       });
+    } finally {
+      setIsDeletingAll(false); // Hide loading state regardless of outcome
     }
-
-    setIsDeletingAll(false); // Reset loading state
-    
-    // Trigger a final refetch after all operations are done
-    console.log("[SubscriptionsPage] Refetching subscriptions after Delete All operation.");
-    refetchSubscriptions(); 
-
-  }, [subscriptionsData, deleteSubscription, toast, refetchSubscriptions]); // Add dependencies
+  };
 
   // --- Render Functions --- //
 
@@ -400,7 +390,7 @@ export default function Subscriptions() {
               <span>Nueva Subscripción</span>
             </Link>
           </Button>
-          <AlertDialog>
+          <AlertDialog open={showDeleteAllConfirm} onOpenChange={setShowDeleteAllConfirm}>
             <AlertDialogTrigger asChild>
               <Button 
                 variant="destructive" 
@@ -423,18 +413,17 @@ export default function Subscriptions() {
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <button
-                  type="button"
-                  onClick={handleDeleteAll} 
+                <AlertDialogCancel disabled={isDeletingAll}>Cancelar</AlertDialogCancel>
+                <Button 
+                  variant="destructive" 
+                  onClick={handleDeleteAll}
                   disabled={isDeletingAll}
-                  className={cn(
-                    "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-10 px-4 py-2", 
-                    "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  )}
                 >
-                  {isDeletingAll ? 'Eliminando...' : 'Confirmar Eliminar Todas'}
-                </button>
+                  {isDeletingAll ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                  ) : null}
+                  {isDeletingAll ? 'Eliminando...' : 'Eliminar Todo'}
+                </Button>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

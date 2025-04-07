@@ -137,17 +137,15 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button 
-                size="sm" 
                 variant="ghost" 
-                title="Eliminar"
-                className="text-destructive hover:bg-destructive/10 hover:text-destructive" // Ensure hover state is destructive too
-                disabled={isDeleting}
+                size="icon" 
+                className="text-destructive hover:bg-destructive/10" 
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent card click through
+                  onDelete(subscription.id); // Call onDelete passed from parent HERE
+                }}
               >
-                {isDeleting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Trash className="h-4 w-4" />
-                )}
+                <Trash className="h-4 w-4" />
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
