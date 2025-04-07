@@ -1,5 +1,5 @@
 import React from "react";
-import { cn } from "../../lib/utils";
+import { cn } from "@/lib/utils";
 
 /* Dialog Root */
 interface DialogProps {
@@ -23,24 +23,18 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
     if (onOpenChange) onOpenChange(value);
   };
 
-  // Create context to manage dialog state
-  const contextValue = {
-    open: isOpen,
-    onOpenChange: handleOpenChange,
-  };
-
   return (
-    <DialogContext.Provider value={contextValue}>
+    <DialogContext.Provider value={{ open: isOpen, onOpenChange: handleOpenChange }}>
       {children}
     </DialogContext.Provider>
   );
 }
 
 /* Dialog Context */
-type DialogContextType = {
+interface DialogContextType {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-};
+}
 
 const DialogContext = React.createContext<DialogContextType | undefined>(
   undefined
@@ -112,27 +106,21 @@ interface DialogContentProps {
 }
 
 export function DialogContent({ className, children }: DialogContentProps) {
-  const { open, onOpenChange } = useDialogContext();
+  const { open } = useDialogContext();
   
   if (!open) return null;
   
   return (
     <>
-      <DialogOverlay />
-      <div className="fixed inset-0 flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" />
+      <div className="fixed inset-0 flex items-center justify-center z-50 overflow-auto p-4">
         <div
           className={cn(
-            "bg-white rounded-lg p-6 shadow-lg max-w-md w-full mx-4 relative",
+            "bg-background max-w-md w-full rounded-lg p-6 shadow-lg mx-auto",
             className
           )}
+          onClick={(e) => e.stopPropagation()}
         >
-          <button
-            className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-            onClick={() => onOpenChange(false)}
-            aria-label="Close"
-          >
-            &times;
-          </button>
           {children}
         </div>
       </div>
@@ -176,7 +164,7 @@ interface DialogDescriptionProps {
 
 export function DialogDescription({ className, children }: DialogDescriptionProps) {
   return (
-    <p className={cn("text-gray-600 mt-2", className)}>
+    <p className={cn("text-muted-foreground mt-2", className)}>
       {children}
     </p>
   );

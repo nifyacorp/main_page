@@ -33,6 +33,7 @@ import { Label } from "@/components/ui/label";
 import SubscriptionCard from '../components/subscriptions/SubscriptionCard';
 import SubscriptionFilterBar from '@/components/subscriptions/SubscriptionFilterBar';
 import { SubscriptionForm } from '@/components/subscriptions/SubscriptionForm';
+import DeleteSubscriptionDialog from '../components/subscriptions/DeleteSubscriptionDialog';
 
 // Define Subscription type (can be shared or defined closer to hook if preferred)
 interface Subscription {
@@ -478,37 +479,43 @@ export default function Subscriptions() {
         : null /* Handle case where there's an error but we don't show the error state (e.g., mock banner) */
       }
 
-      {/* Single Delete Confirmation Dialog (Centralized) */}
-      <AlertDialog 
-        open={!!deletingId} 
-        onOpenChange={(isOpen) => {
-            if (!isOpen) {
-              setDeletingId(null); // Close dialog if opened state becomes false
-            }
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción eliminará la subscripción "{subscriptionsData.find(sub => sub.id === deletingId)?.name || deletingId}" permanentemente. 
-              No podrás deshacer esta acción.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeletingId(null)}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={() => {
-                console.log('Delete button clicked', deletingId);
-                confirmDelete(); // Call the confirm function
-              }}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              Eliminar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Single Delete Confirmation Dialog - Direct implementation */}
+      {deletingId && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full mx-4 overflow-hidden">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-destructive">¿Estás seguro?</h3>
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                Esta acción eliminará la subscripción "{subscriptionsData.find(sub => sub.id === deletingId)?.name || deletingId}" permanentemente. 
+                No podrás deshacer esta acción.
+              </p>
+              
+              <div className="mt-6 flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setDeletingId(null)}
+                  disabled={deleteSubscription.isPending}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    console.log('Direct Delete button clicked for ID:', deletingId);
+                    confirmDelete();
+                  }}
+                  disabled={deleteSubscription.isPending}
+                >
+                  {deleteSubscription.isPending && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  {deleteSubscription.isPending ? 'Eliminando...' : 'Eliminar'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

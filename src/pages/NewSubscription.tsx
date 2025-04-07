@@ -9,8 +9,25 @@ import { templateService } from '../lib/api/services/templates';
 import { subscriptions } from '../lib/api';
 import type { Template } from '../lib/api/types';
 import SubscriptionForm from '../components/subscriptions/SubscriptionForm';
-import type { SubscriptionTemplate } from '../services/api/template-service';
+import TemplateCard from '../components/subscriptions/TemplateCard';
 import { useToast } from '../components/ui/use-toast';
+
+// Define the SubscriptionTemplate interface locally
+interface SubscriptionTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  type?: string;
+  icon?: string;
+  isPublic?: boolean;
+  frequency?: string;
+  prompts?: string[];
+  metadata?: {
+    category?: string;
+    source?: string;
+    [key: string]: any;
+  };
+}
 
 // Map of icon names to Lucide React components
 const iconMap: Record<string, React.ReactNode> = {
