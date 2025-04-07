@@ -65,3 +65,18 @@ export const templateService = {
     });
   }
 };
+
+// Export a standalone getTemplate function that calls the getDetails method
+export const getTemplate = async (templateId: string): Promise<ApiResponse<{ template: Template }>> => {
+  const response = await templateService.getDetails(templateId);
+  
+  // Adjust the response format to match what SubscriptionPrompt.tsx expects
+  if (response.data) {
+    return {
+      ...response,
+      data: { template: response.data }
+    };
+  }
+  
+  return response as ApiResponse<{ template: Template }>;
+};

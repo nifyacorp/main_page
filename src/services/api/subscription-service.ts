@@ -1020,4 +1020,10 @@ class SubscriptionService {
   }
 }
 
-export default new SubscriptionService();
+const subscriptionServiceInstance = new SubscriptionService();
+
+// Add a named export to fix imports in other files
+export const subscriptionService = subscriptionServiceInstance;
+
+// Keep the default export for backward compatibility
+export default subscriptionServiceInstance;
