@@ -486,11 +486,11 @@ export default function Subscriptions() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setDeletingId(null)}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmDelete} // Call the confirm function
-              className={buttonVariants({ variant: 'destructive' })}
-            >
-              Eliminar
+            <AlertDialogAction asChild>
+              <button
+                onClick={confirmDelete} // Call the confirm function
+                className={buttonVariants({ variant: 'destructive' })}
+              >Eliminar</button>
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
