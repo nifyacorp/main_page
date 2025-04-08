@@ -85,6 +85,43 @@ const {
 
 ### Subscriptions
 
+#### `src/lib/schemas/subscription/*.ts`
+Standardized schemas for subscription data validation and type safety.
+
+```typescript
+// Available schemas:
+import { 
+  // Base schemas and types
+  BaseSubscriptionSchema,
+  SubscriptionType,
+  SubscriptionFrequency,
+  PromptsSchema,
+  
+  // Operation-specific schemas
+  CreateSubscriptionSchema,
+  UpdateSubscriptionSchema,
+  
+  // Response schemas
+  SubscriptionResponseSchema,
+  SubscriptionListResponseSchema,
+  SubscriptionGetResponseSchema,
+  SubscriptionCreateUpdateResponseSchema,
+  SubscriptionDeleteResponseSchema,
+  
+  // Type definitions
+  BaseSubscription,
+  CreateSubscription,
+  UpdateSubscription,
+  SubscriptionResponse,
+  SubscriptionListResponse,
+  SubscriptionGetResponse,
+  SubscriptionCreateUpdateResponse,
+  SubscriptionDeleteResponse
+} from '../../lib/schemas/subscription';
+```
+
+These schemas provide standardized validation for all subscription operations and ensure type safety across the application. See [Subscription Schema Documentation](../docs/subscription-schemas.md) for detailed usage.
+
 #### `src/lib/api/services/subscriptions.ts`
 API service for subscription management.
 

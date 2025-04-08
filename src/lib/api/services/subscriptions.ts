@@ -1,15 +1,30 @@
 import { backendClient } from '../clients/backend';
 import type { ApiResponse } from '../types';
 import { 
-  CreateSubscriptionSchema, 
-  UpdateSubscriptionSchema, 
-  ToggleSubscriptionSchema,
   UuidSchema
 } from '../schemas';
+import { 
+  CreateSubscriptionSchema, 
+  UpdateSubscriptionSchema,
+  SubscriptionCreateUpdateResponse,
+  SubscriptionGetResponse,
+  SubscriptionListResponse,
+  SubscriptionDeleteResponse,
+  CreateSubscription,
+  UpdateSubscription
+} from '../../schemas/subscription';
 import { validateWithZod } from '../../utils/validation';
 import { z } from 'zod';
 
-// Define response interfaces
+// Define toggle subscription schema (not part of our standardized schemas)
+const ToggleSubscriptionSchema = z.object({
+  active: z.boolean({
+    required_error: 'Active status is required',
+    invalid_type_error: 'Active status must be a boolean'
+  })
+});
+
+// Legacy interface for backward compatibility
 export interface Subscription {
   id: string;
   name: string;
@@ -26,21 +41,28 @@ export interface SubscriptionsResponse {
   subscriptions: Subscription[];
 }
 
-// Type for create/update requests using Zod schema
-export type CreateSubscriptionInput = z.infer<typeof CreateSubscriptionSchema>;
-export type UpdateSubscriptionInput = z.infer<typeof UpdateSubscriptionSchema>;
+// Interface for process response
+export interface ProcessSubscriptionResponse {
+  message: string;
+  processingId?: string;
+  subscription_id?: string;
+}
+
+// Use type aliases from our standardized schemas
+export type CreateSubscriptionInput = CreateSubscription;
+export type UpdateSubscriptionInput = UpdateSubscription;
 
 export const subscriptionService = {
-  list: (): Promise<ApiResponse<SubscriptionsResponse>> => {
+  list: (): Promise<ApiResponse<SubscriptionListResponse>> => {
     console.group('📋 Subscription List Request');
     console.log('Fetching subscriptions...');
     
-    return backendClient({
+    return backendClient<SubscriptionListResponse>({
       endpoint: '/api/v1/subscriptions'
     }).finally(() => console.groupEnd());
   },
   
-  create: (data: CreateSubscriptionInput): Promise<ApiResponse<{ subscription: Subscription }>> => {
+  create: (data: CreateSubscriptionInput): Promise<ApiResponse<SubscriptionCreateUpdateResponse>> => {
     console.group('📝 Create Subscription');
     console.log('Creating subscription:', data);
     
@@ -66,17 +88,14 @@ export const subscriptionService = {
     // Proceed with valid data
     console.log('Validation passed, sending to backend');
     
-    // Keep the type field in the request to satisfy backend validation
-    // Note: This assumes the backend handles the type field appropriately 
-    // and doesn't try to insert it directly into the database
-    return backendClient({
+    return backendClient<SubscriptionCreateUpdateResponse>({
       endpoint: '/api/v1/subscriptions',
       method: 'POST',
       body: validation.data,
     }).finally(() => console.groupEnd());
   },
   
-  delete: (id: string): Promise<ApiResponse<void>> => {
+  delete: (id: string): Promise<ApiResponse<SubscriptionDeleteResponse>> => {
     console.group('🗑️ Delete Subscription');
     console.log('Deleting subscription:', id);
     
@@ -91,18 +110,18 @@ export const subscriptionService = {
         status: 400,
         ok: false,
         error: 'Invalid subscription ID format',
-        data: undefined
+        data: undefined as any
       });
     }
     
-    return backendClient({
+    return backendClient<SubscriptionDeleteResponse>({
       endpoint: `/api/v1/subscriptions/${id}`,
       method: 'DELETE',
       body: {}, // Add empty body to satisfy content-type requirement
     }).finally(() => console.groupEnd());
   },
   
-  getDetails: (id: string): Promise<ApiResponse<{ subscription: Subscription }>> => {
+  getDetails: (id: string): Promise<ApiResponse<SubscriptionGetResponse>> => {
     console.group('📋 Subscription Details');
     console.log('Fetching subscription details:', id);
     
@@ -117,16 +136,16 @@ export const subscriptionService = {
         status: 400,
         ok: false,
         error: 'Invalid subscription ID format',
-        data: { subscription: null as any }
+        data: { subscription: null as any } as any
       });
     }
     
-    return backendClient({
+    return backendClient<SubscriptionGetResponse>({
       endpoint: `/api/v1/subscriptions/${id}`,
     }).finally(() => console.groupEnd());
   },
 
-  update: (id: string, data: UpdateSubscriptionInput): Promise<ApiResponse<{ subscription: Subscription }>> => {
+  update: (id: string, data: UpdateSubscriptionInput): Promise<ApiResponse<SubscriptionCreateUpdateResponse>> => {
     console.group('✏️ Update Subscription');
     console.log('Updating subscription:', { id, data });
     
@@ -141,7 +160,7 @@ export const subscriptionService = {
         status: 400,
         ok: false,
         error: 'Invalid subscription ID format',
-        data: { subscription: null as any }
+        data: { subscription: null as any } as any
       });
     }
     
@@ -164,7 +183,7 @@ export const subscriptionService = {
       });
     }
     
-    return backendClient({
+    return backendClient<SubscriptionCreateUpdateResponse>({
       endpoint: `/api/v1/subscriptions/${id}`,
       method: 'PUT',
       body: dataValidation.data,
@@ -190,7 +209,7 @@ export const subscriptionService = {
       });
     }
     
-    return backendClient({
+    return backendClient<Subscription>({
       endpoint: `/api/v1/subscriptions/${id}/activate`,
       method: 'PATCH',
       body: {}, // Empty body to satisfy content-type requirement
@@ -216,14 +235,13 @@ export const subscriptionService = {
       });
     }
     
-    return backendClient({
+    return backendClient<Subscription>({
       endpoint: `/api/v1/subscriptions/${id}/deactivate`,
       method: 'PATCH',
       body: {}, // Empty body to satisfy content-type requirement
     }).finally(() => console.groupEnd());
   },
   
-  // Keep toggle for backward compatibility, but implement it using activate/deactivate
   toggle: (id: string, active: boolean): Promise<ApiResponse<Subscription>> => {
     console.group('🔄 Toggle Subscription');
     console.log('Toggling subscription:', { id, active });
@@ -266,7 +284,7 @@ export const subscriptionService = {
     }
   },
   
-  processImmediately: (id: string): Promise<ApiResponse<{ message: string; processingId?: string; subscription_id?: string }>> => {
+  processImmediately: (id: string): Promise<ApiResponse<ProcessSubscriptionResponse>> => {
     console.group('🔄 Process Subscription Immediately');
     console.log('Processing subscription:', id);
     
@@ -288,15 +306,14 @@ export const subscriptionService = {
     console.log(`Sending process request to /api/v1/subscriptions/${id}/process`);
     
     // Use more robust error handling
-    return backendClient({
+    return backendClient<ProcessSubscriptionResponse>({
       endpoint: `/api/v1/subscriptions/${id}/process`,
       method: 'POST',
       body: {}, // Empty body to satisfy content-type requirement
       headers: {
         'Accept': 'application/json, text/plain, */*',
         'Content-Type': 'application/json'
-      },
-      timeout: 15000 // Increase timeout for processing requests
+      }
     })
       .then(response => {
         console.log('Process subscription response:', response);
