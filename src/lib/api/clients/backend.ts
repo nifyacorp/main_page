@@ -66,6 +66,9 @@ async function refreshAccessToken(retryAttempt = 0): Promise<boolean> {
 
   const refreshToken = localStorage.getItem('refreshToken');
   
+  // Add log here to see the token value
+  console.log('Using refresh token:', refreshToken ? `${refreshToken.substring(0, 5)}...` : 'null');
+    
   if (!refreshToken) {
     console.error('No refresh token available');
     console.groupEnd();
@@ -101,6 +104,8 @@ async function refreshAccessToken(retryAttempt = 0): Promise<boolean> {
 
     if (error) {
       console.error('Token refresh failed:', error);
+      // Add cleanup if refresh fails
+      clearAuthState(); 
       // Release mutex and notify queue of failure
       isRefreshing = false;
       processQueue(false, error);
