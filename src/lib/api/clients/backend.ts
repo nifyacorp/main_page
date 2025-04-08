@@ -97,7 +97,7 @@ async function refreshAccessToken(retryAttempt = 0): Promise<boolean> {
     }
 
     const { data, error } = await authClient<TokenResponse>({
-      endpoint: '/api/auth/refresh',
+      endpoint: '/api/v1/auth/refresh',
       method: 'POST',
       body: { refreshToken }
     });

@@ -82,7 +82,8 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor for handling errors and token refresh
+// Response interceptor (COMMENTED OUT TEMPORARILY)
+/*
 apiClient.interceptors.response.use(
   (response: AxiosResponse): AxiosResponse => {
     return response;
@@ -157,5 +158,6 @@ apiClient.interceptors.response.use(
     return Promise.reject(apiError);
   }
 );
+*/
 
 export default apiClient;
