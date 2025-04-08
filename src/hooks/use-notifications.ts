@@ -30,6 +30,7 @@ export function useNotifications(params?: NotificationListParams) {
     queryFn: () => notificationService.getNotifications(filter),
     staleTime: 30000, // 30 seconds
     enabled: isAuthenticated, // Only run query if authenticated
+    retry: 1, // Add retry configuration
   });
 
   // Get notification count - only if authenticated
@@ -40,23 +41,10 @@ export function useNotifications(params?: NotificationListParams) {
     error: countError
   } = useQuery({
     queryKey: ['notificationCount'],
-    queryFn: async () => {
-      try {
-        return await notificationService.getNotificationCount();
-      } catch (error) {
-        console.error('Error fetching notification count:', error);
-        // Return default values to prevent UI errors
-        return {
-          total: 0,
-          unread: 0,
-          change: 0,
-          isIncrease: false,
-          byType: {}
-        };
-      }
-    },
+    queryFn: () => notificationService.getNotificationCount(),
     staleTime: 30000, // 30 seconds
     enabled: isAuthenticated, // Only run query if authenticated
+    retry: 1, // Add retry configuration
   });
 
   // Mark as read mutation

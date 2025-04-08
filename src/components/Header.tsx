@@ -57,9 +57,6 @@ export default function Header() {
                 <Link to="/dashboard" className="text-sm font-medium hover:text-primary">
                   Dashboard
                 </Link>
-                <Link to="/subscriptions" className="text-sm font-medium hover:text-primary">
-                  Subscriptions
-                </Link>
               </>
             )}
           </nav>
@@ -147,9 +144,6 @@ export default function Header() {
           <div className="flex flex-col space-y-4">
             <Link to="/dashboard" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
               Dashboard
-            </Link>
-            <Link to="/subscriptions" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
-              Subscriptions
             </Link>
             <Link to="/settings" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
               Settings
