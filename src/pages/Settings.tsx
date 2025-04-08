@@ -1,11 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { user } from '../lib/api';
-import type { UserProfile } from '../lib/api/types';
+import type { UserProfile, ApiResponse } from '../lib/api/types';
 import { ProfileSection } from '../components/settings/ProfileSection';
 import { AppearanceSection } from '../components/settings/AppearanceSection';
 import { EmailNotificationSettings } from '../components/settings/EmailNotificationSettings';
 import { PreferencesSection } from '../components/settings/PreferencesSection';
 import { SecuritySection } from '../components/settings/SecuritySection';
+
+// Define interfaces for API responses
+interface ProfileResponse {
+  profile: UserProfile;
+}
+
+interface PreferencesResponse {
+  preferences: Partial<UserProfile>;
+}
 
 const Settings = () => {
   const [loading, setLoading] = useState(true);
@@ -16,6 +25,8 @@ const Settings = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [savingSections, setSavingSections] = useState<Record<string, boolean>>({});
+  const [loadingPreferences, setLoadingPreferences] = useState(false);
+  const [preferences, setPreferences] = useState<Partial<UserProfile> | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -49,6 +60,37 @@ const Settings = () => {
     fetchProfile();
   }, []);
 
+  useEffect(() => {
+    const fetchPreferences = async () => {
+      try {
+        setLoadingPreferences(true);
+        console.group('⚙️ Settings - Preferences Fetch');
+        console.log('Fetching user preferences data');
+        
+        const { data, error } = await user.getPreferences();
+        
+        if (error) {
+          console.error('Preferences fetch failed:', error);
+          // Don't throw error to prevent UI disruption - preferences are optional
+          console.warn('Using profile data as fallback for preferences');
+        } else if (data?.preferences) {
+          console.log('Preferences data received');
+          setPreferences(data.preferences);
+        }
+      } catch (err) {
+        console.error('Error loading preferences:', err);
+        // Don't set error state to prevent UI disruption
+      } finally {
+        setLoadingPreferences(false);
+        console.groupEnd();
+      }
+    };
+
+    if (profile) {
+      fetchPreferences();
+    }
+  }, [profile]);
+
   const handleFieldChange = (updates: Partial<UserProfile>) => {
     setUnsavedChanges(prev => ({ ...prev, ...updates }));
   };
@@ -62,22 +104,43 @@ const Settings = () => {
       setSavingSections(prev => ({ ...prev, [section]: true }));
       setError(null);
       
-      const { data, error } = await user.updateProfile(updates);
-      
-      if (error) {
-        console.error('Section update failed:', error);
-        throw new Error(error);
-      }
+      if (section === 'Preferencias' && updates.language !== undefined) {
+        const { data, error } = await user.updatePreferences(updates);
+        
+        if (error) {
+          console.error('Preferences update failed:', error);
+          throw new Error(error);
+        }
 
-      if (data?.profile) {
-        console.log('Section updated successfully');
-        setProfile(data.profile);
-        setUnsavedChanges(prev => {
-          const newChanges = { ...prev };
-          Object.keys(updates).forEach(key => delete newChanges[key]);
-          return newChanges;
-        });
-        setSuccessMessage(`${section} actualizado correctamente`);
+        if (data?.preferences) {
+          console.log('Preferences updated successfully');
+          setPreferences(data.preferences);
+          setProfile(prev => prev ? { ...prev, ...updates } : null);
+          setUnsavedChanges(prev => {
+            const newChanges = { ...prev };
+            Object.keys(updates).forEach(key => delete newChanges[key]);
+            return newChanges;
+          });
+          setSuccessMessage(`${section} actualizado correctamente`);
+        }
+      } else {
+        const { data, error } = await user.updateProfile(updates);
+        
+        if (error) {
+          console.error('Section update failed:', error);
+          throw new Error(error);
+        }
+
+        if (data?.profile) {
+          console.log('Section updated successfully');
+          setProfile(data.profile);
+          setUnsavedChanges(prev => {
+            const newChanges = { ...prev };
+            Object.keys(updates).forEach(key => delete newChanges[key]);
+            return newChanges;
+          });
+          setSuccessMessage(`${section} actualizado correctamente`);
+        }
       }
     } catch (err) {
       console.error('Section update failed:', err);
@@ -158,42 +221,70 @@ const Settings = () => {
       setError(null);
       setSuccessMessage(null);
       
-      console.log('Step 2: Making API request to /api/users/me');
-      console.log('Request details:', {
-        method: 'PATCH',
-        endpoint: '/api/users/me',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ***'
-        },
-        body: unsavedChanges
+      const profileUpdates: Partial<UserProfile> = {};
+      const preferencesUpdates: Partial<UserProfile> = {};
+      
+      Object.entries(unsavedChanges).forEach(([key, value]) => {
+        if (key === 'language' || key === 'theme') {
+          preferencesUpdates[key as 'language' | 'theme'] = value as any;
+        } else {
+          (profileUpdates as any)[key] = value;
+        }
       });
       
-      const { data, error } = await user.updateProfile(unsavedChanges);
+      console.log('Profile updates:', profileUpdates);
+      console.log('Preferences updates:', preferencesUpdates);
       
-      if (error) {
-        console.error('Step 3 Failed: API request error');
-        console.error('Error details:', error);
-        throw new Error(error);
+      const promises: Promise<ApiResponse<any>>[] = [];
+      let profileResult: ApiResponse<ProfileResponse> | null = null;
+      let preferencesResult: ApiResponse<PreferencesResponse> | null = null;
+      
+      if (Object.keys(profileUpdates).length > 0) {
+        promises.push(
+          user.updateProfile(profileUpdates).then(result => {
+            profileResult = result;
+            return result;
+          })
+        );
       }
-
-      if (data?.profile) {
-        console.log('Step 3 Success: Profile updated');
-        console.log('Response data:', {
-          ...data.profile,
-          email: '***@***.***'
-        });
-
-        console.log('Step 4: Updating local state');
-        setProfile(data.profile);
-        setUnsavedChanges({});
-        setSuccessMessage('Cambios guardados correctamente');
-        
-        console.log('✅ Profile update completed successfully');
+      
+      if (Object.keys(preferencesUpdates).length > 0) {
+        promises.push(
+          user.updatePreferences(preferencesUpdates).then(result => {
+            preferencesResult = result;
+            return result;
+          })
+        );
       }
+      
+      await Promise.all(promises);
+      
+      if (profileResult && profileResult.error) {
+        throw new Error(profileResult.error);
+      }
+      
+      if (preferencesResult && preferencesResult.error) {
+        throw new Error(preferencesResult.error);
+      }
+      
+      if (profileResult && profileResult.data?.profile) {
+        setProfile(profileResult.data.profile);
+      }
+      
+      if (preferencesResult && preferencesResult.data?.preferences) {
+        setPreferences(preferencesResult.data.preferences);
+        setProfile(prev => prev ? { 
+          ...prev, 
+          ...preferencesResult.data.preferences 
+        } : null);
+      }
+      
+      setUnsavedChanges({});
+      setSuccessMessage('Cambios guardados correctamente');
+      console.log('✅ Updates completed successfully');
     } catch (err) {
-      console.error('❌ Profile update failed:', err);
-      setError(err instanceof Error ? err.message : 'Failed to update profile');
+      console.error('❌ Updates failed:', err);
+      setError(err instanceof Error ? err.message : 'Failed to update settings');
     } finally {
       setSaving(false);
       console.groupEnd();

@@ -11,9 +11,9 @@ This document compares the documented backend API endpoints (from `backend/api-e
 | `POST /api/auth/refresh` | ✅ Documented | ✅ Used (legacy) | Compliant | Legacy endpoint, redirects to v1 version |
 | **Users** |
 | `GET /api/v1/users/me` | ✅ Documented | ✅ Used | Compliant | |
-| `PUT /api/v1/users/me` | ✅ Documented | ❌ Not used | Unused | |
-| `GET /api/v1/users/preferences` | ✅ Documented | ❌ Not used | Unused | |
-| `PUT /api/v1/users/preferences` | ✅ Documented | ❌ Not used | Unused | |
+| `PUT /api/v1/users/me` | ✅ Documented | ✅ Used | Compliant | User profile editing |
+| `GET /api/v1/users/preferences` | ✅ Documented | ✅ Used | Compliant | Get user language, theme preferences |
+| `PUT /api/v1/users/preferences` | ✅ Documented | ✅ Used | Compliant | Update user language, theme preferences |
 | **Subscriptions - Core** |
 | `GET /api/v1/subscriptions` | ✅ Documented | ✅ Used | Compliant | |
 | `POST /api/v1/subscriptions` | ✅ Documented | ✅ Used | Compliant | |
@@ -63,9 +63,9 @@ This document compares the documented backend API endpoints (from `backend/api-e
 
 ### Status Breakdown
 
-- **Compliant**: 15 endpoints are documented and used correctly
+- **Compliant**: 18 endpoints are documented and used correctly
 - **Missing in Documentation**: 9 endpoints are used by the frontend but not documented in the backend
-- **Unused**: 14 endpoints are documented in the backend but not used by the frontend
+- **Unused**: 11 endpoints are documented in the backend but not used by the frontend
 
 ### Recommendations
 
@@ -77,7 +77,6 @@ This document compares the documented backend API endpoints (from `backend/api-e
    - Related notification endpoints
 
 2. **Review Unused Endpoints**: Consider deprecating or removing endpoints that are documented but not used by the frontend, unless they serve other purposes:
-   - User preferences endpoints
    - Subscription types endpoints
    - Template endpoints
    - Debug endpoints

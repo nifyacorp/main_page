@@ -12,6 +12,12 @@ export interface NotificationSettings {
   instantNotifications: boolean;
 }
 
+export interface EmailPreferences {
+  email_notifications: boolean;
+  notification_email: string | null;
+  digest_time: string;
+}
+
 export interface UserProfile {
   id: string;
   email: string;

@@ -1,12 +1,6 @@
 import { useState, useCallback } from 'react';
-import { backendClientWithMethods as API } from '@/lib/api/clients/backend';
-import { useAuth } from '@/contexts/AuthContext';
-
-interface EmailPreference {
-  email_notifications: boolean;
-  notification_email: string | null;
-  digest_time: string;
-}
+import { user as userService } from '@/lib/api';
+import { EmailPreferences } from '@/lib/api/types';
 
 interface UpdateEmailPreferenceParams {
   email_notifications?: boolean;
@@ -16,25 +10,26 @@ interface UpdateEmailPreferenceParams {
 
 interface UpdateEmailPreferenceResponse {
   message: string;
-  preferences: EmailPreference;
+  preferences: EmailPreferences;
 }
 
 export function useEmailPreferences() {
-  const { authHeaders } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   // Get email preferences (memoized to prevent infinite loops)
-  const getEmailPreferences = useCallback(async (): Promise<EmailPreference> => {
+  const getEmailPreferences = useCallback(async (): Promise<EmailPreferences> => {
     setIsLoading(true);
     setError(null);
 
     try {
-      // API path that's compatible with our backend's forwarding mechanism
-      const headers = typeof authHeaders === 'function' ? authHeaders() : authHeaders;
-      const response = await API.get('/v1/me/email-preferences', { headers });
+      const { data, error: apiError } = await userService.getEmailPreferences();
       
-      return response.data;
+      if (apiError) {
+        throw new Error(apiError);
+      }
+      
+      return data as EmailPreferences;
     } catch (err) {
       console.error('Failed to fetch email preferences', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch email preferences'));
@@ -48,7 +43,7 @@ export function useEmailPreferences() {
     } finally {
       setIsLoading(false);
     }
-  }, [authHeaders]);
+  }, []);
 
   // Update email preferences (memoized to prevent infinite loops)
   const updateEmailPreferences = useCallback(async (
@@ -58,15 +53,13 @@ export function useEmailPreferences() {
     setError(null);
 
     try {
-      // API path that's compatible with our backend's forwarding mechanism
-      const headers = typeof authHeaders === 'function' ? authHeaders() : authHeaders;
-      const response = await API.patch(
-        '/v1/me/email-preferences',
-        data,
-        { headers }
-      );
+      const { data: responseData, error: apiError } = await userService.updateEmailPreferences(data);
       
-      return response.data;
+      if (apiError) {
+        throw new Error(apiError);
+      }
+      
+      return responseData as UpdateEmailPreferenceResponse;
     } catch (err) {
       console.error('Failed to update email preferences', err);
       setError(err instanceof Error ? err : new Error('Failed to update email preferences'));
@@ -74,23 +67,21 @@ export function useEmailPreferences() {
     } finally {
       setIsLoading(false);
     }
-  }, [authHeaders]);
+  }, []);
 
   // Send test email (memoized to prevent infinite loops)
-  const sendTestEmail = useCallback(async (email: string): Promise<{ message: string; email: string }> => {
+  const sendTestEmail = useCallback(async (): Promise<{ message: string }> => {
     setIsLoading(true);
     setError(null);
 
     try {
-      // API path that's compatible with our backend's forwarding mechanism
-      const headers = typeof authHeaders === 'function' ? authHeaders() : authHeaders;
-      const response = await API.post(
-        '/v1/me/test-email',
-        { email },
-        { headers }
-      );
+      const { data: responseData, error: apiError } = await userService.sendTestEmail();
       
-      return response.data;
+      if (apiError) {
+        throw new Error(apiError);
+      }
+      
+      return responseData as { message: string };
     } catch (err) {
       console.error('Failed to send test email', err);
       setError(err instanceof Error ? err : new Error('Failed to send test email'));
@@ -98,7 +89,7 @@ export function useEmailPreferences() {
     } finally {
       setIsLoading(false);
     }
-  }, [authHeaders]);
+  }, []);
 
   return {
     getEmailPreferences,

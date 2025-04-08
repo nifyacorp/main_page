@@ -17,14 +17,10 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/components/ui/use-toast';
 import { useEmailPreferences } from '@/hooks/use-email-preferences';
 import { useAuth } from '@/contexts/AuthContext';
+import { EmailPreferences } from '@/lib/api/types';
 
-interface EmailPreference {
-  email_notifications: boolean;
-  notification_email: string | null;
-  digest_time: string;
-}
-
-const DEFAULT_PREFERENCES: EmailPreference = {
+// Default preferences state
+const DEFAULT_PREFERENCES: EmailPreferences = {
   email_notifications: false,
   notification_email: null,
   digest_time: '08:00:00'
@@ -68,7 +64,7 @@ export function EmailNotificationSettings() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
   const [customEmail, setCustomEmail] = useState(false);
-  const [preferences, setPreferences] = useState<EmailPreference>(DEFAULT_PREFERENCES);
+  const [preferences, setPreferences] = useState<EmailPreferences>(DEFAULT_PREFERENCES);
   const { 
     getEmailPreferences, 
     updateEmailPreferences,
@@ -126,17 +122,19 @@ export function EmailNotificationSettings() {
   // Handle update notification email
   const handleUpdateNotificationEmail = async (email: string | null) => {
     try {
-      const updated = await updateEmailPreferences({ notification_email: email });
+      const updated = await updateEmailPreferences({
+        notification_email: email
+      });
       setPreferences(updated.preferences);
       
       toast({
-        title: 'Email updated',
-        description: 'Your notification email has been updated',
+        title: 'Notification email updated',
+        description: email ? `Notifications will be sent to ${email}` : 'Using default email for notifications',
         duration: 3000
       });
     } catch (err) {
       toast({
-        title: 'Failed to update email',
+        title: 'Failed to update notification email',
         description: 'Please try again later',
         variant: 'destructive',
         duration: 5000
@@ -144,16 +142,17 @@ export function EmailNotificationSettings() {
     }
   };
 
-  // Handle digest time change
-  const handleDigestTimeChange = async (value: string) => {
+  // Handle update digest time
+  const handleUpdateDigestTime = async (time: string) => {
     try {
-      const timeForDB = formatTimeForDatabase(value);
-      const updated = await updateEmailPreferences({ digest_time: timeForDB });
+      const updated = await updateEmailPreferences({
+        digest_time: time
+      });
       setPreferences(updated.preferences);
       
       toast({
         title: 'Digest time updated',
-        description: `You will now receive daily digests at ${value}`,
+        description: `Daily digest will be sent at ${time}`,
         duration: 3000
       });
     } catch (err) {
@@ -166,33 +165,23 @@ export function EmailNotificationSettings() {
     }
   };
 
-  // Handle sending test email
+  // Handle send test email
   const handleSendTestEmail = async () => {
     try {
       setSendingTest(true);
-      const email = preferences.notification_email || user?.email || '';
       
-      if (!email) {
-        toast({
-          title: 'No email available',
-          description: 'Please set a notification email first',
-          variant: 'destructive',
-          duration: 5000
-        });
-        return;
-      }
+      // Use the current notification email or fallback to user's email
+      const emailToUse = preferences.notification_email || user?.email || '';
       
-      await sendTestEmail(email);
+      await sendTestEmail();
+      
       setShowSuccess(true);
-      
-      setTimeout(() => {
-        setShowSuccess(false);
-      }, 5000);
+      setTimeout(() => setShowSuccess(false), 5000);
       
       toast({
         title: 'Test email sent',
-        description: `A test email has been sent to ${email}`,
-        duration: 3000
+        description: `A test email has been sent to ${emailToUse}`,
+        duration: 5000
       });
     } catch (err) {
       toast({
@@ -303,23 +292,23 @@ export function EmailNotificationSettings() {
                   Choose when to receive your daily notification summary
                 </p>
                 <Select
-                  value={currentTimeForSelect}
-                  onValueChange={handleDigestTimeChange}
+                  value={preferences.digest_time?.substring(0, 5) || '08:00'}
+                  onValueChange={(value) => handleUpdateDigestTime(`${value}:00`)}
                   disabled={isLoading}
                 >
-                  <SelectTrigger id="digest-time" className="w-full">
+                  <SelectTrigger>
                     <SelectValue placeholder="Select time" />
                   </SelectTrigger>
                   <SelectContent>
-                    {digestTimeOptions.map((time) => (
-                      <SelectItem key={time} value={time}>
-                        {time}
+                    {Array.from({ length: 24 }).map((_, hour) => (
+                      <SelectItem key={hour} value={`${hour.toString().padStart(2, '0')}:00`}>
+                        {hour.toString().padStart(2, '0')}:00
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-gray-400 mt-1">
-                  All times are in your local timezone
+                <p className="text-xs text-gray-500">
+                  Daily digests will be sent at this time in your local timezone
                 </p>
               </div>
             </div>
