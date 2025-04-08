@@ -1,4 +1,4 @@
-import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { verifyAuthHeaders } from '../../lib/utils/auth-recovery';
 
 // Environment variables
@@ -43,7 +43,7 @@ const apiClient: AxiosInstance = axios.create({
 
 // Request interceptor for adding auth token
 apiClient.interceptors.request.use(
-  (config: AxiosRequestConfig): AxiosRequestConfig => {
+  (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
     // Verify and fix auth headers before making the request
     verifyAuthHeaders();
     
@@ -82,19 +82,29 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor (COMMENTED OUT TEMPORARILY)
-/*
+// Response interceptor
 apiClient.interceptors.response.use(
   (response: AxiosResponse): AxiosResponse => {
     return response;
   },
   async (error: AxiosError): Promise<any> => {
+    if (!error.config) {
+      return Promise.reject(error);
+    }
+    
     const originalRequest = error.config;
     
+    // Add the _retry property to the config type
+    interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
+      _retry?: boolean;
+    }
+    
+    const typedRequest = originalRequest as ExtendedAxiosRequestConfig;
+    
     // Handle 401 errors (unauthorized) by attempting token refresh
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && !typedRequest._retry) {
       console.log('Auth error detected in fetch response:', error.response?.data);
-      originalRequest._retry = true;
+      typedRequest._retry = true;
       
       try {
         const refreshToken = localStorage.getItem('refreshToken') || localStorage.getItem(REFRESH_TOKEN_KEY);
@@ -117,8 +127,14 @@ apiClient.interceptors.response.use(
         });
         
         if (response.data.token || response.data.accessToken) {
-          const newToken = response.data.token || response.data.accessToken;
+          // Get the new token
+          let newToken = response.data.token || response.data.accessToken;
           const newRefreshToken = response.data.refreshToken;
+          
+          // Ensure token has Bearer prefix
+          if (newToken && !newToken.startsWith('Bearer ')) {
+            newToken = `Bearer ${newToken}`;
+          }
           
           // Support both storage mechanisms for maximum compatibility
           localStorage.setItem('accessToken', newToken);
@@ -131,11 +147,26 @@ apiClient.interceptors.response.use(
           
           localStorage.setItem('isAuthenticated', 'true');
           
+          // Try to extract user ID from token if possible
+          try {
+            const [, payload] = newToken.replace('Bearer ', '').split('.');
+            if (payload) {
+              const decodedPayload = JSON.parse(atob(payload));
+              if (decodedPayload.sub) {
+                console.log('Updated user ID from refreshed token:', decodedPayload.sub);
+                localStorage.setItem('userId', decodedPayload.sub);
+              }
+            }
+          } catch (err) {
+            console.error('Failed to extract user ID from refreshed token:', err);
+          }
+          
           // Update authorization header and retry original request
-          apiClient.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+          apiClient.defaults.headers.common['Authorization'] = newToken;
           return apiClient(originalRequest);
         }
       } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
         // Refresh token failed, redirect to login
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
@@ -149,15 +180,25 @@ apiClient.interceptors.response.use(
     }
     
     // Format error for consistent handling across the app
+    const errorData = error.response?.data || {};
+    const errorMessage = typeof errorData === 'object' && errorData.message 
+      ? errorData.message 
+      : typeof error.message === 'string' 
+        ? error.message 
+        : 'An unexpected error occurred';
+        
+    const errorDetails = typeof errorData === 'object' && errorData.details
+      ? errorData.details
+      : error.toString();
+      
     const apiError: ApiError = {
       status: error.response?.status || 500,
-      message: error.response?.data?.message || 'An unexpected error occurred',
-      details: error.response?.data?.details || error.message,
+      message: errorMessage,
+      details: errorDetails,
     };
     
     return Promise.reject(apiError);
   }
 );
-*/
 
 export default apiClient;
