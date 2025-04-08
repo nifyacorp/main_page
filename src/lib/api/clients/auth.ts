@@ -13,11 +13,11 @@ interface RequestConfig {
   headers?: Record<string, string>;
 }
 
-// Use the relative URL for redirects through Netlify, or fall back to direct URL if specified
-const AUTH_URL = import.meta.env.VITE_USE_NETLIFY_REDIRECTS === 'true'
-  ? ''  // Empty string for using Netlify redirects (relative URLs)
-  : (import.meta.env.VITE_AUTH_URL || 'https://authentication-service-415554190254.us-central1.run.app');
-console.log('Auth URL being used:', AUTH_URL || '(Using Netlify redirects)');
+// Call correct endpoint for authentication
+const authBaseUrl = import.meta.env.VITE_USE_NETLIFY_REDIRECTS === 'true'
+  ? '/api'  // Use Netlify redirects
+  : import.meta.env.VITE_AUTH_URL || import.meta.env.VITE_BACKEND_URL || 'https://authentication-service-415554190254.us-central1.run.app';
+console.log('Auth URL being used:', authBaseUrl || '(Using Netlify redirects)');
 
 export async function authClient<T>({
   endpoint,
@@ -27,7 +27,7 @@ export async function authClient<T>({
 }: RequestConfig): Promise<ApiResponse<T>> {
   console.group('🔐 Auth Service Request');
   console.log('Request Details:', {
-    url: `${AUTH_URL}${endpoint}`,
+    url: `${authBaseUrl}${endpoint}`,
     method,
     headers: {
       'Content-Type': 'application/json',
@@ -36,7 +36,7 @@ export async function authClient<T>({
     body: body ? { ...body, password: body.password ? '********' : undefined } : undefined
   });
 
-  const url = `${AUTH_URL}${endpoint}`;
+  const url = `${authBaseUrl}${endpoint}`;
   
   const requestOptions = {
     method,

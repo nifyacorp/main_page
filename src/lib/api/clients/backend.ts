@@ -240,6 +240,28 @@ function logResponseDebug(response: Response, text: string, data: any) {
   console.groupEnd();
 }
 
+// Helper to ensure endpoint has the correct prefix
+function ensureV1Prefix(endpoint: string): string {
+  // If the endpoint already starts with /api/v1, leave it as is
+  if (endpoint.startsWith('/api/v1')) {
+    return endpoint;
+  }
+  
+  // If the endpoint already starts with /v1, add /api prefix
+  if (endpoint.startsWith('/v1')) {
+    return `/api${endpoint}`;
+  }
+  
+  // If the endpoint has no prefix, add the full /api/v1 prefix
+  // But avoid adding it to auth endpoints which might have a different structure
+  if (endpoint.startsWith('/auth/')) {
+    return `/api${endpoint}`;
+  }
+  
+  // For all other endpoints, add the full prefix
+  return `/api/v1${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+}
+
 export async function backendClient<T>({
   endpoint,
   method = 'GET',
@@ -249,9 +271,12 @@ export async function backendClient<T>({
   let retryCount = 0;
   const maxRetries = 1;
   
+  // Ensure endpoint has the proper prefix
+  const prefixedEndpoint = ensureV1Prefix(endpoint);
+  
   // Debug logging for request
-  console.group(`🌐 API Request: ${method} ${endpoint}`);
-  console.log('Request details:', { method, endpoint, headers: { ...headers, Authorization: headers.Authorization ? '***' : undefined } });
+  console.group(`🌐 API Request: ${method} ${prefixedEndpoint}`);
+  console.log('Request details:', { method, originalEndpoint: endpoint, prefixedEndpoint, headers: { ...headers, Authorization: headers.Authorization ? '***' : undefined } });
   if (body) console.log('Request body:', typeof body === 'string' ? body.substring(0, 100) + '...' : body);
   
   async function attemptRequest(): Promise<ApiResponse<T>> {
@@ -320,7 +345,7 @@ export async function backendClient<T>({
       });
 
       // Make the request
-      const response = await fetch(`${BACKEND_URL}${endpoint}`, options);
+      const response = await fetch(`${BACKEND_URL}${prefixedEndpoint}`, options);
       
       // Debug response details
       console.log('Response received:', {

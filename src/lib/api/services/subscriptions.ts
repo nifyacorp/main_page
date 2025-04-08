@@ -166,11 +166,64 @@ export const subscriptionService = {
     
     return backendClient({
       endpoint: `/api/v1/subscriptions/${id}`,
-      method: 'PATCH',
+      method: 'PUT',
       body: dataValidation.data,
     }).finally(() => console.groupEnd());
   },
   
+  activate: (id: string): Promise<ApiResponse<Subscription>> => {
+    console.group('🔄 Activate Subscription');
+    console.log('Activating subscription:', { id });
+    
+    // Validate UUID format
+    const idValidation = validateWithZod(UuidSchema, id);
+    
+    if (!idValidation.success) {
+      console.error('Invalid subscription ID:', idValidation.error);
+      console.groupEnd();
+      
+      return Promise.resolve({
+        status: 400,
+        ok: false,
+        error: 'Invalid subscription ID format',
+        data: null as any
+      });
+    }
+    
+    return backendClient({
+      endpoint: `/api/v1/subscriptions/${id}/activate`,
+      method: 'PATCH',
+      body: {}, // Empty body to satisfy content-type requirement
+    }).finally(() => console.groupEnd());
+  },
+  
+  deactivate: (id: string): Promise<ApiResponse<Subscription>> => {
+    console.group('🔄 Deactivate Subscription');
+    console.log('Deactivating subscription:', { id });
+    
+    // Validate UUID format
+    const idValidation = validateWithZod(UuidSchema, id);
+    
+    if (!idValidation.success) {
+      console.error('Invalid subscription ID:', idValidation.error);
+      console.groupEnd();
+      
+      return Promise.resolve({
+        status: 400,
+        ok: false,
+        error: 'Invalid subscription ID format',
+        data: null as any
+      });
+    }
+    
+    return backendClient({
+      endpoint: `/api/v1/subscriptions/${id}/deactivate`,
+      method: 'PATCH',
+      body: {}, // Empty body to satisfy content-type requirement
+    }).finally(() => console.groupEnd());
+  },
+  
+  // Keep toggle for backward compatibility, but implement it using activate/deactivate
   toggle: (id: string, active: boolean): Promise<ApiResponse<Subscription>> => {
     console.group('🔄 Toggle Subscription');
     console.log('Toggling subscription:', { id, active });
@@ -205,11 +258,12 @@ export const subscriptionService = {
       });
     }
     
-    return backendClient({
-      endpoint: `/api/v1/subscriptions/${id}/toggle`,
-      method: 'PATCH',
-      body: toggleValidation.data,
-    }).finally(() => console.groupEnd());
+    // Call the appropriate endpoint based on the active state
+    if (active) {
+      return subscriptionService.activate(id);
+    } else {
+      return subscriptionService.deactivate(id);
+    }
   },
   
   processImmediately: (id: string): Promise<ApiResponse<{ message: string; processingId?: string; subscription_id?: string }>> => {

@@ -419,7 +419,7 @@ export const notificationService = {
     try {
       return await backendClient({
         endpoint: `/api/v1/notifications/${id}/read`,
-        method: 'POST'
+        method: 'PATCH'
       });
     } catch (error: any) {
       console.error('Error marking notification as read:', error);
@@ -443,7 +443,7 @@ export const notificationService = {
     try {
       return await backendClient({
         endpoint,
-        method: 'POST'
+        method: 'PATCH'
       });
     } catch (error: any) {
       console.error('Error marking all notifications as read:', error);

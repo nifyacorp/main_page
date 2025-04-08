@@ -146,7 +146,7 @@ class NotificationService {
    */
   async markAsRead(id: string): Promise<void> {
     try {
-      await apiClient.put(`/v1/notifications/${id}/read`);
+      await apiClient.patch(`/v1/notifications/${id}/read`);
     } catch (error) {
       console.error(`Error marking notification ${id} as read:`, error);
       throw error;
@@ -158,7 +158,7 @@ class NotificationService {
    */
   async markAllAsRead(): Promise<void> {
     try {
-      await apiClient.put('/v1/notifications/read-all');
+      await apiClient.patch('/v1/notifications/read-all');
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
       throw error;

@@ -557,7 +557,7 @@ class SubscriptionService {
     try {
       console.log(`Updating subscription with ID: ${id}`, data);
       
-      // Format data for API - backend expects PATCH, not PUT
+      // Format data for API - backend expects PUT, not PATCH
       const formattedData = {
         name: data.name,
         description: data.description || '',
@@ -568,8 +568,8 @@ class SubscriptionService {
                  data.frequency.toLowerCase(),
       };
       
-      // Use PATCH instead of PUT
-      const response = await apiClient.patch(`/v1/subscriptions/${id}`, formattedData);
+      // Use PUT instead of PATCH to comply with API standards
+      const response = await apiClient.put(`/v1/subscriptions/${id}`, formattedData);
       
       // Handle different API response formats
       if (response.data && response.data.data && response.data.data.subscription) {
@@ -726,12 +726,41 @@ class SubscriptionService {
   }
 
   /**
-   * Toggle subscription active status
+   * Activate a subscription
+   */
+  async activateSubscription(id: string): Promise<Subscription> {
+    try {
+      const response = await apiClient.patch(`/v1/subscriptions/${id}/activate`, {});
+      return response.data;
+    } catch (error) {
+      console.error(`Error activating subscription ${id}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Deactivate a subscription
+   */
+  async deactivateSubscription(id: string): Promise<Subscription> {
+    try {
+      const response = await apiClient.patch(`/v1/subscriptions/${id}/deactivate`, {});
+      return response.data;
+    } catch (error) {
+      console.error(`Error deactivating subscription ${id}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Toggle subscription active status (using activate/deactivate endpoints)
    */
   async toggleSubscriptionStatus(id: string, isActive: boolean): Promise<Subscription> {
     try {
-      const response = await apiClient.patch(`/v1/subscriptions/${id}/toggle`, { active: isActive });
-      return response.data;
+      if (isActive) {
+        return this.activateSubscription(id);
+      } else {
+        return this.deactivateSubscription(id);
+      }
     } catch (error) {
       console.error(`Error toggling subscription status ${id}:`, error);
       throw error;
