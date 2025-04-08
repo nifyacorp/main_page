@@ -52,11 +52,11 @@ This document compares the documented backend API endpoints (from `backend/api-e
 | `GET /api/v1/notifications/activity` | ❌ Not documented | ✅ Used | Missing in Docs | Used for activity analytics in frontend |
 | **Notifications - Relations** |
 | `GET /api/v1/subscriptions/:id/notifications` | ❌ Not documented | ✅ Used | Missing in Docs | Get notifications for a specific subscription |
-| **Templates** |
-| `GET /api/v1/templates` | ✅ Documented | ❌ Not used | Unused | |
-| `GET /api/v1/templates/public` | ✅ Documented | ❌ Not used | Unused | |
-| `GET /api/v1/templates/:id` | ✅ Documented | ❌ Not used | Unused | |
-| `POST /api/v1/templates` | ✅ Documented | ❌ Not used | Unused | |
+| **Templates (Removed)** |
+| `GET /api/v1/templates` | ✅ Documented | ❌ Removed | Removed | Removed in favor of subscription types |
+| `GET /api/v1/templates/public` | ✅ Documented | ❌ Removed | Removed | Removed in favor of subscription types |
+| `GET /api/v1/templates/:id` | ✅ Documented | ❌ Removed | Removed | Removed in favor of subscription types |
+| `POST /api/v1/templates` | ✅ Documented | ❌ Removed | Removed | Removed in favor of subscription types |
 | **Diagnostics** |
 | Various `/diagnostics/` endpoints | ✅ Documented | ❌ Not used | Unused | Development/testing endpoints |
 
@@ -67,9 +67,9 @@ This document compares the documented backend API endpoints (from `backend/api-e
 - **Compliant**: 17 endpoints are documented and used correctly
 - **Standardized**: 2 endpoints have been standardized but need documentation
 - **Deprecated**: 5 endpoints are marked as deprecated in favor of standardized alternatives
-- **Removed**: 1 endpoint has been removed (bulk deletion)
+- **Removed**: 5 endpoints have been removed (bulk deletion and redundant templates endpoints)
 - **Missing in Documentation**: 4 endpoints are used by the frontend but not documented in the backend
-- **Unused**: 9 endpoints are documented in the backend but not used by the frontend
+- **Unused**: 5 endpoints are documented in the backend but not used by the frontend
 
 ### Recent API Standardization
 
@@ -97,6 +97,11 @@ We've implemented several changes to standardize the subscription API:
    - Integrated template selection in the subscription creation flow
    - Used the documented subscription types API endpoints
 
+6. **Removed Redundant Templates Endpoints**:
+   - Removed the duplicative `/api/v1/templates` endpoints
+   - Consolidated template functionality into subscription types endpoints
+   - Simplified API surface area by removing redundant functionality
+
 ### Recommendations
 
 1. **Document Standardized Endpoints**: The backend documentation should be updated to include the 4 endpoints currently used by the frontend but missing from documentation:
@@ -107,7 +112,6 @@ We've implemented several changes to standardize the subscription API:
 
 2. **Review Unused Endpoints**: Consider deprecating or removing endpoints that are documented but not used by the frontend, unless they serve other purposes:
    - POST subscription types endpoint
-   - Template endpoints
    - Debug endpoints
 
 3. **Continue API Standardization**: Apply similar standardization to other endpoint groups like notifications.

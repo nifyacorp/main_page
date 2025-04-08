@@ -32,7 +32,13 @@ const Auth: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { login: authLogin, isAuthenticated } = useAuth();
-  const [isLogin, setIsLogin] = useState(location.state?.isLogin ?? true);
+  
+  // Check URL params first, then fall back to router state, then default to login
+  const searchParams = new URLSearchParams(location.search);
+  const mode = searchParams.get('mode');
+  const initialIsLogin = mode === 'signup' ? false : mode === 'login' ? true : location.state?.isLogin ?? true;
+  
+  const [isLogin, setIsLogin] = useState(initialIsLogin);
   const [signingIn, setSigningIn] = useState(false);
   const [googleSigningIn, setGoogleSigningIn] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);

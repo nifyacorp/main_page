@@ -57,10 +57,10 @@ export default function Home() {
             ) : (
               <>
                 <Button size="lg" asChild>
-                  <Link to="/signup">Get Started <ArrowRightIcon className="ml-2 h-4 w-4" /></Link>
+                  <Link to="/auth?mode=signup">Get Started <ArrowRightIcon className="ml-2 h-4 w-4" /></Link>
                 </Button>
                 <Button size="lg" variant="outline" asChild>
-                  <Link to="/auth">Log In</Link>
+                  <Link to="/auth?mode=login">Log In</Link>
                 </Button>
               </>
             )}
@@ -238,7 +238,7 @@ export default function Home() {
             ) : (
               <>
                 <Button size="lg" asChild>
-                  <Link to="/signup">Get Started Today</Link>
+                  <Link to="/auth?mode=signup">Get Started Today</Link>
                 </Button>
                 <Button size="lg" variant="outline" asChild>
                   <Link to="/pricing">View Pricing</Link>
