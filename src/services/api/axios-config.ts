@@ -11,7 +11,15 @@ const API_BASE_URL = useNetlifyRedirects
   ? '/api' 
   : import.meta.env.VITE_BACKEND_URL ? `${import.meta.env.VITE_BACKEND_URL}/api` : 'http://localhost:3000/api';
 
+// Auth URL for authentication related operations
+const AUTH_URL = useNetlifyRedirects
+  ? '/api'
+  : import.meta.env.VITE_AUTH_URL 
+    ? `${import.meta.env.VITE_AUTH_URL}/api` 
+    : 'https://authentication-service-415554190254.us-central1.run.app/api';
+
 console.log('API base URL being used:', API_BASE_URL);
+console.log('Auth URL being used:', AUTH_URL);
 
 const AUTH_TOKEN_KEY = import.meta.env.VITE_AUTH_TOKEN_KEY || 'nifya_auth_token';
 const REFRESH_TOKEN_KEY = import.meta.env.VITE_REFRESH_TOKEN_KEY || 'nifya_refresh_token';
@@ -102,8 +110,8 @@ apiClient.interceptors.response.use(
           return Promise.reject(error);
         }
         
-        // Call refresh token endpoint
-        const response = await axios.post(`${API_BASE_URL}/v1/auth/refresh`, {
+        // Call refresh token endpoint using the AUTH_URL instead of API_BASE_URL
+        const response = await axios.post(`${AUTH_URL}/v1/auth/refresh`, {
           refreshToken,
         });
         
