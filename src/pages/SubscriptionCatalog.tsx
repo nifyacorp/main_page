@@ -1,9 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Building2, Brain, ChevronRight, Search, Plus, Clock, Zap, Lock, Globe, AlertTriangle } from 'lucide-react';
+import { FileText, Building2, Brain, ChevronRight, Search, Plus, Clock, Zap, Lock, Globe, AlertTriangle, X, LucideIcon } from 'lucide-react';
 import { templates } from '../lib/api';
 import type { Template } from '../lib/api/types';
-import type { IconType } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardFooter, CardTitle, CardDescription } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -17,45 +16,11 @@ interface PaginationInfo {
   hasMore: boolean;
 }
 
-const iconMap: Record<string, IconType> = {
+const iconMap: Record<string, LucideIcon> = {
   FileText,
   Building2,
   Brain,
 };
-
-// Fallback templates to use when the API fails
-const fallbackTemplates: Template[] = [
-  {
-    id: 'boe-general',
-    name: 'BOE General',
-    description: 'Suscríbete a publicaciones oficiales del Boletín Oficial del Estado',
-    type: 'boe',
-    prompts: [],
-    icon: 'FileText',
-    logo: 'https://www.boe.es/favicon.ico',
-    isPublic: true,
-    metadata: {
-      category: 'government',
-      source: 'boe',
-    },
-    frequency: 'daily'
-  },
-  {
-    id: 'doga-general',
-    name: 'DOGA General',
-    description: 'Notificaciones del Diario Oficial de Galicia',
-    type: 'doga',
-    prompts: [],
-    icon: 'FileText',
-    logo: 'https://www.xunta.gal/favicon.ico',
-    isPublic: true,
-    metadata: {
-      category: 'government',
-      source: 'doga',
-    },
-    frequency: 'daily'
-  }
-];
 
 const SubscriptionCatalog = () => {
   const navigate = useNavigate();
@@ -72,7 +37,7 @@ const SubscriptionCatalog = () => {
     description: '',
     type: 'custom' as const,
     prompts: [''],
-    frequency: 'immediate' as const,
+    frequency: 'immediate' as 'immediate' | 'daily',
     icon: 'Brain',
     isPublic: false,
     metadata: {
@@ -81,7 +46,6 @@ const SubscriptionCatalog = () => {
     }
   });
   const [creating, setCreating] = useState(false);
-  const [useFallbackTemplates, setUseFallbackTemplates] = useState(false);
 
   useEffect(() => {
     const fetchTemplates = async () => {
@@ -94,55 +58,17 @@ const SubscriptionCatalog = () => {
           throw new Error(error);
         }
         
-        if (data && data.templates && data.templates.length > 0) {
-          // Check if BOE templates are present
-          const hasBoeSub = data.templates.some(
-            template => template.type === 'boe' || template.name.toLowerCase().includes('boe')
-          );
-          
-          // If no BOE templates, merge with fallbacks
-          if (!hasBoeSub) {
-            console.log('No BOE template found in API response, adding fallback BOE template');
-            const boeTemplate = fallbackTemplates.find(t => t.type === 'boe');
-            if (boeTemplate) {
-              setTemplateList([...data.templates, boeTemplate]);
-            } else {
-              setTemplateList(data.templates);
-            }
-          } else {
-            setTemplateList(data.templates);
-          }
-          
+        if (data && data.templates) {
+          setTemplateList(data.templates);
           setPagination(data.pagination);
-          setUseFallbackTemplates(false);
         } else {
-          // API returned empty list, use fallbacks
-          console.log('API returned empty template list, using fallback templates');
-          setTemplateList(fallbackTemplates);
-          setPagination({
-            page: 1,
-            limit: fallbackTemplates.length,
-            totalPages: 1,
-            totalCount: fallbackTemplates.length,
-            hasMore: false
-          });
-          setUseFallbackTemplates(true);
+          setTemplateList([]);
+          setError('No templates available');
         }
       } catch (err) {
         console.error('Error fetching templates:', err);
         setError(err instanceof Error ? err.message : 'Failed to load templates');
-        
-        // Use fallback templates
-        console.log('Using fallback templates due to API error');
-        setTemplateList(fallbackTemplates);
-        setPagination({
-          page: 1,
-          limit: fallbackTemplates.length,
-          totalPages: 1,
-          totalCount: fallbackTemplates.length,
-          hasMore: false
-        });
-        setUseFallbackTemplates(true);
+        setTemplateList([]);
       } finally {
         setLoading(false);
       }
@@ -162,7 +88,7 @@ const SubscriptionCatalog = () => {
   }, [searchQuery, templateList]);
 
   const handlePageChange = (newPage: number) => {
-    if (!useFallbackTemplates && newPage >= 1 && (!pagination || newPage <= pagination.totalPages)) {
+    if (newPage >= 1 && (!pagination || newPage <= pagination.totalPages)) {
       setCurrentPage(newPage);
     }
   };
@@ -191,17 +117,6 @@ const SubscriptionCatalog = () => {
   };
 
   const handleSelectTemplate = (templateId: string) => {
-    // If using fallback templates, we need to handle this case differently
-    if (useFallbackTemplates) {
-      const template = fallbackTemplates.find(t => t.id === templateId);
-      if (template && template.type === 'boe') {
-        // Navigate to BOE subscription creation page directly
-        navigate('/subscriptions/new/boe');
-        return;
-      }
-    }
-    
-    // Normal flow
     navigate(`/subscriptions/new/${templateId}`);
   };
 
@@ -281,22 +196,12 @@ const SubscriptionCatalog = () => {
           </Button>
         </div>
 
-        {error && !useFallbackTemplates && (
+        {error && (
           <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-medium">Error cargando templates</p>
               <p className="text-sm mt-1">{error}</p>
-            </div>
-          </div>
-        )}
-        
-        {useFallbackTemplates && (
-          <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 text-amber-700 rounded-lg flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="font-medium">Usando templates de respaldo</p>
-              <p className="text-sm mt-1">No se pudo conectar con el API de templates. Se muestran opciones básicas disponibles.</p>
             </div>
           </div>
         )}
@@ -350,7 +255,7 @@ const SubscriptionCatalog = () => {
             </div>
             
             {/* Pagination */}
-            {!useFallbackTemplates && pagination && pagination.totalPages > 1 && (
+            {pagination && pagination.totalPages > 1 && (
               <div className="flex justify-center mt-8">
                 <div className="flex gap-2">
                   <Button

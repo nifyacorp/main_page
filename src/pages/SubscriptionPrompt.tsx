@@ -116,28 +116,7 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
       } catch (err: any) {
         console.error('Error fetching data:', err);
         setError(err instanceof Error ? err.message : 'Failed to load data');
-        
-        // In development mode, create a mock template if needed
-        if (import.meta.env.DEV && mode === 'create' && typeId) {
-          console.log('Creating mock template for development');
-          const mockTemplate: Template = {
-            id: typeId,
-            name: typeId === 'boe-template' ? 'BOE Subscription' : 'Custom Subscription',
-            description: 'Development mode template',
-            type: typeId === 'boe-template' ? 'boe' : 'custom',
-            prompts: [],
-            icon: typeId === 'boe-template' ? 'FileText' : 'Brain',
-            logo: '',
-            metadata: {
-              category: 'development',
-              source: 'mock'
-            },
-            frequency: 'daily',
-            isPublic: true
-          };
-          setTemplate(mockTemplate);
-          setError(null);
-        }
+        setTemplate(null);
       } finally {
         setLoading(false);
       }
