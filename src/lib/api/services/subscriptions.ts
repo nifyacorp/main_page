@@ -183,65 +183,15 @@ export const subscriptionService = {
       });
     }
     
+    // Use PATCH instead of PUT
     return backendClient<SubscriptionCreateUpdateResponse>({
       endpoint: `/api/v1/subscriptions/${id}`,
-      method: 'PUT',
+      method: 'PATCH',
       body: dataValidation.data,
     }).finally(() => console.groupEnd());
   },
   
-  activate: (id: string): Promise<ApiResponse<Subscription>> => {
-    console.group('🔄 Activate Subscription');
-    console.log('Activating subscription:', { id });
-    
-    // Validate UUID format
-    const idValidation = validateWithZod(UuidSchema, id);
-    
-    if (!idValidation.success) {
-      console.error('Invalid subscription ID:', idValidation.error);
-      console.groupEnd();
-      
-      return Promise.resolve({
-        status: 400,
-        ok: false,
-        error: 'Invalid subscription ID format',
-        data: null as any
-      });
-    }
-    
-    return backendClient<Subscription>({
-      endpoint: `/api/v1/subscriptions/${id}/activate`,
-      method: 'PATCH',
-      body: {}, // Empty body to satisfy content-type requirement
-    }).finally(() => console.groupEnd());
-  },
-  
-  deactivate: (id: string): Promise<ApiResponse<Subscription>> => {
-    console.group('🔄 Deactivate Subscription');
-    console.log('Deactivating subscription:', { id });
-    
-    // Validate UUID format
-    const idValidation = validateWithZod(UuidSchema, id);
-    
-    if (!idValidation.success) {
-      console.error('Invalid subscription ID:', idValidation.error);
-      console.groupEnd();
-      
-      return Promise.resolve({
-        status: 400,
-        ok: false,
-        error: 'Invalid subscription ID format',
-        data: null as any
-      });
-    }
-    
-    return backendClient<Subscription>({
-      endpoint: `/api/v1/subscriptions/${id}/deactivate`,
-      method: 'PATCH',
-      body: {}, // Empty body to satisfy content-type requirement
-    }).finally(() => console.groupEnd());
-  },
-  
+  // Updated toggle method that uses PATCH
   toggle: (id: string, active: boolean): Promise<ApiResponse<Subscription>> => {
     console.group('🔄 Toggle Subscription');
     console.log('Toggling subscription:', { id, active });
@@ -261,27 +211,31 @@ export const subscriptionService = {
       });
     }
     
-    // Validate toggle data
-    const toggleValidation = validateWithZod(ToggleSubscriptionSchema, { active });
+    // Use PATCH directly with active parameter
+    return backendClient<Subscription>({
+      endpoint: `/api/v1/subscriptions/${id}`,
+      method: 'PATCH',
+      body: { active },
+    }).finally(() => console.groupEnd());
+  },
+  
+  // Keep these for backward compatibility but mark as deprecated
+  activate: (id: string): Promise<ApiResponse<Subscription>> => {
+    console.group('🔄 Activate Subscription');
+    console.log('Activating subscription (deprecated):', { id });
+    console.warn('Deprecated: Use toggle(id, true) instead');
     
-    if (!toggleValidation.success) {
-      console.error('Validation failed:', toggleValidation.error);
-      console.groupEnd();
-      
-      return Promise.resolve({
-        status: 400,
-        ok: false,
-        error: 'Validation failed: active must be a boolean',
-        data: null as any
-      });
-    }
+    // Call toggle with active=true
+    return subscriptionService.toggle(id, true);
+  },
+  
+  deactivate: (id: string): Promise<ApiResponse<Subscription>> => {
+    console.group('🔄 Deactivate Subscription');
+    console.log('Deactivating subscription (deprecated):', { id });
+    console.warn('Deprecated: Use toggle(id, false) instead');
     
-    // Call the appropriate endpoint based on the active state
-    if (active) {
-      return subscriptionService.activate(id);
-    } else {
-      return subscriptionService.deactivate(id);
-    }
+    // Call toggle with active=false
+    return subscriptionService.toggle(id, false);
   },
   
   processImmediately: (id: string): Promise<ApiResponse<ProcessSubscriptionResponse>> => {
@@ -305,7 +259,7 @@ export const subscriptionService = {
     
     console.log(`Sending process request to /api/v1/subscriptions/${id}/process`);
     
-    // Use more robust error handling
+    // Use standard process endpoint
     return backendClient<ProcessSubscriptionResponse>({
       endpoint: `/api/v1/subscriptions/${id}/process`,
       method: 'POST',

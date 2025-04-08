@@ -18,13 +18,14 @@ This document compares the documented backend API endpoints (from `backend/api-e
 | `GET /api/v1/subscriptions` | ✅ Documented | ✅ Used | Compliant | |
 | `POST /api/v1/subscriptions` | ✅ Documented | ✅ Used | Compliant | |
 | `GET /api/v1/subscriptions/:id` | ✅ Documented | ✅ Used | Compliant | |
-| `PUT /api/v1/subscriptions/:id` | ✅ Documented | ✅ Used | Compliant | |
+| `PATCH /api/v1/subscriptions/:id` | ✅ Documented | ✅ Used | Compliant | Standard endpoint for all subscription updates |
+| `PUT /api/v1/subscriptions/:id` | ✅ Documented | ✅ Used | Deprecated | Redirects to PATCH version with 308 status code |
 | `DELETE /api/v1/subscriptions/:id` | ✅ Documented | ✅ Used | Compliant | |
-| `DELETE /api/v1/subscriptions/` | ❌ Not documented | ✅ Used | Missing in Docs | Bulk delete all user subscriptions |
+| `DELETE /api/v1/subscriptions/` | ❌ Not documented | ❌ Removed | Removed | Bulk deletion removed in favor of individual deletes |
 | **Subscriptions - Status** |
-| `PATCH /api/v1/subscriptions/:id/activate` | ✅ Documented | ✅ Used | Compliant | |
-| `PATCH /api/v1/subscriptions/:id/deactivate` | ✅ Documented | ✅ Used | Compliant | |
-| `PATCH /api/v1/subscriptions/:id/toggle` | ❌ Not documented | ✅ Used (legacy) | Missing in Docs | Legacy endpoint, should be replaced with activate/deactivate |
+| `PATCH /api/v1/subscriptions/:id/activate` | ✅ Documented | ❌ Deprecated | Deprecated | Use PATCH /:id with { active: true } instead |
+| `PATCH /api/v1/subscriptions/:id/deactivate` | ✅ Documented | ❌ Deprecated | Deprecated | Use PATCH /:id with { active: false } instead |
+| `PATCH /api/v1/subscriptions/:id/toggle` | ❌ Not documented | ✅ Used | Implemented | Standard endpoint for toggling subscription status |
 | **Subscriptions - Processing** |
 | `POST /api/v1/subscriptions/:id/process` | ❌ Not documented | ✅ Used | Missing in Docs | Important endpoint for triggering subscription processing |
 | `POST /api/v1/subscriptions/process/:id` | ❌ Not documented | ✅ Used (fallback) | Missing in Docs | Alternative endpoint format used as fallback |
@@ -63,14 +64,31 @@ This document compares the documented backend API endpoints (from `backend/api-e
 
 ### Status Breakdown
 
-- **Compliant**: 18 endpoints are documented and used correctly
-- **Missing in Documentation**: 9 endpoints are used by the frontend but not documented in the backend
+- **Compliant**: 15 endpoints are documented and used correctly
+- **Deprecated**: 3 endpoints are marked as deprecated in favor of standardized alternatives
+- **Removed**: 1 endpoint has been removed (bulk deletion)
+- **Missing in Documentation**: 6 endpoints are used by the frontend but not documented in the backend
 - **Unused**: 11 endpoints are documented in the backend but not used by the frontend
+
+### Recent API Standardization
+
+We've implemented several changes to standardize the subscription API:
+
+1. **Standardized on PATCH for Updates**:
+   - Modified the `PUT /api/v1/subscriptions/:id` endpoint to redirect to PATCH
+   - Now using PATCH for all subscription updates which is more RESTful
+
+2. **Simplified Activation/Deactivation**:
+   - Consolidated dedicated activation/deactivation endpoints into the standard PATCH update
+   - Added a simpler toggle implementation in the frontend
+
+3. **Removed Bulk Deletion**:
+   - Removed the undocumented `DELETE /api/v1/subscriptions/` endpoint
+   - Individual deletes are now the only supported deletion method
 
 ### Recommendations
 
-1. **Document Missing Endpoints**: The backend documentation should be updated to include the 9 endpoints currently used by the frontend but missing from documentation:
-   - Bulk deletion endpoints
+1. **Document Missing Endpoints**: The backend documentation should be updated to include the 6 endpoints currently used by the frontend but missing from documentation:
    - Subscription processing endpoints
    - Subscription sharing
    - Notification activity endpoint
@@ -81,6 +99,4 @@ This document compares the documented backend API endpoints (from `backend/api-e
    - Template endpoints
    - Debug endpoints
 
-3. **Standardize Endpoint Patterns**: Several endpoints have alternate formats (like processing endpoints). Standardize on one pattern.
-
-4. **Legacy Support Plan**: Some legacy endpoints are still in use. Create a plan to migrate to the standardized versions.
+3. **Continue API Standardization**: Apply similar standardization to other endpoint groups like notifications.

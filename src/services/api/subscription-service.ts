@@ -820,13 +820,11 @@ class SubscriptionService {
     metadata?: any;
   }> {
     try {
-      console.log(`Fetching processing status for subscription ID: ${id}`);
-      
-      // Try to get processing status from the API
+      // Use the standard endpoint
       const response = await apiClient.get(`/v1/subscriptions/${id}/status`);
       console.log('Processing status response:', response.data);
       
-      // Handle different response formats
+      // Handle response based on its structure
       if (response.data && response.data.processing) {
         return response.data.processing;
       } else if (response.data && response.data.status) {
@@ -848,27 +846,6 @@ class SubscriptionService {
     } catch (error) {
       console.error(`Error fetching processing status for subscription ${id}:`, error);
       
-      // Try a fallback API path
-      try {
-        const fallbackResponse = await apiClient.get(`/v1/subscription-processing/${id}`);
-        console.log('Fallback processing status response:', fallbackResponse.data);
-        
-        if (fallbackResponse.data && fallbackResponse.data.processing) {
-          return fallbackResponse.data.processing;
-        } else if (fallbackResponse.data && fallbackResponse.data.status) {
-          return {
-            status: fallbackResponse.data.status,
-            last_run_at: fallbackResponse.data.last_run_at,
-            next_run_at: fallbackResponse.data.next_run_at,
-            error: fallbackResponse.data.error,
-            processing_id: fallbackResponse.data.processing_id || fallbackResponse.data.id,
-            metadata: fallbackResponse.data.metadata
-          };
-        }
-      } catch (fallbackError) {
-        console.log('Fallback API path also failed:', fallbackError);
-      }
-      
       // Return a default status indicating we couldn't fetch the data
       return {
         status: 'unknown',
@@ -878,46 +855,17 @@ class SubscriptionService {
   }
 
   /**
-   * Deletes all subscriptions for the current user.
-   * Calls the backend endpoint DELETE /api/v1/subscriptions/
+   * This method has been removed as part of API standardization.
+   * Use individual deletion instead.
+   * @deprecated
    */
   async deleteAllSubscriptions(): Promise<ApiResponse<{ success: boolean; deletedCount: number; message?: string }>> {
-    // console.log('Attempting to delete all subscriptions via API');
-    try {
-      // Ensure apiClient is imported or available in this scope
-      const response = await apiClient.delete('/v1/subscriptions/'); // Use the bulk delete endpoint
-      
-      // console.log('Delete all subscriptions response:', response.data);
-      
-      // Check for success based on status code and potentially response data structure
-      if (response.status === 200 && response.data?.success) {
-        return {
-          success: true,
-          deletedCount: response.data.deletedCount || 0,
-          message: response.data.message
-        };
-      } else {
-        // Handle cases where API returns 200 but indicates failure in the body
-        // or other non-200 success codes like 204 No Content if backend uses that
-        return {
-          success: false,
-          deletedCount: 0,
-          message: response.data?.message || `Backend returned status ${response.status}`
-        };
-      }
-    } catch (error) {
-      // console.error('Error deleting all subscriptions:', error);
-      // Rethrow or return a structured error response
-      const message = error instanceof Error ? error.message : 'An unknown error occurred during bulk deletion.';
-      const status = error?.response?.status || 500;
-      // Return a failed ApiResponse structure
-      return {
-        success: false,
-        deletedCount: 0,
-        message: `Failed to delete all subscriptions (Status: ${status}): ${message}`,
-        error: error // Optionally include original error
-      };
-    }
+    console.warn('deleteAllSubscriptions is deprecated - use individual deletion instead');
+    return {
+      success: false,
+      deletedCount: 0,
+      message: 'Bulk deletion has been deprecated. Please delete subscriptions individually.'
+    };
   }
 }
 
