@@ -4,10 +4,15 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App.tsx';
 import './index.css';
+import { setupTokenRefreshTest } from './lib/utils/test-auth';
 
 // Ensure React is available in the global scope for debugging
 window.React = React;
-window.ReactDOM = ReactDOM;
+// Use 'as any' to avoid type errors with ReactDOM
+(window as any).ReactDOM = ReactDOM;
+
+// Set up auth testing utilities
+setupTokenRefreshTest();
 
 // Create a client
 const queryClient = new QueryClient();

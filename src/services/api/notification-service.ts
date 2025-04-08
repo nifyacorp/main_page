@@ -50,9 +50,30 @@ export interface NotificationListResponse {
  */
 class NotificationService {
   /**
+   * Check if user is authenticated 
+   */
+  private isAuthenticated(): boolean {
+    return localStorage.getItem('isAuthenticated') === 'true' && 
+           !!localStorage.getItem('accessToken');
+  }
+
+  /**
    * Fetch all notifications with optional filtering
    */
   async getNotifications(params?: NotificationListParams): Promise<NotificationListResponse> {
+    // Return empty results if not authenticated
+    if (!this.isAuthenticated()) {
+      console.log('Notifications API - Skipping request, user not authenticated');
+      return {
+        notifications: [],
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 0,
+        unreadCount: 0
+      };
+    }
+    
     try {
       console.log('Notifications API - list');
       console.log('Listing notifications with options:', params);
@@ -65,7 +86,7 @@ class NotificationService {
       // If we have notifications data, normalize it
       if (response.data?.notifications && Array.isArray(response.data.notifications)) {
         // Process each notification to normalize field names
-        response.data.notifications = response.data.notifications.map(notification => {
+        response.data.notifications = response.data.notifications.map((notification: any) => {
           // Create a normalized notification object
           const normalizedNotification: Notification = {
             id: notification.id,
@@ -124,56 +145,87 @@ class NotificationService {
       };
     } catch (error) {
       console.error('Error fetching notifications:', error);
-      throw error;
+      // Return empty results instead of throwing error
+      return {
+        notifications: [],
+        total: 0, 
+        page: 1,
+        limit: 10,
+        totalPages: 0,
+        unreadCount: 0
+      };
     }
   }
 
   /**
    * Fetch a single notification by ID
    */
-  async getNotification(id: string): Promise<Notification> {
+  async getNotification(id: string): Promise<Notification | null> {
+    if (!this.isAuthenticated()) {
+      console.log(`Notifications API - Skipping get notification ${id}, user not authenticated`);
+      return null;
+    }
+    
     try {
       const response = await apiClient.get(`/v1/notifications/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching notification ${id}:`, error);
-      throw error;
+      return null;
     }
   }
 
   /**
    * Mark a notification as read
    */
-  async markAsRead(id: string): Promise<void> {
+  async markAsRead(id: string): Promise<boolean> {
+    if (!this.isAuthenticated()) {
+      console.log(`Notifications API - Skipping mark as read ${id}, user not authenticated`);
+      return false;
+    }
+    
     try {
       await apiClient.patch(`/v1/notifications/${id}/read`);
+      return true;
     } catch (error) {
       console.error(`Error marking notification ${id} as read:`, error);
-      throw error;
+      return false;
     }
   }
 
   /**
    * Mark all notifications as read
    */
-  async markAllAsRead(): Promise<void> {
+  async markAllAsRead(): Promise<boolean> {
+    if (!this.isAuthenticated()) {
+      console.log('Notifications API - Skipping mark all as read, user not authenticated');
+      return false;
+    }
+    
     try {
       await apiClient.patch('/v1/notifications/read-all');
+      return true;
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
-      throw error;
+      return false;
     }
   }
 
   /**
    * Delete a notification
    */
-  async deleteNotification(id: string): Promise<void> {
+  async deleteNotification(id: string): Promise<boolean> {
+    if (!this.isAuthenticated()) {
+      console.log(`Notifications API - Skipping delete notification ${id}, user not authenticated`);
+      return false;
+    }
+    
     try {
       await apiClient.delete(`/v1/notifications/${id}`);
+      return true;
     } catch (error) {
       console.error(`Error deleting notification ${id}:`, error);
-      throw error;
+      return false;
     }
   }
 
@@ -187,12 +239,29 @@ class NotificationService {
     isIncrease: boolean;
     byType: Record<string, number>;
   }> {
+    if (!this.isAuthenticated()) {
+      console.log('Notifications API - Skipping get count, user not authenticated');
+      return {
+        total: 0,
+        unread: 0,
+        change: 0,
+        isIncrease: false,
+        byType: {}
+      };
+    }
+    
     try {
       const response = await apiClient.get('/v1/notifications/stats');
       return response.data;
     } catch (error) {
       console.error('Error fetching notification stats:', error);
-      throw error;
+      return {
+        total: 0,
+        unread: 0,
+        change: 0,
+        isIncrease: false,
+        byType: {}
+      };
     }
   }
   
@@ -203,12 +272,23 @@ class NotificationService {
     activityByDay: Array<{ day: string; count: number }>;
     sources: Array<{ name: string; count: number; color: string }>;
   }> {
+    if (!this.isAuthenticated()) {
+      console.log('Notifications API - Skipping get activity, user not authenticated');
+      return {
+        activityByDay: [],
+        sources: []
+      };
+    }
+    
     try {
       const response = await apiClient.get('/v1/notifications/activity');
       return response.data;
     } catch (error) {
       console.error('Error fetching notification activity:', error);
-      throw error;
+      return {
+        activityByDay: [],
+        sources: []
+      };
     }
   }
 
@@ -216,12 +296,31 @@ class NotificationService {
    * Get notifications by subscription
    */
   async getNotificationsBySubscription(subscriptionId: string, params?: NotificationListParams): Promise<NotificationListResponse> {
+    if (!this.isAuthenticated()) {
+      console.log(`Notifications API - Skipping get notifications for subscription ${subscriptionId}, user not authenticated`);
+      return {
+        notifications: [],
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 0,
+        unreadCount: 0
+      };
+    }
+    
     try {
       const response = await apiClient.get(`/v1/subscriptions/${subscriptionId}/notifications`, { params });
       return response.data;
     } catch (error) {
       console.error(`Error fetching notifications for subscription ${subscriptionId}:`, error);
-      throw error;
+      return {
+        notifications: [],
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 0,
+        unreadCount: 0
+      };
     }
   }
 }

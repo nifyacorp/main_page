@@ -147,27 +147,60 @@ class AuthService {
    */
   async refreshToken(): Promise<{ token: string; refreshToken: string }> {
     try {
+      console.group('🔄 Auth Service - Refresh Token');
       const refreshToken = this.getRefreshToken();
       
       if (!refreshToken) {
+        console.error('No refresh token found in storage');
+        console.groupEnd();
         throw new Error('No refresh token found');
       }
       
+      console.log('Found refresh token (first 10 chars):', refreshToken.substring(0, 10) + '...');
+      console.log('Is token valid JWT format:', 
+        refreshToken.match(/^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.[A-Za-z0-9-_.+/=]*$/) ? 'Yes' : 'No');
+      
+      console.log('Making token refresh request...');
       const response = await apiClient.post<{ token: string; refreshToken: string }>('/auth/refresh', {
         refreshToken,
       });
       
+      console.log('Refresh response status:', response.status);
+      console.log('Refresh response data exists:', !!response.data);
+      
+      if (!response.data) {
+        console.error('Empty response data from refresh token endpoint');
+        console.groupEnd();
+        throw new Error('Invalid response from token refresh endpoint');
+      }
+      
       const { token, refreshToken: newRefreshToken } = response.data;
+      
+      console.log('Received new tokens:', {
+        hasAccessToken: !!token, 
+        hasRefreshToken: !!newRefreshToken
+      });
       
       // Update tokens
       this.setTokens(token, newRefreshToken);
+      console.log('Tokens successfully updated in storage');
+      console.groupEnd();
       
       return response.data;
     } catch (error) {
       console.error('Token refresh error:', error);
       
+      // Try to get any network response details
+      if (error && typeof error === 'object' && 'response' in error) {
+        const errorResponse = error.response as any;
+        console.error('Response status:', errorResponse.status);
+        console.error('Response data:', errorResponse.data);
+      }
+      
       // Clear tokens on refresh failure
       this.clearTokens();
+      console.log('Cleared tokens due to refresh failure');
+      console.groupEnd();
       
       throw error;
     }

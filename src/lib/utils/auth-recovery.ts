@@ -66,26 +66,47 @@ export async function recoverFromAuthError(errorData: any): Promise<boolean> {
   }
   
   try {
+    // Enhanced debugging - log the actual refresh token (first few chars)
+    const refreshToken = localStorage.getItem('refreshToken');
+    console.log('Refresh token to use (first 10 chars):', refreshToken?.substring(0, 10) + '...');
+    console.log('Is refresh token valid JWT format:', 
+      refreshToken?.match(/^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.[A-Za-z0-9-_.+/=]*$/) ? 'Yes' : 'No');
+    
     // Try to refresh the token
-    // Instead of importing refreshAccessToken directly, we'll use the auth client
+    console.log('Making refresh token request to:', '/api/auth/refresh');
     const response = await fetch('/api/auth/refresh', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ 
-        refreshToken: localStorage.getItem('refreshToken') 
+        refreshToken
       })
     });
     
+    console.log('Refresh token response status:', response.status);
+    
     if (!response.ok) {
       console.log('Token refresh failed with status:', response.status);
+      
+      // Try to get error details
+      try {
+        const errorData = await response.json();
+        console.error('Refresh token error details:', errorData);
+      } catch (e) {
+        console.log('No JSON error body available');
+      }
+      
       console.groupEnd();
       return false;
     }
     
     try {
       const data = await response.json();
+      console.log('Refresh token response:', { 
+        success: !!data?.accessToken,
+        hasRefreshToken: !!data?.refreshToken
+      });
       
       if (data?.accessToken) {
         console.log('Token refresh successful');

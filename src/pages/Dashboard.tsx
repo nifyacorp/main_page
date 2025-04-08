@@ -136,8 +136,17 @@ const Dashboard: React.FC = () => {
       // Get recent notifications
       await refetchNotifications();
       
-      // Get activity data
-      const activityData = await notificationService.getNotificationActivity();
+      let activityData = {
+        activityByDay: [],
+        sources: []
+      };
+      
+      try {
+        // Get activity data - wrap in try/catch to handle errors independently
+        activityData = await notificationService.getNotificationActivity();
+      } catch (activityError) {
+        console.warn("Error fetching activity data, using default empty values:", activityError);
+      }
       
       // Update last update time
       setLastUpdate(new Date().toLocaleTimeString());
@@ -146,6 +155,8 @@ const Dashboard: React.FC = () => {
       updateStats(activityData);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
+      // Still update with whatever data we have
+      updateStats();
     } finally {
       setIsLoading(false);
     }
