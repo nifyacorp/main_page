@@ -27,18 +27,18 @@ This document compares the documented backend API endpoints (from `backend/api-e
 | `PATCH /api/v1/subscriptions/:id/deactivate` | ✅ Documented | ❌ Deprecated | Deprecated | Use PATCH /:id with { active: false } instead |
 | `PATCH /api/v1/subscriptions/:id/toggle` | ❌ Not documented | ✅ Used | Implemented | Standard endpoint for toggling subscription status |
 | **Subscriptions - Processing** |
-| `POST /api/v1/subscriptions/:id/process` | ❌ Not documented | ✅ Used | Missing in Docs | Important endpoint for triggering subscription processing |
-| `POST /api/v1/subscriptions/process/:id` | ❌ Not documented | ✅ Used (fallback) | Missing in Docs | Alternative endpoint format used as fallback |
-| `GET /api/v1/subscriptions/:id/status` | ❌ Not documented | ✅ Used | Missing in Docs | Check subscription processing status |
-| `GET /api/v1/subscription-processing/:id` | ❌ Not documented | ✅ Used (fallback) | Missing in Docs | Alternative endpoint for status checking |
+| `POST /api/v1/subscriptions/:id/process` | ❌ Not documented | ✅ Used | Standardized | Standard endpoint for triggering subscription processing |
+| `POST /api/v1/subscriptions/process/:id` | ❌ Not documented | ❌ Deprecated | Deprecated | Redirects to standard endpoint with 308 status code |
+| `GET /api/v1/subscriptions/:id/status` | ❌ Not documented | ✅ Used | Standardized | Standard endpoint for checking processing status |
+| `GET /api/v1/subscription-processing/:id` | ❌ Not documented | ❌ Deprecated | Deprecated | Redirects to standard endpoint with 308 status code |
 | **Subscriptions - Stats & Misc** |
 | `GET /api/v1/subscriptions/stats` | ✅ Documented | ✅ Used | Compliant | |
 | `GET /api/v1/subscriptions/debug-filter` | ✅ Documented | ❌ Not used | Unused | Debug endpoint |
 | `POST /api/v1/subscriptions/:id/share` | ❌ Not documented | ✅ Used | Missing in Docs | Share subscription feature used by frontend |
 | **Subscription Types** |
-| `GET /api/v1/subscriptions/types` | ✅ Documented | ❌ Not used | Unused | |
+| `GET /api/v1/subscriptions/types` | ✅ Documented | ✅ Used | Compliant | Used to fetch subscription templates in create flow |
 | `POST /api/v1/subscriptions/types` | ✅ Documented | ❌ Not used | Unused | |
-| `GET /api/v1/subscriptions/types/:id` | ✅ Documented | ❌ Not used | Unused | |
+| `GET /api/v1/subscriptions/types/:id` | ✅ Documented | ✅ Used | Compliant | Used to fetch details for a specific template |
 | **Notifications - Core** |
 | `GET /api/v1/notifications` | ✅ Documented | ✅ Used | Compliant | |
 | `GET /api/v1/notifications/:id` | ✅ Documented | ✅ Used | Compliant | |
@@ -64,11 +64,12 @@ This document compares the documented backend API endpoints (from `backend/api-e
 
 ### Status Breakdown
 
-- **Compliant**: 15 endpoints are documented and used correctly
-- **Deprecated**: 3 endpoints are marked as deprecated in favor of standardized alternatives
+- **Compliant**: 17 endpoints are documented and used correctly
+- **Standardized**: 2 endpoints have been standardized but need documentation
+- **Deprecated**: 5 endpoints are marked as deprecated in favor of standardized alternatives
 - **Removed**: 1 endpoint has been removed (bulk deletion)
-- **Missing in Documentation**: 6 endpoints are used by the frontend but not documented in the backend
-- **Unused**: 11 endpoints are documented in the backend but not used by the frontend
+- **Missing in Documentation**: 4 endpoints are used by the frontend but not documented in the backend
+- **Unused**: 9 endpoints are documented in the backend but not used by the frontend
 
 ### Recent API Standardization
 
@@ -86,16 +87,26 @@ We've implemented several changes to standardize the subscription API:
    - Removed the undocumented `DELETE /api/v1/subscriptions/` endpoint
    - Individual deletes are now the only supported deletion method
 
+4. **Standardized Processing Endpoints**:
+   - Standardized on `POST /api/v1/subscriptions/:id/process` for triggering processing
+   - Standardized on `GET /api/v1/subscriptions/:id/status` for checking status
+   - Added redirects from alternative endpoints to the standard ones
+
+5. **Implemented Subscription Types**:
+   - Added frontend support for subscription types/templates
+   - Integrated template selection in the subscription creation flow
+   - Used the documented subscription types API endpoints
+
 ### Recommendations
 
-1. **Document Missing Endpoints**: The backend documentation should be updated to include the 6 endpoints currently used by the frontend but missing from documentation:
-   - Subscription processing endpoints
+1. **Document Standardized Endpoints**: The backend documentation should be updated to include the 4 endpoints currently used by the frontend but missing from documentation:
+   - Standardized subscription processing endpoints
    - Subscription sharing
    - Notification activity endpoint
    - Related notification endpoints
 
 2. **Review Unused Endpoints**: Consider deprecating or removing endpoints that are documented but not used by the frontend, unless they serve other purposes:
-   - Subscription types endpoints
+   - POST subscription types endpoint
    - Template endpoints
    - Debug endpoints
 

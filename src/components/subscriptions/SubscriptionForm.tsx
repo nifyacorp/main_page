@@ -48,6 +48,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { useSubscriptions } from "@/hooks/use-subscriptions";
 import { SubscriptionFormData } from "@/services/api/subscription-service";
+import SubscriptionTypeSelector from './SubscriptionTypeSelector';
+import { SubscriptionType } from '../../lib/api/services/subscription-types';
 
 // Define form schema with Zod for validation
 const formSchema = z.object({
@@ -150,13 +152,14 @@ const TemplateCard = ({
 
 export function SubscriptionForm({ initialData, isEditing = false }: SubscriptionFormProps) {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('basic');
+  const [activeTab, setActiveTab] = useState('template');
   const [keywords, setKeywords] = useState<string[]>([]);
   const [keywordInput, setKeywordInput] = useState('');
   const [newKeyword, setNewKeyword] = useState('');
   const [newIncludePattern, setNewIncludePattern] = useState('');
   const [newExcludePattern, setNewExcludePattern] = useState('');
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [selectedTypeId, setSelectedTypeId] = useState<string | undefined>(undefined);
   
   const { createSubscription, updateSubscription } = useSubscriptions();
   const isSubmitting = createSubscription.isLoading || updateSubscription.isLoading;
@@ -262,6 +265,35 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
     );
   };
 
+  // Handle subscription type selection
+  const handleSubscriptionTypeSelect = (type: SubscriptionType) => {
+    setSelectedTypeId(type.id);
+    
+    // Update form with template values
+    form.setValue('name', type.name, { shouldValidate: true });
+    form.setValue('description', type.description, { shouldValidate: true });
+    form.setValue('source', type.type.toUpperCase() as 'BOE' | 'DOGA', { shouldValidate: true });
+    
+    // Set keywords from template's default prompts
+    if (type.defaultPrompts && type.defaultPrompts.length > 0) {
+      setKeywords(type.defaultPrompts);
+      form.setValue('keywords', type.defaultPrompts, { shouldValidate: true });
+    }
+    
+    // Set frequency based on template metadata or default
+    const frequencyMap: Record<string, 'Instant' | 'Daily' | 'Weekly'> = {
+      'immediate': 'Instant',
+      'daily': 'Daily',
+      'weekly': 'Weekly'
+    };
+    
+    const templateFrequency = (type.metadata?.frequency || 'immediate') as string;
+    form.setValue('frequency', frequencyMap[templateFrequency] || 'Instant', { shouldValidate: true });
+    
+    // Move to the basic info tab after selecting a template
+    setActiveTab('basic');
+  };
+
   const onSubmit = (data: FormValues) => {
     setSubmitError(null);
     
@@ -295,6 +327,11 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
           excludeSections: [],
           dateRange: { enabled: false, startDate: '', endDate: '' }
         };
+      }
+      
+      // Add template ID if one was selected
+      if (selectedTypeId) {
+        formData.typeId = selectedTypeId;
       }
       
       if (isEditing && initialData) {
@@ -331,35 +368,11 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
     { value: "DOGA", label: "DOGA (Diario Oficial de Galicia)" },
   ];
 
-  // Inside the SubscriptionForm component, add this section for templates
-  const templates = [
-    {
-      title: "BOE General",
-      description: "Seguimiento general del Boletín Oficial del Estado",
-      icon: FileTextIcon,
-      defaultPrompts: ["disposicion", "ley", "real decreto"],
-      frequency: "Real-time"
-    },
-    {
-      title: "Subvenciones BOE",
-      description: "Alertas de subvenciones y ayudas públicas",
-      icon: BuildingIcon,
-      defaultPrompts: ["subvencion", "ayuda", "convocatoria"],
-      frequency: "Daily"
-    },
-    {
-      title: "Alquiler de Viviendas",
-      description: "Búsqueda de alquileres en zonas específicas",
-      icon: BuildingIcon,
-      defaultPrompts: ["alquiler", "piso", "apartamento"],
-      frequency: "Real-time"
-    }
-  ];
-
   return (
     <div className="w-full max-w-3xl mx-auto">
-      <Tabs defaultValue="basic" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+      <Tabs defaultValue={isEditing ? 'basic' : 'template'} value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-4">
+          {!isEditing && <TabsTrigger value="template">Templates</TabsTrigger>}
           <TabsTrigger value="basic">Basic Info</TabsTrigger>
           <TabsTrigger value="notification">Notification Preferences</TabsTrigger>
           <TabsTrigger value="advanced">Advanced Settings</TabsTrigger>
@@ -373,6 +386,40 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
                 <strong className="font-bold">Error: </strong>
                 <span className="block sm:inline">{submitError}</span>
               </div>
+            )}
+            
+            {/* Template selection tab - only show for new subscriptions */}
+            {!isEditing && (
+              <TabsContent value="template" className="space-y-4">
+                <div className="text-center mb-6">
+                  <h2 className="text-xl font-bold">Choose a Template</h2>
+                  <p className="text-gray-600">Select a pre-configured template or create a custom subscription</p>
+                </div>
+                
+                <SubscriptionTypeSelector 
+                  onSelect={handleSubscriptionTypeSelect}
+                  selectedTypeId={selectedTypeId}
+                />
+                
+                <div className="flex justify-center mt-4">
+                  <Button 
+                    onClick={() => setActiveTab('basic')}
+                    variant="outline"
+                    className="mx-2"
+                  >
+                    Skip and Create Custom
+                  </Button>
+                  
+                  {selectedTypeId && (
+                    <Button 
+                      onClick={() => setActiveTab('basic')}
+                      className="mx-2"
+                    >
+                      Continue with Selected Template
+                    </Button>
+                  )}
+                </div>
+              </TabsContent>
             )}
             
             <TabsContent value="basic" className="space-y-4">
@@ -446,6 +493,47 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
                   </FormItem>
                 )}
               />
+              
+              <div>
+                <FormLabel htmlFor="keywords">Keywords</FormLabel>
+                <div className="flex gap-2 mt-1.5">
+                  <Input
+                    id="keywords"
+                    placeholder="Add a keyword"
+                    value={keywordInput}
+                    onChange={(e) => setKeywordInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    className="flex-1"
+                  />
+                  <Button type="button" onClick={handleAddKeyword}>
+                    Add
+                  </Button>
+                </div>
+                <FormDescription>
+                  Add keywords to track in publications
+                </FormDescription>
+                
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {keywords.map((keyword) => (
+                    <Badge key={keyword} variant="secondary" className="px-2 py-1">
+                      {keyword}
+                      <Button
+                        type="button" 
+                        variant="ghost" 
+                        onClick={() => handleRemoveKeyword(keyword)}
+                        className="h-5 w-5 p-0 ml-1"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </Badge>
+                  ))}
+                </div>
+                {form.formState.errors.keywords && (
+                  <p className="text-sm font-medium text-destructive mt-2">
+                    {form.formState.errors.keywords.message?.toString()}
+                  </p>
+                )}
+              </div>
             </TabsContent>
             
             <TabsContent value="notification" className="space-y-4">
@@ -686,25 +774,6 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
           </form>
         </Form>
       </Tabs>
-
-      {/* Add this section in the form's return statement where the templates should be displayed */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {templates.map((template, i) => (
-          <TemplateCard
-            key={i}
-            {...template}
-            onSelect={() => {
-              // Handle template selection
-              form.reset({
-                ...form.getValues(),
-                source: template.title.includes("BOE") ? "BOE" : "DOGA",
-                keywords: template.defaultPrompts,
-              });
-              setKeywords(template.defaultPrompts);
-            }}
-          />
-        ))}
-      </div>
     </div>
   );
 } 
