@@ -93,6 +93,61 @@ interface SubscriptionFormProps {
   isEditing?: boolean;
 }
 
+const TemplateCard = ({ 
+  title, 
+  description, 
+  icon: Icon, 
+  defaultPrompts,
+  frequency = "Real-time",
+  onSelect 
+}: { 
+  title: string;
+  description: string;
+  icon: any;
+  defaultPrompts: string[];
+  frequency?: string;
+  onSelect: () => void;
+}) => (
+  <Card className="relative overflow-hidden transition-all hover:shadow-md group">
+    <CardHeader className="space-y-1">
+      <div className="flex items-center justify-between">
+        <div className="p-2 bg-primary/5 rounded-lg">
+          <Icon className="h-6 w-6 text-primary" />
+        </div>
+        <Badge variant="secondary" className="bg-secondary/30">
+          {frequency}
+        </Badge>
+      </div>
+      <CardTitle className="text-xl">{title}</CardTitle>
+      <CardDescription className="text-sm text-muted-foreground">
+        {description}
+      </CardDescription>
+    </CardHeader>
+    <CardContent className="space-y-4">
+      <div className="space-y-2">
+        <h4 className="text-sm font-medium">Default Keywords:</h4>
+        <div className="flex flex-wrap gap-2">
+          {defaultPrompts.map((prompt, i) => (
+            <Badge key={i} variant="outline" className="text-xs">
+              {prompt}
+            </Badge>
+          ))}
+        </div>
+      </div>
+    </CardContent>
+    <CardFooter>
+      <Button 
+        className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors" 
+        variant="outline"
+        onClick={onSelect}
+      >
+        Select Template
+      </Button>
+    </CardFooter>
+    <div className="absolute inset-0 border-2 border-transparent group-hover:border-primary rounded-lg transition-colors" />
+  </Card>
+);
+
 export function SubscriptionForm({ initialData, isEditing = false }: SubscriptionFormProps) {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('basic');
@@ -274,6 +329,31 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
   const sources = [
     { value: "BOE", label: "BOE (Boletín Oficial del Estado)" },
     { value: "DOGA", label: "DOGA (Diario Oficial de Galicia)" },
+  ];
+
+  // Inside the SubscriptionForm component, add this section for templates
+  const templates = [
+    {
+      title: "BOE General",
+      description: "Seguimiento general del Boletín Oficial del Estado",
+      icon: FileTextIcon,
+      defaultPrompts: ["disposicion", "ley", "real decreto"],
+      frequency: "Real-time"
+    },
+    {
+      title: "Subvenciones BOE",
+      description: "Alertas de subvenciones y ayudas públicas",
+      icon: BuildingIcon,
+      defaultPrompts: ["subvencion", "ayuda", "convocatoria"],
+      frequency: "Daily"
+    },
+    {
+      title: "Alquiler de Viviendas",
+      description: "Búsqueda de alquileres en zonas específicas",
+      icon: BuildingIcon,
+      defaultPrompts: ["alquiler", "piso", "apartamento"],
+      frequency: "Real-time"
+    }
   ];
 
   return (
@@ -606,6 +686,25 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
           </form>
         </Form>
       </Tabs>
+
+      {/* Add this section in the form's return statement where the templates should be displayed */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {templates.map((template, i) => (
+          <TemplateCard
+            key={i}
+            {...template}
+            onSelect={() => {
+              // Handle template selection
+              form.reset({
+                ...form.getValues(),
+                source: template.title.includes("BOE") ? "BOE" : "DOGA",
+                keywords: template.defaultPrompts,
+              });
+              setKeywords(template.defaultPrompts);
+            }}
+          />
+        ))}
+      </div>
     </div>
   );
 } 
