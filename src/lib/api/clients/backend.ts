@@ -67,7 +67,16 @@ async function refreshAccessToken(retryAttempt = 0): Promise<boolean> {
   const refreshToken = localStorage.getItem('refreshToken');
   
   // Add log here to see the token value
-  console.log('Using refresh token:', refreshToken ? `${refreshToken.substring(0, 5)}...` : 'null');
+  console.log('📝 DEBUG: Refresh token from localStorage:', refreshToken ? `${refreshToken.substring(0, 5)}...` : 'null');
+  
+  // Check localStorage for all auth-related items
+  console.log('📝 DEBUG: Authentication state in localStorage:', {
+    refreshToken: refreshToken ? `${refreshToken.substring(0, 5)}...` : 'null',
+    accessToken: localStorage.getItem('accessToken') ? `${localStorage.getItem('accessToken')?.substring(0, 15)}...` : 'null',
+    isAuthenticated: localStorage.getItem('isAuthenticated'),
+    userId: localStorage.getItem('userId'),
+    email: localStorage.getItem('email')
+  });
     
   if (!refreshToken) {
     console.error('No refresh token available');
@@ -96,6 +105,7 @@ async function refreshAccessToken(retryAttempt = 0): Promise<boolean> {
       await new Promise(resolve => setTimeout(resolve, backoffDelay));
     }
 
+    console.log('📝 DEBUG: Sending refresh token request to auth service');
     const { data, error } = await authClient<TokenResponse>({
       endpoint: '/api/v1/auth/refresh',
       method: 'POST',
@@ -104,6 +114,7 @@ async function refreshAccessToken(retryAttempt = 0): Promise<boolean> {
 
     if (error) {
       console.error('Token refresh failed:', error);
+      console.log('📝 DEBUG: Server responded with error during refresh');
       // Add cleanup if refresh fails
       clearAuthState(); 
       // Release mutex and notify queue of failure
@@ -114,6 +125,14 @@ async function refreshAccessToken(retryAttempt = 0): Promise<boolean> {
 
     if (data?.accessToken) {
       console.log('Token refresh successful');
+      console.log('📝 DEBUG: Received new access token from server');
+      
+      // Log if we got a new refresh token too
+      if (data.refreshToken) {
+        console.log('📝 DEBUG: Received new refresh token from server');
+      } else {
+        console.log('📝 DEBUG: No new refresh token received, keeping existing one');
+      }
       
       // Ensure token is in Bearer format
       const token = data.accessToken.startsWith('Bearer ') ? 
@@ -169,6 +188,7 @@ async function refreshAccessToken(retryAttempt = 0): Promise<boolean> {
     return false;
   } catch (err) {
     console.error('Token refresh error:', err);
+    console.log('📝 DEBUG: Exception occurred during token refresh');
     
     // Implement retry with exponential backoff
     const maxRetries = 3;
@@ -358,6 +378,31 @@ export async function backendClient<T>({
         statusText: response.statusText,
         headers: Object.fromEntries([...response.headers.entries()])
       });
+      
+      // If we got a 401 Unauthorized and we have a refresh token, try to refresh and retry
+      if (response.status === 401 && localStorage.getItem('refreshToken') && retryCount < 1) {
+        console.log('Received 401, attempting token refresh and retry');
+        
+        try {
+          // Try to refresh the token
+          const refreshSuccessful = await refreshAccessToken();
+          
+          // If refresh was successful, retry the request with new token
+          if (refreshSuccessful) {
+            console.log('Token refresh successful, retrying original request');
+            retryCount++;
+            return attemptRequest();
+          } else {
+            console.warn('Token refresh failed, but continuing with current token');
+            // Even if refresh fails, continue with request processing
+            // This is a fallback mechanism to allow some functionality when 
+            // refresh is failing but the user still has a valid original token
+          }
+        } catch (refreshError) {
+          console.error('Error during token refresh attempt:', refreshError);
+          // Continue with request processing even if refresh fails completely
+        }
+      }
       
       // Handle different response types
       const contentType = response.headers.get('content-type') || '';

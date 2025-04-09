@@ -56,8 +56,19 @@ export const authService = {
         localStorage.setItem('accessToken', response.data.accessToken);
         localStorage.setItem('isAuthenticated', 'true');
         
+        // Check and log refresh token
+        if (response.data.refreshToken) {
+          console.log('📝 DEBUG: Refresh token received from server:', response.data.refreshToken ? 'Yes (first 5 chars: ' + response.data.refreshToken.substring(0, 5) + '...)' : 'No');
+          localStorage.setItem('refreshToken', response.data.refreshToken);
+          console.log('📝 DEBUG: Stored refresh token in localStorage');
+        } else {
+          console.warn('📝 DEBUG: No refresh token received from server during login');
+        }
+        
         // Store email for convenience
         localStorage.setItem('email', data.email);
+      } else {
+        console.warn('📝 DEBUG: No access token in login response:', response);
       }
       return response;
     })
@@ -96,6 +107,86 @@ export const authService = {
       body: { code, state },
     }).finally(() => console.groupEnd()),
     
+  refreshToken: async (): Promise<ApiResponse<AuthResponse>> => {
+    console.group('🔄 Token Refresh Process');
+    const refreshToken = localStorage.getItem('refreshToken');
+    
+    if (!refreshToken) {
+      console.log('No refresh token available');
+      console.groupEnd();
+      return { 
+        status: 400,
+        ok: false,
+        error: 'No refresh token available',
+        data: null as unknown as AuthResponse
+      };
+    }
+    
+    console.log('Attempting to refresh token');
+    
+    try {
+      const response = await authClient<AuthResponse>({
+        endpoint: '/api/auth/refresh',
+        method: 'POST',
+        body: { refreshToken },
+      });
+      
+      if (response.error) {
+        console.error('Token refresh API error:', response.error);
+        
+        // Don't clear auth state immediately on refresh failure
+        // This allows the frontend to continue working with the original token
+        // if it's still valid
+        console.log('Keeping existing tokens despite refresh failure');
+        
+        // Set a flag to indicate refresh failed but we're continuing
+        localStorage.setItem('refresh_token_failed', 'true');
+        
+        console.groupEnd();
+        return response as ApiResponse<AuthResponse>;
+      }
+      
+      if (response.data && response.data.accessToken) {
+        // Ensure token has Bearer prefix
+        const accessToken = response.data.accessToken;
+        if (!accessToken.startsWith('Bearer ')) {
+          console.log('Adding Bearer prefix to refreshed token');
+          response.data.accessToken = `Bearer ${accessToken}`;
+        }
+        
+        console.log('Token refresh successful, updating tokens');
+        localStorage.setItem('accessToken', response.data.accessToken);
+        
+        if (response.data.refreshToken) {
+          localStorage.setItem('refreshToken', response.data.refreshToken);
+        }
+        
+        // Maintain authentication state
+        localStorage.setItem('isAuthenticated', 'true');
+        
+        // Clear the failure flag if it was set previously
+        localStorage.removeItem('refresh_token_failed');
+      }
+      
+      console.groupEnd();
+      return response as ApiResponse<AuthResponse>;
+    } catch (error) {
+      console.error('Token refresh request failed:', error);
+      
+      // Keep existing tokens despite the error
+      console.log('Keeping existing tokens despite refresh request failure');
+      localStorage.setItem('refresh_token_failed', 'true');
+      
+      console.groupEnd();
+      return { 
+        status: 500,
+        ok: false,
+        error: error instanceof Error ? error.message : 'Failed to connect to authentication service',
+        data: null as unknown as AuthResponse
+      };
+    }
+  },
+  
   getSession: (): Promise<ApiResponse<SessionResponse>> => {
     console.group('🔑 Session Check');
     console.log('Validating current session');

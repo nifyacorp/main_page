@@ -179,7 +179,11 @@ const Auth: React.FC = () => {
             
             // Also store the refresh token if available
             if (data?.refreshToken) {
+              console.log('📝 DEBUG: Saving refresh token from login response to localStorage');
               localStorage.setItem('refreshToken', data.refreshToken);
+              console.log('📝 DEBUG: Refresh token saved, first 5 chars:', data.refreshToken.substring(0, 5) + '...');
+            } else {
+              console.warn('📝 DEBUG: No refresh token in login API response');
             }
             
             // Store email for future convenience
@@ -193,6 +197,7 @@ const Auth: React.FC = () => {
             navigate('/dashboard', { replace: true });
           } else {
             console.error('No access token in response');
+            console.log('📝 DEBUG: Full login response:', data);
             throw new Error('No access token received from server');
           }
         } catch (err) {

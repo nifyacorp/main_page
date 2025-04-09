@@ -72,6 +72,12 @@ export async function authClient<T>({
     let data;
     try {
       data = await response.json();
+      console.log('📝 DEBUG: Successfully parsed auth response:', {
+        hasAccessToken: !!data.accessToken,
+        hasRefreshToken: !!data.refreshToken,
+        accessTokenPreview: data.accessToken ? `${data.accessToken.substring(0, 10)}...` : 'none',
+        refreshTokenPreview: data.refreshToken ? `${data.refreshToken.substring(0, 10)}...` : 'none'
+      });
     } catch (jsonError) {
       console.error('Failed to parse JSON response:', jsonError);
       console.groupEnd();
@@ -102,7 +108,11 @@ export async function authClient<T>({
       localStorage.setItem('accessToken', token);
       
       if (data.refreshToken) {
+        console.log('📝 DEBUG: Refresh token received from auth service, storing in localStorage:', 
+          data.refreshToken ? `${data.refreshToken.substring(0, 5)}...` : 'null');
         localStorage.setItem('refreshToken', data.refreshToken);
+      } else {
+        console.warn('📝 DEBUG: No refresh token in auth response');
       }
       
       // Set isAuthenticated flag consistently across all auth flows
@@ -145,6 +155,8 @@ export async function authClient<T>({
       }
       
       console.groupEnd();
+    } else {
+      console.warn('📝 DEBUG: Auth response contains no access token:', data);
     }
 
     console.groupEnd();

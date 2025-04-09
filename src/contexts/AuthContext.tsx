@@ -86,10 +86,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         let accessToken = localStorage.getItem('accessToken');
         let userId = localStorage.getItem('userId');
         const userEmail = localStorage.getItem('email');
+        const refreshToken = localStorage.getItem('refreshToken');
         
         console.log('AuthContext: Checking auth state', { 
           isAuthenticated, 
           hasAccessToken: !!accessToken,
+          hasRefreshToken: !!refreshToken,
+          refreshTokenPreview: refreshToken ? `${refreshToken.substring(0, 5)}...` : 'none',
           userId,
           email: userEmail
         });
@@ -129,12 +132,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 console.log('AuthContext: User profile loaded successfully', response.data.profile);
               } else {
                 console.error('AuthContext: Failed to load user profile, logging out.', response.error);
+                console.log('📝 DEBUG: Profile fetch failed - accessToken:', accessToken ? accessToken.substring(0, 15) + '...' : 'null');
+                console.log('📝 DEBUG: Profile fetch failed - refreshToken exists?', !!refreshToken);
                 setAuthError('Failed to load user profile. Please try logging in again.');
                 logout(); // Log out if profile fetch fails
               }
             }
           } catch (apiError) {
             console.error('AuthContext: Error fetching user profile during initial check:', apiError);
+            console.log('📝 DEBUG: Profile fetch exception - accessToken:', accessToken ? accessToken.substring(0, 15) + '...' : 'null');
+            console.log('📝 DEBUG: Profile fetch exception - refreshToken exists?', !!refreshToken);
             if (isMounted) {
               setAuthError('An error occurred while verifying your session. Please try logging in again.');
               logout(); // Log out on critical API error
@@ -200,6 +207,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         console.error('Failed to extract userId from login token:', tokenError);
       }
       
+      // Check if refresh token is present in localStorage
+      const refreshToken = localStorage.getItem('refreshToken');
+      console.log('📝 DEBUG: Refresh token in localStorage after login:', refreshToken ? `${refreshToken.substring(0, 5)}...` : 'not found');
+      
       // Set user information immediately based on token (temporary)
       const tempUser: User = {
         id: userId || 'unknown-id',
@@ -217,13 +228,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           console.log('AuthContext: User profile loaded successfully after login', response.data.profile);
         } else {
           console.warn('AuthContext: Failed to load profile immediately after login, using token data.', response.error);
-          // Keep the temporary user data from token
-          setAuthError('Could not load full profile details. Some features might be limited.');
+          console.log('📝 DEBUG: Profile fetch failed during login - using token fallback');
+          // Keep the temporary user data from token but still consider the user logged in
+          console.log('AuthContext: Using fallback user data from token to maintain login state');
+          // Don't set auth error as this prevents the user from proceeding
         }
       } catch (profileError) {
         console.error('AuthContext: Error fetching profile after login:', profileError);
-        // Keep the temporary user data from token
-        setAuthError('Error loading profile after login. Please refresh or re-login if issues persist.');
+        console.log('📝 DEBUG: Profile fetch exception during login - using token fallback');
+        // Keep the temporary user data from token and maintain login state
+        console.log('AuthContext: Using fallback user data from token due to profile fetch error');
+        // Don't show error to user to allow them to proceed with basic functionality
       }
     } catch (error) {
       console.error('AuthContext: Login failed:', error);
