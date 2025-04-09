@@ -121,10 +121,16 @@ apiClient.interceptors.response.use(
           return Promise.reject(error);
         }
         
-        // Call refresh token endpoint using the AUTH_URL instead of API_BASE_URL
-        const response = await axios.post(`${AUTH_URL}/v1/auth/token/refresh`, {
-          token: refreshToken,
+        // Call refresh token endpoint using the AUTH_URL
+        const response = await axios.post(`${AUTH_URL}/v1/auth/refresh`, {
+          refreshToken, // This is the parameter name expected by the auth service
         });
+        
+        console.log('Token refresh response status:', response.status);
+        console.log('Token refresh response data:', 
+          response.data ? 
+          { hasToken: !!response.data.accessToken || !!response.data.token } : 
+          'No data');
         
         if (response.data.token || response.data.accessToken) {
           // Get the new token

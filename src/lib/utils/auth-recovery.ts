@@ -73,8 +73,8 @@ export async function recoverFromAuthError(errorData: any): Promise<boolean> {
       refreshToken?.match(/^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.[A-Za-z0-9-_.+/=]*$/) ? 'Yes' : 'No');
     
     // Try to refresh the token
-    console.log('Making refresh token request to:', '/api/auth/refresh');
-    const response = await fetch('/api/auth/refresh', {
+    console.log('Making refresh token request to:', '/api/v1/auth/refresh');
+    const response = await fetch('/api/v1/auth/refresh', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
