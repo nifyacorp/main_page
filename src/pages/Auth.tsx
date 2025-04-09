@@ -72,7 +72,9 @@ const Auth: React.FC = () => {
     if (detectAndBreakAuthRedirectLoop()) {
       console.log('Auth redirect loop detected and broken');
       // Forces a clean slate for the auth process
-      resetAuthState();
+      // Resetting state here might be redundant or problematic,
+      // relying on AuthProvider and the initial isAuthenticated check.
+      // resetAuthState(); // Removed for now, context should manage state
       window.location.reload(); // Full page refresh to reset React state
       return;
     }
@@ -80,24 +82,23 @@ const Auth: React.FC = () => {
     // Clear any redirect flags to prevent infinite loops
     localStorage.removeItem('auth_redirect_in_progress');
     
-    // Check if the user is already authenticated
-    const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-    const hasAccessToken = !!localStorage.getItem('accessToken');
-    
-    if (isAuthenticated && hasAccessToken) {
-      // User is already authenticated, redirect to dashboard
-      console.log('User is already authenticated, redirecting to dashboard');
-      navigate('/dashboard', { replace: true });
-      return;
-    }
-    
-    // Only reset auth state if not authenticated
-    if (!isAuthenticated) {
-      // Reset authentication state completely on the auth page
-      // This ensures we're starting fresh without any invalid tokens
-      resetAuthState();
-    }
-    
+    // Rely on the isAuthenticated state from the useAuth hook (checked in the effect above)
+    // const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true'; // REMOVED
+    // const hasAccessToken = !!localStorage.getItem('accessToken'); // REMOVED
+
+    // if (isAuthenticated && hasAccessToken) { // REPLACED with hook state check
+    // Redirect is handled by the separate effect checking hook's isAuthenticated state
+    //   console.log('User is already authenticated, redirecting to dashboard');
+    //   navigate('/dashboard', { replace: true });
+    //   return;
+    // }
+
+    // Only reset auth state if not authenticated - This seems redundant now.
+    // If the user lands here unauthenticated, the AuthProvider state is already correct.
+    // if (!isAuthenticated) {
+    //   resetAuthState(); // REMOVED
+    // }
+
     const params = new URLSearchParams(window.location.search);
     const resetToken = params.get('reset_token');
     if (resetToken) {
@@ -175,25 +176,13 @@ const Auth: React.FC = () => {
             localStorage.removeItem('auth_redirect_in_progress');
             
             // Call the context login function which will update state and localStorage
-            await authLogin(data.accessToken);
-            
-            // Also store the refresh token if available
-            if (data?.refreshToken) {
-              console.log('📝 DEBUG: Saving refresh token from login response to localStorage');
-              localStorage.setItem('refreshToken', data.refreshToken);
-              console.log('📝 DEBUG: Refresh token saved, first 5 chars:', data.refreshToken.substring(0, 5) + '...');
-            } else {
-              console.warn('📝 DEBUG: No refresh token in login API response');
-            }
+            await authLogin({ accessToken: data.accessToken, refreshToken: data.refreshToken });
             
             // Store email for future convenience
             localStorage.setItem('email', formData.email);
-            
-            // Set authenticated flag explicitly
-            localStorage.setItem('isAuthenticated', 'true');
-            
+
             // Redirect to dashboard after successful login with replace to prevent back button issues
-            console.log('Login successful, redirecting to dashboard');
+            console.log('Login successful, navigating to dashboard via navigate');
             navigate('/dashboard', { replace: true });
           } else {
             console.error('No access token in response');
@@ -244,20 +233,21 @@ const Auth: React.FC = () => {
   const handleGoogleLogin = async () => {
     try {
       setGoogleSigningIn(true);
-      const { data, error } = await auth.googleLogin();
-      if (error) throw new Error(error);
-      
-      if (data?.state && data?.authUrl) {
-        // Store state for verification
-        sessionStorage.setItem('oauth_state', data.state);
-        // Redirect to Google's authorization page
-        window.location.href = data.authUrl;
-      } else {
-        throw new Error('Invalid response from Google login initialization');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ha ocurrido un error');
+      setMessage('');
+      setError('');
+
+      // Call the API function to initiate Google Login
+      // This typically redirects the user, so we don't expect a direct response with tokens here.
+      await auth.googleLogin();
+
+      // If the await completes without redirecting (e.g., popup blocker or error before redirect),
+      // we might need error handling, but accessing response.data/error is likely incorrect.
+      // setLoading(false); // Might not be reached if redirect occurs
+
+    } catch (err: any) {
       setGoogleSigningIn(false);
+      const errorMessage = err.response?.data?.message || err.message || 'Google login failed. Please try again.';
+      setError(errorMessage);
     }
   };
 

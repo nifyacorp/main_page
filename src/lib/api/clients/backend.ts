@@ -142,7 +142,11 @@ async function refreshAccessToken(retryAttempt = 0): Promise<boolean> {
       localStorage.setItem('accessToken', token);
       
       if (data.refreshToken) {
+        console.log('📝 DEBUG: New refresh token received from server:', `${data.refreshToken.substring(0, 5)}...`);
         localStorage.setItem('refreshToken', data.refreshToken);
+        console.log('📝 DEBUG: Successfully stored new refresh token in localStorage.');
+      } else {
+        console.log('📝 DEBUG: No new refresh token received from server, existing one remains.');
       }
       
       // Set isAuthenticated flag to maintain consistency
@@ -316,49 +320,39 @@ export async function backendClient<T>({
         credentials: 'include'
       };
 
-      // Always add authentication headers when available
-      let accessToken = localStorage.getItem('accessToken');
-      const userId = localStorage.getItem('userId');
-      const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-      
-      // If we say we're authenticated but don't have a token, that's a problem
-      if (isAuthenticated && !accessToken) {
-        console.warn('Auth state inconsistency detected: isAuthenticated=true but no accessToken');
-        localStorage.setItem('auth_state_inconsistent', 'true');
-      }
-      
-      // Ensure token is in correct Bearer format
-      if (accessToken && !accessToken.startsWith('Bearer ')) {
-        accessToken = `Bearer ${accessToken}`;
-        // Update the stored token to maintain consistency
-        localStorage.setItem('accessToken', accessToken);
-        console.log('Applied Bearer prefix to token before request');
-      }
-      
-      // Debug the auth headers
-      console.log('Auth headers:', { 
-        hasAccessToken: !!accessToken, 
-        hasUserId: !!userId,
-        tokenFormat: accessToken ? `${accessToken.substring(0, 10)}...` : 'none'
-      });
-
-      // Add authentication headers using our utility function
-      // Ensure token has Bearer prefix
-      if (accessToken && !accessToken.startsWith('Bearer ')) {
-        accessToken = `Bearer ${accessToken}`;
-        localStorage.setItem('accessToken', accessToken);
-        console.log('Fixed token format to include Bearer prefix');
-      }
-      
-      const authHeaders = getAuthHeaders(accessToken, userId);
-      Object.assign(options.headers as Record<string, string>, authHeaders);
-
       // Add body if provided
       if (body !== undefined) {
         options.body = JSON.stringify(body);
       }
 
-      console.log('Final request options:', { 
+      // >>> Read latest tokens right before constructing headers <<<
+      let currentAccessToken = localStorage.getItem('accessToken');
+      const currentUserId = localStorage.getItem('userId');
+      
+      // Add authentication headers using our utility function
+      // Ensure token has Bearer prefix
+      const formattedAccessToken = currentAccessToken && !currentAccessToken.startsWith('Bearer ') 
+        ? `Bearer ${currentAccessToken}` 
+        : currentAccessToken;
+
+      if (formattedAccessToken !== currentAccessToken) {
+        // If we had to format it, update localStorage for consistency
+        if (formattedAccessToken) localStorage.setItem('accessToken', formattedAccessToken);
+        console.log('Fixed token format to include Bearer prefix just before request');
+        currentAccessToken = formattedAccessToken; // Use the fixed token for the current request
+      }
+
+      const authHeaders = getAuthHeaders(currentAccessToken, currentUserId);
+      Object.assign(options.headers as Record<string, string>, authHeaders);
+      
+      // Debug headers again after potentially getting latest tokens
+      console.log('Auth headers being sent:', { 
+        hasAccessToken: !!currentAccessToken, 
+        hasUserId: !!currentUserId,
+        tokenFormat: currentAccessToken ? `${currentAccessToken.substring(0, 10)}...` : 'none'
+      });
+      
+      console.log('Final request options just before fetch:', { 
         ...options, 
         headers: {
           ...Object.entries(options.headers as Record<string, string>)
