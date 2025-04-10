@@ -86,6 +86,8 @@ interface ResetPasswordData {
 }
 
 const Auth: React.FC = () => {
+  console.log('🔍 Auth.tsx: Component mounted');
+  
   const location = useLocation();
   const navigate = useNavigate();
   const { login: authLogin, isAuthenticated } = useAuth();
@@ -116,6 +118,7 @@ const Auth: React.FC = () => {
   
   // Redirect authenticated users to dashboard
   useEffect(() => {
+    console.log('🔍 Auth.tsx: Checking authenticated status useEffect');
     if (isAuthenticated) {
       console.log('User is authenticated in Auth component, redirecting to dashboard');
       navigate('/dashboard', { replace: true });
@@ -124,6 +127,7 @@ const Auth: React.FC = () => {
 
   // Check for reset password token in URL and check auth state
   useEffect(() => {
+    console.log('🔍 Auth.tsx: Page load useEffect running');
     console.log('Auth page mounted - checking auth state');
     
     // Check for redirect loops
@@ -185,26 +189,31 @@ const Auth: React.FC = () => {
   }, [isLogin, isResetPassword]);
 
   const handleSubmit = async (e: React.FormEvent) => {
+    console.log('🔍 Auth.tsx: handleSubmit invoked');
     e.preventDefault();
     setError(null);
     setSigningIn(true);
 
     try {
       if (isForgotPassword) {
+        console.log('🔍 Auth.tsx: Processing forgot password');
         // No need to use auth.forgotPassword - just show message as if it worked
         // In a real implementation, you would call the API endpoint
         alert('Si tu email está registrado, recibirás instrucciones para restablecer tu contraseña.');
         setIsForgotPassword(false);
       } else if (isResetPassword) {
+        console.log('🔍 Auth.tsx: Processing reset password');
         // No need to use auth.resetPassword - just show message as if it worked
         // In a real implementation, you would call the API endpoint
         alert('Contraseña actualizada correctamente');
         window.location.href = '/auth';
       } else if (isLogin) {
+        console.log('🔍 Auth.tsx: Processing login');
         console.group('🔑 Login Process');
         console.log('Starting login process with email:', formData.email);
         
         try {
+          console.log('🔍 Auth.tsx: Calling auth.login API');
           const { error, data } = await auth.login({
             email: formData.email,
             password: formData.password
@@ -223,6 +232,7 @@ const Auth: React.FC = () => {
           
           // Use the AuthContext login function to handle authentication properly
           if (data?.accessToken) {
+            console.log('🔍 Auth.tsx: Got access token, calling authLogin');
             console.log('Calling authLogin with token');
             
             // Add detailed token debugging here
@@ -250,12 +260,14 @@ const Auth: React.FC = () => {
 
             // Call the context login function which will update state and localStorage
             // Auth context login expects a string token, not an object
+            console.log('🔍 Auth.tsx: Passing token to AuthContext.login');
             await authLogin(data.accessToken);
             
             // Store email for future convenience
             localStorage.setItem('email', formData.email);
 
             // Redirect to dashboard after successful login with replace to prevent back button issues
+            console.log('🔍 Auth.tsx: Login successful, navigating to dashboard');
             console.log('Login successful, navigating to dashboard via navigate');
             navigate('/dashboard', { replace: true });
           } else {
@@ -270,6 +282,7 @@ const Auth: React.FC = () => {
           console.groupEnd();
         }
       } else {
+        console.log('🔍 Auth.tsx: Processing signup');
         console.group('📝 Signup Process');
         console.log('Attempting signup with:', {
           email: formData.email,
@@ -278,6 +291,7 @@ const Auth: React.FC = () => {
         });
         
         try {
+          console.log('🔍 Auth.tsx: Calling auth.signup API');
           const response = await auth.signup(formData.email, formData.password, formData.name);
           
           console.log('Signup response received:', response);
@@ -305,6 +319,7 @@ const Auth: React.FC = () => {
   };
 
   const handleGoogleLogin = async () => {
+    console.log('🔍 Auth.tsx: handleGoogleLogin invoked');
     try {
       setGoogleSigningIn(true);
       setMessage('');
@@ -312,6 +327,7 @@ const Auth: React.FC = () => {
 
       // Call the API function to initiate Google Login
       // This typically redirects the user, so we don't expect a direct response with tokens here.
+      console.log('🔍 Auth.tsx: Calling auth.googleLogin API');
       await auth.googleLogin();
 
       // If the await completes without redirecting (e.g., popup blocker or error before redirect),
@@ -326,6 +342,7 @@ const Auth: React.FC = () => {
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('🔍 Auth.tsx: handleInputChange invoked');
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,

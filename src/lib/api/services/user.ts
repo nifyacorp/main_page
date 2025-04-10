@@ -23,6 +23,7 @@ interface TestEmailResponse {
 export const userService = {
   getProfile: (): Promise<ApiResponse<ProfileResponse>> => {
     console.group('👤 Get User Profile');
+    console.log('🔍 user.ts: getProfile called');
     console.log('Fetching user profile...');
     
     // Fix the endpoint path to match backend route registration
@@ -33,6 +34,7 @@ export const userService = {
   
   updateProfile: (data: Partial<UserProfile>): Promise<ApiResponse<ProfileResponse>> => {
     console.group('✏️ Update User Profile');
+    console.log('🔍 user.ts: updateProfile called');
     console.log('Updating profile:', data);
     
     // Fix the endpoint path to match backend route registration
@@ -46,6 +48,7 @@ export const userService = {
   // Get user preferences
   getPreferences: (): Promise<ApiResponse<PreferencesResponse>> => {
     console.group('⚙️ Get User Preferences');
+    console.log('🔍 user.ts: getPreferences called');
     console.log('Fetching user preferences...');
     
     return backendClient<PreferencesResponse>({
@@ -56,6 +59,7 @@ export const userService = {
   // Update user preferences
   updatePreferences: (data: Partial<UserProfile>): Promise<ApiResponse<PreferencesResponse>> => {
     console.group('⚙️ Update User Preferences');
+    console.log('🔍 user.ts: updatePreferences called');
     console.log('Updating preferences:', data);
     
     return backendClient<PreferencesResponse>({
@@ -68,6 +72,7 @@ export const userService = {
   // Get email preferences
   getEmailPreferences: (): Promise<ApiResponse<EmailPreferencesResponse>> => {
     console.group('📧 Get Email Preferences');
+    console.log('🔍 user.ts: getEmailPreferences called');
     console.log('Fetching email preferences...');
     
     return backendClient<EmailPreferencesResponse>({
@@ -78,6 +83,7 @@ export const userService = {
   // Update email preferences
   updateEmailPreferences: (data: Partial<EmailPreferences>): Promise<ApiResponse<EmailPreferencesUpdateResponse>> => {
     console.group('📧 Update Email Preferences');
+    console.log('🔍 user.ts: updateEmailPreferences called');
     console.log('Updating email preferences:', data);
     
     return backendClient<EmailPreferencesUpdateResponse>({
@@ -90,6 +96,7 @@ export const userService = {
   // Send test email
   sendTestEmail: (): Promise<ApiResponse<TestEmailResponse>> => {
     console.group('📧 Send Test Email');
+    console.log('🔍 user.ts: sendTestEmail called');
     console.log('Sending test email...');
     
     return backendClient<TestEmailResponse>({

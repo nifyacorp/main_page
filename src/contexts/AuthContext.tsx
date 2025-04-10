@@ -88,11 +88,14 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
+  console.log('🔍 AuthContext.tsx: AuthProvider initialized');
+  
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null); // State to track auth errors
   
   const logout = useCallback(() => {
+    console.log('🔍 AuthContext.tsx: logout called');
     console.log('AuthContext: Logging out user');
     localStorage.removeItem('accessToken');
     localStorage.removeItem('isAuthenticated');
@@ -103,9 +106,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   
   // Check for token expired flag
   useEffect(() => {
+    console.log('🔍 AuthContext.tsx: token expiry check effect');
     const checkTokenExpired = () => {
       const tokenExpired = localStorage.getItem('token_expired');
       if (tokenExpired === 'true') {
+        console.log('🔍 AuthContext.tsx: token_expired flag found, logging out');
         // Clear the flag
         localStorage.removeItem('token_expired');
         // Logout user
@@ -133,8 +138,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   // Check for existing auth on mount
   useEffect(() => {
+    console.log('🔍 AuthContext.tsx: auth check effect');
     let isMounted = true; // Flag to prevent state updates on unmounted component
     const checkAuth = async () => {
+      console.log('🔍 AuthContext.tsx: checkAuth function running');
       setIsLoading(true); // Start loading
       setAuthError(null); // Clear previous errors
       try {
@@ -143,6 +150,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         let userId = localStorage.getItem('userId');
         const userEmail = localStorage.getItem('email');
         
+        console.log('🔍 AuthContext.tsx: Loading auth state from localStorage');
         console.log('AuthContext: Checking auth state', { 
           isAuthenticated, 
           hasAccessToken: !!accessToken,
@@ -152,11 +160,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         
         // Log token contents for debugging
         if (accessToken) {
+          console.log('🔍 AuthContext.tsx: Validating token format');
           debugJwtToken('Stored Access Token', accessToken);
         }
         
         // Fix token format if needed - ensure it has Bearer prefix
         if (accessToken && !accessToken.startsWith('Bearer ')) {
+          console.log('🔍 AuthContext.tsx: Fixing token format (adding Bearer prefix)');
           accessToken = `Bearer ${accessToken}`;
           localStorage.setItem('accessToken', accessToken);
           console.log('AuthContext: Fixed token format to include Bearer prefix');
@@ -164,6 +174,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         
         // Extract userId from token if it's missing
         if (!userId && accessToken) {
+          console.log('🔍 AuthContext.tsx: Extracting userId from token');
           try {
             const tokenParts = accessToken.replace('Bearer ', '').split('.');
             if (tokenParts.length >= 2) {
@@ -181,14 +192,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         
         if (isAuthenticated && accessToken) {
           // Profile fetch is now primary source of truth after initial check
+          console.log('🔍 AuthContext.tsx: Fetching user profile for authenticated user');
           console.log('AuthContext: Attempting to load user profile for authenticated user');
           try {
+            console.log('🔍 AuthContext.tsx: Calling userService.getProfile()');
             const response = await userService.getProfile();
             if (isMounted) {
               if (response.data && !response.error) {
+                console.log('🔍 AuthContext.tsx: User profile loaded successfully');
                 setUser(response.data.profile);
                 console.log('AuthContext: User profile loaded successfully', response.data.profile);
               } else {
+                console.log('🔍 AuthContext.tsx: Failed to load user profile, logging out');
                 console.error('AuthContext: Failed to load user profile, logging out.', response.error);
                 console.log('📝 DEBUG: Profile fetch failed - accessToken:', accessToken ? accessToken.substring(0, 15) + '...' : 'null');
                 setAuthError('Failed to load user profile. Please try logging in again.');
@@ -196,6 +211,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               }
             }
           } catch (apiError) {
+            console.log('🔍 AuthContext.tsx: Exception during profile fetch');
             console.error('AuthContext: Error fetching user profile during initial check:', apiError);
             console.log('📝 DEBUG: Profile fetch exception - accessToken:', accessToken ? accessToken.substring(0, 15) + '...' : 'null');
             if (isMounted) {
@@ -204,12 +220,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             }
           }
         } else {
+          console.log('🔍 AuthContext.tsx: No valid auth tokens found');
           console.log('AuthContext: No valid auth tokens/state found, user is logged out.');
           if (isMounted) {
              setUser(null); // Ensure user state is null if not authenticated
           }
         }
       } catch (error) {
+        console.log('🔍 AuthContext.tsx: Catastrophic failure during auth check');
         console.error('AuthContext: Auth check failed catastrophically:', error);
         if (isMounted) {
           setAuthError('An unexpected error occurred during authentication check.');
@@ -217,6 +235,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
       } finally {
         if (isMounted) {
+          console.log('🔍 AuthContext.tsx: Auth check complete, setting loading to false');
           setIsLoading(false); // Stop loading
         }
       }
@@ -231,12 +250,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, [logout]);
   
   const login = useCallback(async (token: string) => {
+    console.log('🔍 AuthContext.tsx: login function called');
     setIsLoading(true);
     setAuthError(null);
     try {
       // Ensure token has Bearer prefix
+      console.log('🔍 AuthContext.tsx: Validating token format');
       const formattedToken = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
       
+      console.log('🔍 AuthContext.tsx: Storing authentication token');
       console.log('AuthContext: Storing authentication token with proper Bearer format');
       debugJwtToken('Login Access Token', formattedToken);
       
@@ -244,6 +266,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       localStorage.setItem('isAuthenticated', 'true');
       
       // Try to extract user ID from token
+      console.log('🔍 AuthContext.tsx: Extracting user data from token');
       let userId = null;
       let email = null;
       try {
@@ -266,6 +289,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
       
       // Set user information immediately based on token (temporary)
+      console.log('🔍 AuthContext.tsx: Setting temporary user data from token');
       const tempUser: User = {
         id: userId || 'unknown-id',
         email: email || 'unknown-email'
@@ -275,12 +299,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       
       // After setting tokens, fetch the user profile to get full details
       try {
+        console.log('🔍 AuthContext.tsx: Fetching complete user profile');
         console.log('AuthContext: Fetching profile immediately after login');
         const response = await userService.getProfile();
         if (response.data && !response.error) {
+          console.log('🔍 AuthContext.tsx: User profile loaded successfully');
           setUser(response.data.profile);
           console.log('AuthContext: User profile loaded successfully after login', response.data.profile);
         } else {
+          console.log('🔍 AuthContext.tsx: Failed to load complete profile, using token data');
           console.warn('AuthContext: Failed to load profile immediately after login, using token data.', response.error);
           console.log('📝 DEBUG: Profile fetch failed during login - using token fallback');
           // Keep the temporary user data from token but still consider the user logged in
@@ -288,6 +315,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           // Don't set auth error as this prevents the user from proceeding
         }
       } catch (profileError) {
+        console.log('🔍 AuthContext.tsx: Exception during profile fetch after login');
         console.error('AuthContext: Error fetching profile after login:', profileError);
         console.log('📝 DEBUG: Profile fetch exception during login - using token fallback');
         // Keep the temporary user data from token and maintain login state
@@ -295,11 +323,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         // Don't show error to user to allow them to proceed with basic functionality
       }
     } catch (error) {
+      console.log('🔍 AuthContext.tsx: Login failed with error');
       console.error('AuthContext: Login failed:', error);
       setAuthError('Login process failed.');
       logout(); // Ensure cleanup on login failure
       throw error;
     } finally {
+      console.log('🔍 AuthContext.tsx: Login process complete, setting loading to false');
       setIsLoading(false);
     }
   }, [logout]);
@@ -309,6 +339,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   
   // Effect to log authentication state changes for debugging
   useEffect(() => {
+    console.log('🔍 AuthContext.tsx: Auth state change detected');
     console.log('Auth state in header updated:', { isAuthenticated, user });
   }, [isAuthenticated, user]);
 

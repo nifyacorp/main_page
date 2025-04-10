@@ -297,6 +297,7 @@ export async function backendClient<T>({
   body = undefined,
   headers = {}
 }: RequestConfig): Promise<ApiResponse<T>> {
+  console.log('🔍 backend.ts: backendClient called for', endpoint);
   let retryCount = 0;
   const maxRetries = 1;
   
@@ -309,6 +310,7 @@ export async function backendClient<T>({
   if (body) console.log('Request body:', typeof body === 'string' ? body.substring(0, 100) + '...' : body);
   
   async function attemptRequest(): Promise<ApiResponse<T>> {
+    console.log('🔍 backend.ts: attemptRequest for', prefixedEndpoint);
     try {
       // Prepare request options
       const options: RequestInit = {
@@ -326,6 +328,7 @@ export async function backendClient<T>({
       }
 
       // >>> Read latest tokens right before constructing headers <<<
+      console.log('🔍 backend.ts: Reading auth tokens from localStorage');
       let currentAccessToken = localStorage.getItem('accessToken');
       const currentUserId = localStorage.getItem('userId');
       
@@ -337,6 +340,7 @@ export async function backendClient<T>({
 
       if (formattedAccessToken !== currentAccessToken) {
         // If we had to format it, update localStorage for consistency
+        console.log('🔍 backend.ts: Fixing token format (adding Bearer prefix)');
         if (formattedAccessToken) localStorage.setItem('accessToken', formattedAccessToken);
         console.log('Fixed token format to include Bearer prefix just before request');
         currentAccessToken = formattedAccessToken; // Use the fixed token for the current request
@@ -364,9 +368,11 @@ export async function backendClient<T>({
       });
 
       // Make the request
+      console.log('🔍 backend.ts: Sending fetch request to', `${BACKEND_URL}${prefixedEndpoint}`);
       const response = await fetch(`${BACKEND_URL}${prefixedEndpoint}`, options);
       
       // Debug response details
+      console.log('🔍 backend.ts: Response received with status', response.status);
       console.log('Response received:', {
         status: response.status,
         statusText: response.statusText,
@@ -375,6 +381,7 @@ export async function backendClient<T>({
       
       // If we got a 401 Unauthorized and we have a refresh token, try to refresh and retry
       if (response.status === 401 && localStorage.getItem('refreshToken') && retryCount < 1) {
+        console.log('🔍 backend.ts: Received 401, attempting token refresh');
         console.log('Received 401, attempting token refresh and retry');
         
         try {
@@ -383,16 +390,19 @@ export async function backendClient<T>({
           
           // If refresh was successful, retry the request with new token
           if (refreshSuccessful) {
+            console.log('🔍 backend.ts: Token refresh successful, retrying request');
             console.log('Token refresh successful, retrying original request');
             retryCount++;
             return attemptRequest();
           } else {
+            console.log('🔍 backend.ts: Token refresh failed');
             console.warn('Token refresh failed, but continuing with current token');
             // Even if refresh fails, continue with request processing
             // This is a fallback mechanism to allow some functionality when 
             // refresh is failing but the user still has a valid original token
           }
         } catch (refreshError) {
+          console.log('🔍 backend.ts: Error during token refresh');
           console.error('Error during token refresh attempt:', refreshError);
           // Continue with request processing even if refresh fails completely
         }
@@ -404,6 +414,7 @@ export async function backendClient<T>({
       
       if (contentType.includes('application/json')) {
         // Parse JSON response
+        console.log('🔍 backend.ts: Parsing JSON response');
         const text = await response.text();
         try {
           data = JSON.parse(text);
@@ -413,12 +424,14 @@ export async function backendClient<T>({
             keys: data && typeof data === 'object' ? Object.keys(data) : 'N/A'
           });
         } catch (parseError) {
+          console.log('🔍 backend.ts: Error parsing JSON response');
           console.error('Error parsing JSON response:', parseError);
           console.log('Raw response text:', text.substring(0, 200) + '...');
           throw new Error('Invalid JSON response from server');
         }
       } else {
         // Handle non-JSON responses
+        console.log('🔍 backend.ts: Received non-JSON response');
         console.warn(`Received non-JSON response: ${contentType}`);
         const text = await response.text();
         console.log('Raw response text:', text.substring(0, 200) + '...');
@@ -435,6 +448,7 @@ export async function backendClient<T>({
       
       // Special handling for notification responses
       if (endpoint.includes('/notifications') && data && data.notifications) {
+        console.log('🔍 backend.ts: Processing notifications response data');
         console.log('Processing notification response:', {
           count: data.notifications.length,
           sample: data.notifications.length > 0 ? 
@@ -447,6 +461,7 @@ export async function backendClient<T>({
         );
         
         if (malformedNotifications.length > 0) {
+          console.log('🔍 backend.ts: Found malformed notifications');
           console.warn(`Found ${malformedNotifications.length} malformed notifications with only entity_type`);
           console.log('Example malformed notification:', malformedNotifications[0]);
           
@@ -460,6 +475,7 @@ export async function backendClient<T>({
       }
       
       // Construct the response object
+      console.log('🔍 backend.ts: Creating final response object');
       const result: ApiResponse<T> = {
         status: response.status,
         ok: response.ok,
@@ -468,11 +484,13 @@ export async function backendClient<T>({
       
       // Add error information if response is not OK
       if (!response.ok) {
+        console.log('🔍 backend.ts: Response not OK, adding error information');
         result.error = data?.error || data?.message || response.statusText || 'Unknown error';
         console.error('API error response:', result.error);
         
         // Handle TOKEN_EXPIRED error
         if (result.error === 'TOKEN_EXPIRED') {
+          console.log('🔍 backend.ts: TOKEN_EXPIRED error detected');
           // Trigger a token refresh (will be handled in the calling component)
           console.log('Token expired, notifying application');
           // Store information about expired token
@@ -491,16 +509,19 @@ export async function backendClient<T>({
       return result;
     } catch (error: any) {
       // Handle network or other errors
+      console.log('🔍 backend.ts: Network or fetch error occurred');
       console.error('API request failed:', error);
       
       // Retry logic for network errors
       if (retryCount < maxRetries) {
+        console.log('🔍 backend.ts: Attempting retry after error');
         retryCount++;
         console.log(`Retrying request (${retryCount}/${maxRetries})...`);
         return attemptRequest();
       }
       
       // Construct error response
+      console.log('🔍 backend.ts: Creating error response object');
       const errorResponse: ApiResponse<T> = {
         status: 0,
         ok: false,
