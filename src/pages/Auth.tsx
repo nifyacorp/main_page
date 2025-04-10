@@ -68,10 +68,8 @@ interface PasswordRequirement {
 }
 
 const passwordRequirements: PasswordRequirement[] = [
-  { regex: /.{8,}/, message: 'Al menos 8 caracteres' },
-  { regex: /[A-Z]/, message: 'Al menos una mayúscula' },
+  { regex: /.{6,}/, message: 'Al menos 6 caracteres' },
   { regex: /[0-9]/, message: 'Al menos un número' },
-  { regex: /[!@#$%^&*(),.?":{}|<>]/, message: 'Al menos un carácter especial' },
 ];
 
 interface AuthFormData {

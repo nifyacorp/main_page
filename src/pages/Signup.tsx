@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, AlertCircle, Mail, User, Lock, Eye, EyeOff, Check, X } from 'lucide-react';
+import { ArrowLeft, Mail, Lock, Eye, EyeOff, Check, X } from 'lucide-react';
 import { auth } from '../lib/api/index';
 import { useAuth } from '../hooks/use-auth';
 
@@ -10,21 +10,18 @@ interface PasswordRequirement {
 }
 
 const passwordRequirements: PasswordRequirement[] = [
-  { regex: /.{8,}/, message: 'Al menos 8 caracteres' },
-  { regex: /[A-Z]/, message: 'Al menos una mayúscula' },
+  { regex: /.{6,}/, message: 'Al menos 6 caracteres' },
   { regex: /[0-9]/, message: 'Al menos un número' },
-  { regex: /[!@#$%^&*(),.?":{}|<>]/, message: 'Al menos un carácter especial' },
 ];
 
 interface SignupFormData {
   email: string;
   password: string;
-  name: string;
 }
 
 const Signup: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, login: authLogin } = useAuth();
   
   const [signingUp, setSigningUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -33,7 +30,6 @@ const Signup: React.FC = () => {
   const [formData, setFormData] = useState<SignupFormData>({
     email: '',
     password: '',
-    name: '',
   });
   
   // Redirect authenticated users to dashboard
@@ -59,15 +55,69 @@ const Signup: React.FC = () => {
     try {
       console.log('Processing signup');
       
-      const response = await auth.signup(formData.email, formData.password, formData.name);
+      const response = await auth.signup(formData.email, formData.password, '');
       
       if (response && response.error) {
         setError(response.error);
       } else if (!response || !response.data) {
         setError('Could not connect to the authentication service. Please try again later.');
       } else {
+        // If signup returns tokens (some implementations do auto-login)
+        if (response.data.accessToken) {
+          console.log('Auto-login after signup detected, processing tokens and user ID');
+          
+          // Ensure token has the Bearer prefix
+          const accessToken = response.data.accessToken;
+          const formattedToken = accessToken.startsWith('Bearer ') 
+            ? accessToken 
+            : `Bearer ${accessToken}`;
+          
+          const refreshToken = response.data.refreshToken;
+          
+          // Store tokens
+          localStorage.setItem('accessToken', formattedToken);
+          if (refreshToken) {
+            localStorage.setItem('refreshToken', refreshToken);
+          }
+          
+          // Extract and verify user ID
+          let userId = localStorage.getItem('userId');
+          if (!userId) {
+            console.warn('No user ID found after signup, attempting to extract from token');
+            
+            try {
+              const tokenValue = formattedToken.replace('Bearer ', '');
+              const tokenParts = tokenValue.split('.');
+              if (tokenParts.length >= 2) {
+                const payload = JSON.parse(atob(tokenParts[1]));
+                if (payload.sub) {
+                  userId = payload.sub;
+                  localStorage.setItem('userId', userId);
+                  console.log('Successfully extracted user ID from token:', userId);
+                }
+              }
+            } catch (tokenError) {
+              console.error('Failed to extract user ID from token:', tokenError);
+            }
+          }
+          
+          // Show success message but redirect to dashboard instead of login
+          setSuccessMessage('¡Cuenta creada correctamente! Redirigiendo al panel de control...');
+          
+          // Use AuthContext login if we have tokens
+          try {
+            await authLogin(formattedToken);
+            setTimeout(() => {
+              navigate('/dashboard', { replace: true });
+            }, 2000);
+            return;
+          } catch (loginError) {
+            console.error('Auto-login failed:', loginError);
+          }
+        }
+        
+        // Normal flow - show success and redirect to login
         setSuccessMessage('¡Cuenta creada correctamente! Por favor, verifica tu email para activar tu cuenta.');
-        // Redirect to login after successful signup
         setTimeout(() => {
           navigate('/login', { replace: true });
         }, 3000);
@@ -115,32 +165,6 @@ const Signup: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <label 
-              htmlFor="name"
-              className="text-sm font-medium text-foreground"
-            >
-              Nombre
-            </label>
-            <div className="relative">
-              <input
-                id="name"
-                name="name"
-                type="text"
-                required
-                value={formData.name}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 bg-background border rounded-lg pl-10 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="Tu nombre"
-                minLength={2}
-                maxLength={50}
-                pattern="[A-Za-zÀ-ÿ\s]+"
-                title="Solo letras y espacios permitidos"
-              />
-              <User className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label 
               htmlFor="email"
               className="text-sm font-medium text-foreground"
             >
@@ -159,13 +183,6 @@ const Signup: React.FC = () => {
                 autoComplete="email"
               />
               <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-              <div className="mt-2 flex items-start gap-2 text-sm text-muted-foreground">
-                <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                <p>
-                  Usa un email válido (ejemplo: usuario@dominio.com).
-                  No se permiten emails temporales o inválidos.
-                </p>
-              </div>
             </div>
           </div>
 
@@ -198,8 +215,8 @@ const Signup: React.FC = () => {
                 value={formData.password}
                 onChange={handleInputChange}
                 className="w-full px-4 py-2 bg-background border rounded-lg pl-10 pr-20 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="••••••••"
-                minLength={8}
+                placeholder="••••••"
+                minLength={6}
                 autoComplete="new-password"
               />
               <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
@@ -209,7 +226,7 @@ const Signup: React.FC = () => {
               <p className="text-sm font-medium text-muted-foreground">
                 La contraseña debe contener:
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2">
                 {passwordRequirements.map((req, index) => {
                   const isValid = req.regex.test(formData.password);
                   return (

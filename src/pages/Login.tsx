@@ -101,6 +101,34 @@ const Login: React.FC = () => {
           localStorage.setItem('refreshToken', data.refreshToken);
         }
 
+        // CRITICAL: Verify user ID extraction and storage
+        const userId = localStorage.getItem('userId');
+        console.log('Verifying user ID after login:', { 
+          userId, 
+          extractedFromToken: !!userId,
+          tokenPreview: data.accessToken.substring(0, 15) + '...'
+        });
+        
+        if (!userId) {
+          console.error('⚠️ No user ID extracted from token! Authentication with backend will fail.');
+          
+          // Try to extract it manually one more time
+          try {
+            const tokenParts = data.accessToken.replace(/^Bearer\s+/i, '').split('.');
+            if (tokenParts.length >= 2) {
+              const payload = JSON.parse(atob(tokenParts[1]));
+              if (payload.sub) {
+                localStorage.setItem('userId', payload.sub);
+                console.log('Successfully extracted and saved user ID from token:', payload.sub);
+              } else {
+                console.error('Token does not contain sub claim:', { payload });
+              }
+            }
+          } catch (tokenError) {
+            console.error('Failed to extract user ID from token:', tokenError);
+          }
+        }
+
         // Call the context login function which will update state and localStorage
         await authLogin(data.accessToken);
         

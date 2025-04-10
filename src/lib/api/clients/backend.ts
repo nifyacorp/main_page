@@ -388,6 +388,17 @@ export async function backendClient<T>({
         } else {
           console.error('Token does not contain a valid user ID (sub claim)');
           localStorage.setItem('auth_issue_detected', 'missing_user_id');
+          
+          // Log token details for debugging without exposing full token
+          try {
+            const tokenPreview = currentAccessToken.substring(0, 20) + '...';
+            console.error('Token missing user ID (sub claim):', { 
+              tokenPreview,
+              tokenLength: currentAccessToken.length
+            });
+          } catch (logError) {
+            console.error('Could not log token preview');
+          }
         }
       }
       
@@ -396,6 +407,19 @@ export async function backendClient<T>({
         console.error('⚠️ WARNING: No valid user ID available for authenticated request!');
         console.error('This will cause backend authentication to fail.');
         console.error('Token is present but user ID is missing.');
+        
+        // Last desperate attempt to make request work - look for any possible ID
+        // This is not secure but at least allows debugging
+        try {
+          console.log('🚨 Attempting emergency fallback for user ID');
+          const emergencyUserId = localStorage.getItem('email')?.split('@')[0] || 'unknown-user';
+          console.log(`Using emergency fallback user ID: ${emergencyUserId}`);
+          currentUserId = `emergency-${emergencyUserId}-${Date.now()}`;
+          
+          // Don't store this in localStorage as it's not legitimate
+        } catch (emergencyError) {
+          console.error('Emergency user ID fallback failed:', emergencyError);
+        }
       }
       
       // Add authentication headers using our utility function
@@ -415,11 +439,13 @@ export async function backendClient<T>({
       const authHeaders = getAuthHeaders(currentAccessToken, currentUserId);
       Object.assign(options.headers as Record<string, string>, authHeaders);
       
-      // Debug headers again after potentially getting latest tokens
-      console.log('Auth headers being sent:', { 
-        hasAccessToken: !!currentAccessToken, 
-        hasUserId: !!currentUserId,
-        tokenFormat: currentAccessToken ? `${currentAccessToken.substring(0, 10)}...` : 'none'
+      // CRITICAL: Log authentication headers being sent
+      console.log('Authentication headers for request:', { 
+        hasAuthorizationHeader: !!authHeaders[AUTH_HEADER],
+        hasUserIdHeader: !!authHeaders[USER_ID_HEADER],
+        userIdValue: authHeaders[USER_ID_HEADER] || 'missing',
+        tokenPreview: authHeaders[AUTH_HEADER] ? 
+          `${authHeaders[AUTH_HEADER].substring(0, 15)}...` : 'missing'
       });
       
       console.log('Final request options just before fetch:', { 

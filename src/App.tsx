@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useEffect } from 'react';
+import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Bell, ClipboardCheck, PieChart } from 'lucide-react';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -59,6 +59,40 @@ const AuthRedirect = () => {
 };
 
 export default function App() {
+  // Track authentication issues
+  const [authIssueDetected, setAuthIssueDetected] = useState(false);
+  const [authIssueMessage, setAuthIssueMessage] = useState('');
+  
+  // Check for authentication issues on startup
+  useEffect(() => {
+    const checkAuthIssues = () => {
+      // Check localStorage for flags
+      const authIssue = localStorage.getItem('auth_issue_detected');
+      const accessToken = localStorage.getItem('accessToken');
+      const userId = localStorage.getItem('userId');
+      
+      if (authIssue) {
+        console.error('Authentication issue detected:', authIssue);
+        setAuthIssueDetected(true);
+        setAuthIssueMessage(`Authentication problem detected: ${authIssue}. Please try logging in again.`);
+        
+        // Clear the flag so we don't show it again
+        localStorage.removeItem('auth_issue_detected');
+      } else if (accessToken && !userId) {
+        console.error('Token exists but no user ID - likely authentication issue');
+        setAuthIssueDetected(true);
+        setAuthIssueMessage('Missing user ID for authentication. Please try logging in again.');
+      }
+    };
+    
+    checkAuthIssues();
+    
+    // Set up interval to check periodically
+    const intervalId = setInterval(checkAuthIssues, 30000);
+    
+    return () => clearInterval(intervalId);
+  }, []);
+
   try {
     return (
       <ThemeProvider defaultTheme="system" storageKey="nifya-ui-theme">
@@ -67,6 +101,25 @@ export default function App() {
             <AuthErrorHandler>
               <div className="min-h-screen bg-background text-foreground">
                 <Header />
+                
+                {/* Show auth issue banner if detected */}
+                {authIssueDetected && (
+                  <div className="bg-red-500 text-white py-2 px-4 text-center">
+                    <p>{authIssueMessage} <button 
+                      onClick={() => {
+                        // Clear all auth data and redirect to login
+                        localStorage.removeItem('accessToken');
+                        localStorage.removeItem('refreshToken');
+                        localStorage.removeItem('isAuthenticated');
+                        window.location.href = '/login';
+                      }}
+                      className="underline font-bold"
+                    >
+                      Click here to login again
+                    </button></p>
+                  </div>
+                )}
+                
                 <main>
                   <Suspense fallback={<LoadingPage />}>
                     <Routes>
