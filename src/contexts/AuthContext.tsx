@@ -2,6 +2,63 @@ import { createContext, useContext, useState, ReactNode, useEffect, useCallback 
 import { user as userService, auth } from '../lib/api';
 import { toast } from '../components/ui/use-toast';
 
+/**
+ * Debug function to decode and display JWT token contents
+ */
+function debugJwtToken(tokenName: string, token: string | null | undefined): void {
+  console.group(`🔍 DEBUG: ${tokenName} Contents`);
+  
+  if (!token) {
+    console.log('Token is null or empty');
+    console.groupEnd();
+    return;
+  }
+  
+  // Remove Bearer prefix if present
+  const tokenValue = token.startsWith('Bearer ') ? token.substring(7) : token;
+  
+  try {
+    // Split token into parts
+    const parts = tokenValue.split('.');
+    if (parts.length !== 3) {
+      console.log('Invalid JWT format - should have 3 parts');
+      console.groupEnd();
+      return;
+    }
+    
+    // Decode the payload (middle part)
+    const payload = JSON.parse(atob(parts[1]));
+    
+    console.log('Raw token (first 15 chars):', tokenValue.substring(0, 15) + '...');
+    console.log('Decoded payload:', {
+      sub: payload.sub,         // User ID
+      type: payload.type,       // Token type (access, refresh)
+      exp: payload.exp,         // Expiration timestamp
+      iat: payload.iat,         // Issued at timestamp
+      expiresIn: payload.exp ? new Date(payload.exp * 1000).toISOString() : 'No expiry'
+    });
+    
+    // Calculate expiration
+    if (payload.exp) {
+      const expiresAt = new Date(payload.exp * 1000);
+      const now = new Date();
+      const timeLeft = (expiresAt.getTime() - now.getTime()) / 1000;
+      
+      console.log('Expiration:', {
+        expiresAt: expiresAt.toISOString(),
+        now: now.toISOString(),
+        timeLeftSeconds: Math.floor(timeLeft),
+        isExpired: timeLeft <= 0
+      });
+    }
+  } catch (error) {
+    console.log('Error decoding token:', error);
+    console.log('Raw token value:', token);
+  }
+  
+  console.groupEnd();
+}
+
 type User = {
   id: string;
   email: string;
@@ -97,6 +154,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           email: userEmail
         });
         
+        // Log token contents for debugging
+        if (accessToken) {
+          debugJwtToken('Stored Access Token', accessToken);
+        }
+        if (refreshToken) {
+          debugJwtToken('Stored Refresh Token', refreshToken);
+        }
+        
         // Fix token format if needed - ensure it has Bearer prefix
         if (accessToken && !accessToken.startsWith('Bearer ')) {
           accessToken = `Bearer ${accessToken}`;
@@ -182,6 +247,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const formattedToken = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
       
       console.log('AuthContext: Storing authentication token with proper Bearer format');
+      debugJwtToken('Login Access Token', formattedToken);
+      
       localStorage.setItem('accessToken', formattedToken);
       localStorage.setItem('isAuthenticated', 'true');
       
@@ -210,6 +277,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Check if refresh token is present in localStorage
       const refreshToken = localStorage.getItem('refreshToken');
       console.log('📝 DEBUG: Refresh token in localStorage after login:', refreshToken ? `${refreshToken.substring(0, 5)}...` : 'not found');
+      
+      if (refreshToken) {
+        debugJwtToken('Login Refresh Token', refreshToken);
+      }
       
       // Set user information immediately based on token (temporary)
       const tempUser: User = {
