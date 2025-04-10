@@ -21,8 +21,64 @@ const AUTH_URL = useNetlifyRedirects
 console.log('API base URL being used:', API_BASE_URL);
 console.log('Auth URL being used:', AUTH_URL);
 
-const AUTH_TOKEN_KEY = import.meta.env.VITE_AUTH_TOKEN_KEY || 'nifya_auth_token';
-const REFRESH_TOKEN_KEY = import.meta.env.VITE_REFRESH_TOKEN_KEY || 'nifya_refresh_token';
+// IMPORTANT: Use ONLY these constants for token management - DO NOT USE FALLBACKS
+const AUTH_TOKEN_KEY = 'accessToken';
+const REFRESH_TOKEN_KEY = 'refreshToken';
+
+// Debug function to decode and display JWT token contents
+function debugJwtToken(tokenName: string, token: string | null): void {
+  console.group(`🔍 DEBUG: ${tokenName} Contents`);
+  
+  if (!token) {
+    console.log('Token is null or empty');
+    console.groupEnd();
+    return;
+  }
+  
+  // Remove Bearer prefix if present
+  const tokenValue = token.startsWith('Bearer ') ? token.substring(7) : token;
+  
+  try {
+    // Split token into parts
+    const parts = tokenValue.split('.');
+    if (parts.length !== 3) {
+      console.log('Invalid JWT format - should have 3 parts');
+      console.groupEnd();
+      return;
+    }
+    
+    // Decode the payload (middle part)
+    const payload = JSON.parse(atob(parts[1]));
+    
+    console.log('Raw token (first 15 chars):', tokenValue.substring(0, 15) + '...');
+    console.log('Decoded payload:', {
+      sub: payload.sub,         // User ID
+      type: payload.type,       // Token type (access, refresh)
+      exp: payload.exp,         // Expiration timestamp
+      iat: payload.iat,         // Issued at timestamp
+      expiresIn: payload.exp ? new Date(payload.exp * 1000).toISOString() : 'No expiry'
+    });
+    
+    // Calculate expiration
+    if (payload.exp) {
+      const expiresAt = new Date(payload.exp * 1000);
+      const now = new Date();
+      const timeLeft = (expiresAt.getTime() - now.getTime()) / 1000;
+      
+      console.log('Expiration:', {
+        expiresAt: expiresAt.toISOString(),
+        now: now.toISOString(),
+        timeLeftSeconds: Math.floor(timeLeft),
+        isExpired: timeLeft <= 0
+      });
+    }
+  } catch (error) {
+    console.log('Error decoding token:', error);
+    console.log('Raw token value:', token);
+  }
+  
+  console.groupEnd();
+}
 
 // Error types
 export interface ApiError {
@@ -47,12 +103,18 @@ apiClient.interceptors.request.use(
     // Verify and fix auth headers before making the request
     verifyAuthHeaders();
     
-    // Get auth token with fallbacks
-    const token = localStorage.getItem('accessToken') || localStorage.getItem(AUTH_TOKEN_KEY);
+    // Get auth token - ONLY use the primary storage key
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
     const userId = localStorage.getItem('userId');
     
+    // Debug the token being sent with this request
+    console.group(`🔒 API Request: ${config.method?.toUpperCase()} ${config.url}`);
+    console.log('Using token from localStorage');
+    debugJwtToken('Request Token', token);
+    console.groupEnd();
+    
     if (!token) {
-      console.log('AuthContext: No valid auth tokens found');
+      console.log('AuthContext: No valid auth token found');
     }
     
     // Add auth headers if token exists
@@ -103,20 +165,25 @@ apiClient.interceptors.response.use(
     
     // Handle 401 errors (unauthorized) by attempting token refresh
     if (error.response?.status === 401 && !typedRequest._retry) {
+      console.group('🔄 Auth Error - Attempting Token Refresh');
       console.log('Auth error detected in fetch response:', error.response?.data);
       typedRequest._retry = true;
       
       try {
-        const refreshToken = localStorage.getItem('refreshToken') || localStorage.getItem(REFRESH_TOKEN_KEY);
+        // IMPORTANT: Only use the primary refresh token key
+        const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+        
+        console.log('Using refresh token to get new access token');
+        debugJwtToken('Refresh Token', refreshToken);
         
         if (!refreshToken) {
           // No refresh token, user needs to login again
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          localStorage.removeItem('isAuthenticated');
-          localStorage.removeItem('userId');
+          console.log('No refresh token available, redirecting to login');
           localStorage.removeItem(AUTH_TOKEN_KEY);
           localStorage.removeItem(REFRESH_TOKEN_KEY);
+          localStorage.removeItem('isAuthenticated');
+          localStorage.removeItem('userId');
+          console.groupEnd();
           window.location.href = '/auth';
           return Promise.reject(error);
         }
@@ -137,17 +204,19 @@ apiClient.interceptors.response.use(
           let newToken = response.data.token || response.data.accessToken;
           const newRefreshToken = response.data.refreshToken;
           
+          console.log('Received new tokens from auth service');
+          debugJwtToken('New Access Token', newToken);
+          debugJwtToken('New Refresh Token', newRefreshToken);
+          
           // Ensure token has Bearer prefix
           if (newToken && !newToken.startsWith('Bearer ')) {
             newToken = `Bearer ${newToken}`;
           }
           
-          // Support both storage mechanisms for maximum compatibility
-          localStorage.setItem('accessToken', newToken);
+          // Store tokens using ONLY the primary keys
           localStorage.setItem(AUTH_TOKEN_KEY, newToken);
           
           if (newRefreshToken) {
-            localStorage.setItem('refreshToken', newRefreshToken);
             localStorage.setItem(REFRESH_TOKEN_KEY, newRefreshToken);
           }
           
@@ -169,17 +238,21 @@ apiClient.interceptors.response.use(
           
           // Update authorization header and retry original request
           apiClient.defaults.headers.common['Authorization'] = newToken;
+          console.log('Retrying original request with new token');
+          console.groupEnd();
           return apiClient(originalRequest);
         }
+        
+        console.log('Token refresh response did not contain new tokens');
+        console.groupEnd();
       } catch (refreshError) {
         console.error('Token refresh failed:', refreshError);
         // Refresh token failed, redirect to login
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('isAuthenticated');
-        localStorage.removeItem('userId');
         localStorage.removeItem(AUTH_TOKEN_KEY);
         localStorage.removeItem(REFRESH_TOKEN_KEY);
+        localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('userId');
+        console.groupEnd();
         window.location.href = '/auth';
         return Promise.reject(refreshError);
       }

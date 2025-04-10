@@ -3,6 +3,67 @@
  * Helps detect and recover from authentication issues
  */
 
+// IMPORTANT: Use ONLY these constants for token management - DO NOT USE FALLBACKS
+const AUTH_TOKEN_KEY = 'accessToken';
+const REFRESH_TOKEN_KEY = 'refreshToken';
+
+/**
+ * Debug function to decode and display JWT token contents
+ */
+function debugJwtToken(tokenName: string, token: string | null): void {
+  console.group(`🔍 DEBUG: ${tokenName} Contents`);
+  
+  if (!token) {
+    console.log('Token is null or empty');
+    console.groupEnd();
+    return;
+  }
+  
+  // Remove Bearer prefix if present
+  const tokenValue = token.startsWith('Bearer ') ? token.substring(7) : token;
+  
+  try {
+    // Split token into parts
+    const parts = tokenValue.split('.');
+    if (parts.length !== 3) {
+      console.log('Invalid JWT format - should have 3 parts');
+      console.groupEnd();
+      return;
+    }
+    
+    // Decode the payload (middle part)
+    const payload = JSON.parse(atob(parts[1]));
+    
+    console.log('Raw token (first 15 chars):', tokenValue.substring(0, 15) + '...');
+    console.log('Decoded payload:', {
+      sub: payload.sub,         // User ID
+      type: payload.type,       // Token type (access, refresh)
+      exp: payload.exp,         // Expiration timestamp
+      iat: payload.iat,         // Issued at timestamp
+      expiresIn: payload.exp ? new Date(payload.exp * 1000).toISOString() : 'No expiry'
+    });
+    
+    // Calculate expiration
+    if (payload.exp) {
+      const expiresAt = new Date(payload.exp * 1000);
+      const now = new Date();
+      const timeLeft = (expiresAt.getTime() - now.getTime()) / 1000;
+      
+      console.log('Expiration:', {
+        expiresAt: expiresAt.toISOString(),
+        now: now.toISOString(),
+        timeLeftSeconds: Math.floor(timeLeft),
+        isExpired: timeLeft <= 0
+      });
+    }
+  } catch (error) {
+    console.log('Error decoding token:', error);
+    console.log('Raw token value:', token);
+  }
+  
+  console.groupEnd();
+}
+
 /**
  * Checks if the error is an authentication error
  * @param error Any error object or message
@@ -53,8 +114,8 @@ export async function recoverFromAuthError(errorData: any): Promise<boolean> {
   }
   
   // Check if we have credentials to attempt recovery
-  const hasAccessToken = !!localStorage.getItem('accessToken');
-  const hasRefreshToken = !!localStorage.getItem('refreshToken');
+  const hasAccessToken = !!localStorage.getItem(AUTH_TOKEN_KEY);
+  const hasRefreshToken = !!localStorage.getItem(REFRESH_TOKEN_KEY);
   const hasUserId = !!localStorage.getItem('userId');
   
   console.log('Auth state:', { hasAccessToken, hasRefreshToken, hasUserId });
@@ -67,10 +128,10 @@ export async function recoverFromAuthError(errorData: any): Promise<boolean> {
   
   try {
     // Enhanced debugging - log the actual refresh token (first few chars)
-    const refreshToken = localStorage.getItem('refreshToken');
-    console.log('Refresh token to use (first 10 chars):', refreshToken?.substring(0, 10) + '...');
-    console.log('Is refresh token valid JWT format:', 
-      refreshToken?.match(/^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.[A-Za-z0-9-_.+/=]*$/) ? 'Yes' : 'No');
+    const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+    
+    console.log('Using refresh token for recovery');
+    debugJwtToken('Refresh Token for Recovery', refreshToken);
     
     // Try to refresh the token
     console.log('Making refresh token request to:', '/api/v1/auth/refresh');
@@ -111,15 +172,19 @@ export async function recoverFromAuthError(errorData: any): Promise<boolean> {
       if (data?.accessToken) {
         console.log('Token refresh successful');
         
+        // Log the new tokens
+        debugJwtToken('New Access Token', data.accessToken);
+        debugJwtToken('New Refresh Token', data.refreshToken);
+        
         // Ensure token is in Bearer format
         const token = data.accessToken.startsWith('Bearer ') ? 
           data.accessToken : 
           `Bearer ${data.accessToken}`;
           
-        localStorage.setItem('accessToken', token);
+        localStorage.setItem(AUTH_TOKEN_KEY, token);
         
         if (data.refreshToken) {
-          localStorage.setItem('refreshToken', data.refreshToken);
+          localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
         }
         
         // Set isAuthenticated flag to maintain consistency
@@ -157,31 +222,6 @@ export async function recoverFromAuthError(errorData: any): Promise<boolean> {
 }
 
 /**
- * Function to handle authentication errors in components
- * Checks for auth errors and redirects to login if needed
- */
-/**
- * Ensures token has proper Bearer prefix format
- * Updates localStorage if needed
- * @returns The formatted token or null if no token exists
- */
-export function ensureProperTokenFormat(): string | null {
-  const accessToken = localStorage.getItem('accessToken');
-  
-  if (!accessToken) return null;
-  
-  // Check if token already has Bearer prefix
-  if (!accessToken.startsWith('Bearer ')) {
-    const formattedToken = `Bearer ${accessToken}`;
-    localStorage.setItem('accessToken', formattedToken);
-    console.log('ensureProperTokenFormat: Fixed token format to include Bearer prefix');
-    return formattedToken;
-  }
-  
-  return accessToken;
-}
-
-/**
  * Completely reset the auth state to clean slate
  * This will clear all auth-related data from localStorage
  */
@@ -191,18 +231,14 @@ export function resetAuthState(): void {
   // Save email for convenience
   const email = localStorage.getItem('email');
   
-  // Clear ALL auth state
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
+  // Clear ALL auth state - Use consistent key names
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
   localStorage.removeItem('userId');
   localStorage.removeItem('isAuthenticated');
   localStorage.removeItem('auth_redirect_in_progress');
   localStorage.removeItem('token_expired');
   localStorage.removeItem('auth_state');
-  
-  // Other potential tokens that might be stored
-  localStorage.removeItem('nifya_auth_token');
-  localStorage.removeItem('nifya_refresh_token');
   
   // Restore email for login convenience
   if (email) {
@@ -244,11 +280,6 @@ export function handleAuthErrorWithUI(error: any): boolean {
   return true;
 }
 
-/**
- * Wraps a function to automatically handle auth errors
- * @param fn The function to wrap
- * @returns A wrapped function that attempts to recover from auth errors
- */
 /**
  * Function to check if a URL is a public path that doesn't require authentication
  */
@@ -316,8 +347,18 @@ export function verifyAuthHeaders(): void {
   }
   
   // Check token format
-  const accessToken = localStorage.getItem('accessToken');
+  const accessToken = localStorage.getItem(AUTH_TOKEN_KEY);
   const userId = localStorage.getItem('userId');
+  
+  console.group('🔒 Verifying Auth Headers');
+  console.log('Current auth state:', {
+    isAuthenticated,
+    hasAccessToken: !!accessToken,
+    hasUserId: !!userId
+  });
+  
+  // Debug the token
+  debugJwtToken('Current Access Token', accessToken);
   
   // Handle missing token with auth flag set
   if (!accessToken && isAuthenticated) {
@@ -328,7 +369,7 @@ export function verifyAuthHeaders(): void {
   // Ensure token has Bearer prefix
   if (accessToken && !accessToken.startsWith('Bearer ')) {
     const formattedToken = `Bearer ${accessToken}`;
-    localStorage.setItem('accessToken', formattedToken);
+    localStorage.setItem(AUTH_TOKEN_KEY, formattedToken);
     console.log('verifyAuthHeaders: Fixed token format to include Bearer prefix');
   }
   
@@ -349,6 +390,8 @@ export function verifyAuthHeaders(): void {
       console.error('Failed to extract userId from token:', err);
     }
   }
+  
+  console.groupEnd();
 }
 
 export function withAuthRecovery<T, Args extends any[]>(
