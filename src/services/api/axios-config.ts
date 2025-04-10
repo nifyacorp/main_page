@@ -163,99 +163,26 @@ apiClient.interceptors.response.use(
     
     const typedRequest = originalRequest as ExtendedAxiosRequestConfig;
     
-    // Handle 401 errors (unauthorized) by attempting token refresh
+    // Handle 401 errors (unauthorized) by redirecting to login
     if (error.response?.status === 401 && !typedRequest._retry) {
-      console.group('🔄 Auth Error - Attempting Token Refresh');
+      console.group('🔄 Auth Error - Redirecting to Login');
       console.log('Auth error detected in fetch response:', error.response?.data);
-      typedRequest._retry = true;
       
-      try {
-        // IMPORTANT: Only use the primary refresh token key
-        const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
-        
-        console.log('Using refresh token to get new access token');
-        debugJwtToken('Refresh Token', refreshToken);
-        
-        if (!refreshToken) {
-          // No refresh token, user needs to login again
-          console.log('No refresh token available, redirecting to login');
-          localStorage.removeItem(AUTH_TOKEN_KEY);
-          localStorage.removeItem(REFRESH_TOKEN_KEY);
-          localStorage.removeItem('isAuthenticated');
-          localStorage.removeItem('userId');
-          console.groupEnd();
-          window.location.href = '/auth';
-          return Promise.reject(error);
-        }
-        
-        // Call refresh token endpoint using the AUTH_URL
-        const response = await axios.post(`${AUTH_URL}/v1/auth/refresh`, {
-          refreshToken, // This is the parameter name expected by the auth service
-        });
-        
-        console.log('Token refresh response status:', response.status);
-        console.log('Token refresh response data:', 
-          response.data ? 
-          { hasToken: !!response.data.accessToken || !!response.data.token } : 
-          'No data');
-        
-        if (response.data.token || response.data.accessToken) {
-          // Get the new token
-          let newToken = response.data.token || response.data.accessToken;
-          const newRefreshToken = response.data.refreshToken;
-          
-          console.log('Received new tokens from auth service');
-          debugJwtToken('New Access Token', newToken);
-          debugJwtToken('New Refresh Token', newRefreshToken);
-          
-          // Ensure token has Bearer prefix
-          if (newToken && !newToken.startsWith('Bearer ')) {
-            newToken = `Bearer ${newToken}`;
-          }
-          
-          // Store tokens using ONLY the primary keys
-          localStorage.setItem(AUTH_TOKEN_KEY, newToken);
-          
-          if (newRefreshToken) {
-            localStorage.setItem(REFRESH_TOKEN_KEY, newRefreshToken);
-          }
-          
-          localStorage.setItem('isAuthenticated', 'true');
-          
-          // Try to extract user ID from token if possible
-          try {
-            const [, payload] = newToken.replace('Bearer ', '').split('.');
-            if (payload) {
-              const decodedPayload = JSON.parse(atob(payload));
-              if (decodedPayload.sub) {
-                console.log('Updated user ID from refreshed token:', decodedPayload.sub);
-                localStorage.setItem('userId', decodedPayload.sub);
-              }
-            }
-          } catch (err) {
-            console.error('Failed to extract user ID from refreshed token:', err);
-          }
-          
-          // Update authorization header and retry original request
-          apiClient.defaults.headers.common['Authorization'] = newToken;
-          console.log('Retrying original request with new token');
-          console.groupEnd();
-          return apiClient(originalRequest);
-        }
-        
-        console.log('Token refresh response did not contain new tokens');
-        console.groupEnd();
-      } catch (refreshError) {
-        console.error('Token refresh failed:', refreshError);
-        // Refresh token failed, redirect to login
-        localStorage.removeItem(AUTH_TOKEN_KEY);
-        localStorage.removeItem(REFRESH_TOKEN_KEY);
-        localStorage.removeItem('isAuthenticated');
-        localStorage.removeItem('userId');
-        console.groupEnd();
-        window.location.href = '/auth';
-        return Promise.reject(refreshError);
-      }
+      // No token refresh - just redirect to login
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
+      localStorage.removeItem('isAuthenticated');
+      localStorage.removeItem('userId');
+      
+      // Set flag to indicate token expired
+      localStorage.setItem('token_expired', 'true');
+      
+      console.log('Redirecting to login page due to auth error');
+      console.groupEnd();
+      
+      // Redirect to login page
+      window.location.href = '/auth';
+      return Promise.reject(error);
     }
     
     // Format error for consistent handling across the app

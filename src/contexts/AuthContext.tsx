@@ -95,7 +95,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const logout = useCallback(() => {
     console.log('AuthContext: Logging out user');
     localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('userId');
     // Keep email for convenience
@@ -143,13 +142,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         let accessToken = localStorage.getItem('accessToken');
         let userId = localStorage.getItem('userId');
         const userEmail = localStorage.getItem('email');
-        const refreshToken = localStorage.getItem('refreshToken');
         
         console.log('AuthContext: Checking auth state', { 
           isAuthenticated, 
           hasAccessToken: !!accessToken,
-          hasRefreshToken: !!refreshToken,
-          refreshTokenPreview: refreshToken ? `${refreshToken.substring(0, 5)}...` : 'none',
           userId,
           email: userEmail
         });
@@ -157,9 +153,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         // Log token contents for debugging
         if (accessToken) {
           debugJwtToken('Stored Access Token', accessToken);
-        }
-        if (refreshToken) {
-          debugJwtToken('Stored Refresh Token', refreshToken);
         }
         
         // Fix token format if needed - ensure it has Bearer prefix
@@ -198,7 +191,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               } else {
                 console.error('AuthContext: Failed to load user profile, logging out.', response.error);
                 console.log('📝 DEBUG: Profile fetch failed - accessToken:', accessToken ? accessToken.substring(0, 15) + '...' : 'null');
-                console.log('📝 DEBUG: Profile fetch failed - refreshToken exists?', !!refreshToken);
                 setAuthError('Failed to load user profile. Please try logging in again.');
                 logout(); // Log out if profile fetch fails
               }
@@ -206,7 +198,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           } catch (apiError) {
             console.error('AuthContext: Error fetching user profile during initial check:', apiError);
             console.log('📝 DEBUG: Profile fetch exception - accessToken:', accessToken ? accessToken.substring(0, 15) + '...' : 'null');
-            console.log('📝 DEBUG: Profile fetch exception - refreshToken exists?', !!refreshToken);
             if (isMounted) {
               setAuthError('An error occurred while verifying your session. Please try logging in again.');
               logout(); // Log out on critical API error
@@ -272,14 +263,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
       } catch (tokenError) {
         console.error('Failed to extract userId from login token:', tokenError);
-      }
-      
-      // Check if refresh token is present in localStorage
-      const refreshToken = localStorage.getItem('refreshToken');
-      console.log('📝 DEBUG: Refresh token in localStorage after login:', refreshToken ? `${refreshToken.substring(0, 5)}...` : 'not found');
-      
-      if (refreshToken) {
-        debugJwtToken('Login Refresh Token', refreshToken);
       }
       
       // Set user information immediately based on token (temporary)

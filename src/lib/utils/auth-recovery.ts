@@ -8,6 +8,28 @@ const AUTH_TOKEN_KEY = 'accessToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';
 
 /**
+ * Ensures the access token has the proper Bearer format
+ * @returns true if a fix was applied, false if no change was needed
+ */
+export function ensureProperTokenFormat(): boolean {
+  const accessToken = localStorage.getItem(AUTH_TOKEN_KEY);
+  
+  if (!accessToken) {
+    return false;
+  }
+  
+  // If token doesn't have Bearer prefix, add it
+  if (!accessToken.startsWith('Bearer ')) {
+    const formattedToken = `Bearer ${accessToken}`;
+    localStorage.setItem(AUTH_TOKEN_KEY, formattedToken);
+    console.log('ensureProperTokenFormat: Fixed token format to include Bearer prefix');
+    return true;
+  }
+  
+  return false;
+}
+
+/**
  * Debug function to decode and display JWT token contents
  */
 function debugJwtToken(tokenName: string, token: string | null): void {
@@ -103,7 +125,7 @@ export function isAuthError(error: any): boolean {
  */
 export async function recoverFromAuthError(errorData: any): Promise<boolean> {
   console.group('🔐 Auth Recovery');
-  console.log('Attempting to recover from auth error:', errorData);
+  console.log('Authentication error detected:', errorData);
   
   const isAuthRelated = isAuthError(errorData);
   
@@ -113,112 +135,19 @@ export async function recoverFromAuthError(errorData: any): Promise<boolean> {
     return false;
   }
   
-  // Check if we have credentials to attempt recovery
-  const hasAccessToken = !!localStorage.getItem(AUTH_TOKEN_KEY);
-  const hasRefreshToken = !!localStorage.getItem(REFRESH_TOKEN_KEY);
-  const hasUserId = !!localStorage.getItem('userId');
+  console.log('Auth error requires re-login');
   
-  console.log('Auth state:', { hasAccessToken, hasRefreshToken, hasUserId });
+  // Reset auth state
+  resetAuthState();
   
-  if (!hasRefreshToken) {
-    console.log('No refresh token available, cannot recover');
-    console.groupEnd();
-    return false;
-  }
+  // Set flag for UI notification
+  localStorage.setItem('token_expired', 'true');
   
-  try {
-    // Enhanced debugging - log the actual refresh token (first few chars)
-    const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
-    
-    console.log('Using refresh token for recovery');
-    debugJwtToken('Refresh Token for Recovery', refreshToken);
-    
-    // Try to refresh the token
-    console.log('Making refresh token request to:', '/api/v1/auth/refresh');
-    const response = await fetch('/api/v1/auth/refresh', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ 
-        refreshToken
-      })
-    });
-    
-    console.log('Refresh token response status:', response.status);
-    
-    if (!response.ok) {
-      console.log('Token refresh failed with status:', response.status);
-      
-      // Try to get error details
-      try {
-        const errorData = await response.json();
-        console.error('Refresh token error details:', errorData);
-      } catch (e) {
-        console.log('No JSON error body available');
-      }
-      
-      console.groupEnd();
-      return false;
-    }
-    
-    try {
-      const data = await response.json();
-      console.log('Refresh token response:', { 
-        success: !!data?.accessToken,
-        hasRefreshToken: !!data?.refreshToken
-      });
-      
-      if (data?.accessToken) {
-        console.log('Token refresh successful');
-        
-        // Log the new tokens
-        debugJwtToken('New Access Token', data.accessToken);
-        debugJwtToken('New Refresh Token', data.refreshToken);
-        
-        // Ensure token is in Bearer format
-        const token = data.accessToken.startsWith('Bearer ') ? 
-          data.accessToken : 
-          `Bearer ${data.accessToken}`;
-          
-        localStorage.setItem(AUTH_TOKEN_KEY, token);
-        
-        if (data.refreshToken) {
-          localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
-        }
-        
-        // Set isAuthenticated flag to maintain consistency
-        localStorage.setItem('isAuthenticated', 'true');
-        
-        // Extract and store user ID from token if possible
-        try {
-          const [, payload] = token.replace('Bearer ', '').split('.');
-          if (payload) {
-            const decodedPayload = JSON.parse(atob(payload));
-            if (decodedPayload.sub) {
-              console.log('Updated user ID from refreshed token:', decodedPayload.sub);
-              localStorage.setItem('userId', decodedPayload.sub);
-            }
-          }
-        } catch (err) {
-          console.error('Failed to extract user ID from refreshed token:', err);
-        }
-        
-        console.groupEnd();
-        return true;
-      }
-    } catch (parseError) {
-      console.error('Error parsing token refresh response:', parseError);
-    }
-    
-    console.log('Token refresh failed - invalid response');
-    console.groupEnd();
-    return false;
-  } catch (error) {
-    console.error('Error during auth recovery:', error);
-    console.groupEnd();
-    return false;
-  }
+  // No recovery possible without refresh tokens
+  console.log('Auth session expired, redirecting to login');
+  console.groupEnd();
+  
+  return false;
 }
 
 /**
