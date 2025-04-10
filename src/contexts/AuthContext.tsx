@@ -265,35 +265,60 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       localStorage.setItem('accessToken', formattedToken);
       localStorage.setItem('isAuthenticated', 'true');
       
-      // Try to extract user ID from token
+      // Extract user ID and email from token - CRITICAL for backend communication
       console.log('🔍 AuthContext.tsx: Extracting user data from token');
       let userId = null;
       let email = null;
+      let userName = null;
+      
       try {
         const tokenParts = formattedToken.replace('Bearer ', '').split('.');
         if (tokenParts.length >= 2) {
           const payload = JSON.parse(atob(tokenParts[1]));
+          console.log('Decoded token payload:', payload);
+          
+          // Extract user ID (sub claim)
           if (payload.sub) {
             userId = payload.sub;
             localStorage.setItem('userId', payload.sub);
             console.log('AuthContext: Extracted userId from token:', userId);
+          } else {
+            console.warn('Token payload does not contain sub (user ID) claim');
           }
+          
+          // Extract email
           if (payload.email) {
             email = payload.email;
             localStorage.setItem('email', payload.email);
             console.log('AuthContext: Extracted email from token:', email);
           }
+          
+          // Extract name if available
+          if (payload.name) {
+            userName = payload.name;
+            console.log('AuthContext: Extracted name from token:', userName);
+          }
         }
       } catch (tokenError) {
-        console.error('Failed to extract userId from login token:', tokenError);
+        console.error('Failed to extract data from login token:', tokenError);
+      }
+      
+      if (!userId) {
+        console.warn('Could not extract user ID from token. This will cause backend authentication issues.');
       }
       
       // Set user information immediately based on token (temporary)
       console.log('🔍 AuthContext.tsx: Setting temporary user data from token');
       const tempUser: User = {
         id: userId || 'unknown-id',
-        email: email || 'unknown-email'
+        email: email || 'unknown-email',
       };
+      
+      // Add name if available
+      if (userName) {
+        tempUser.name = userName;
+      }
+      
       setUser(tempUser);
       console.log('AuthContext: Set temporary user data from token', tempUser);
       

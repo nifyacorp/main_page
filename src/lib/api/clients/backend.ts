@@ -9,6 +9,34 @@ import {
   USER_ID_HEADER
 } from '../../constants/headers';
 
+/**
+ * Safely extracts user ID from JWT token
+ * @param token - JWT token string (with or without Bearer prefix)
+ * @returns User ID (sub claim) or null if extraction fails
+ */
+function extractUserIdFromToken(token: string | null): string | null {
+  if (!token) return null;
+  
+  try {
+    // Remove Bearer prefix if present
+    const tokenWithoutBearer = token.replace(/^Bearer\s+/i, '');
+    const tokenParts = tokenWithoutBearer.split('.');
+    
+    if (tokenParts.length >= 2) {
+      // Decode payload (middle part)
+      const payload = tokenParts[1];
+      const decoded = JSON.parse(atob(payload));
+      
+      // Return user ID from sub claim
+      return decoded?.sub || null;
+    }
+  } catch (error) {
+    console.error('Error extracting user ID from token:', error);
+  }
+  
+  return null;
+}
+
 interface RequestConfig {
   endpoint: string;
   method?: string;
@@ -330,7 +358,47 @@ export async function backendClient<T>({
       // >>> Read latest tokens right before constructing headers <<<
       console.log('🔍 backend.ts: Reading auth tokens from localStorage');
       let currentAccessToken = localStorage.getItem('accessToken');
-      const currentUserId = localStorage.getItem('userId');
+      let currentUserId = localStorage.getItem('userId');
+      
+      // CRITICAL: Ensure userId is always extracted from the token
+      // This fixes the root cause of the authentication issues with the backend
+      if (currentAccessToken && (!currentUserId || currentUserId.includes('invalid') || currentUserId.includes('error'))) {
+        console.log('🔒 Extracting user ID directly from token to ensure x-user-id header is correct');
+        // Only process valid tokens
+        if (typeof currentAccessToken === 'string') {
+          try {
+            // Parse token to extract userId/sub claim
+            const tokenStr = currentAccessToken;
+            const tokenParts = tokenStr.replace(/^Bearer\s+/i, '').split('.');
+            if (tokenParts.length >= 2) {
+              const payload = tokenParts[1];
+              // Base64 decode and parse as JSON
+              const decodedPayload = JSON.parse(atob(payload));
+              
+              if (decodedPayload.sub) {
+                console.log('Successfully extracted user ID from token:', decodedPayload.sub);
+                currentUserId = decodedPayload.sub;
+                localStorage.setItem('userId', currentUserId);
+              } else {
+                console.error('Token payload does not contain sub field:', decodedPayload);
+                // Set a flag that there's an authentication issue
+                localStorage.setItem('auth_issue_detected', 'missing_user_id');
+              }
+            }
+          } catch (err) {
+            console.error('Failed to extract user ID from token:', err);
+            // Set a flag that there's an authentication issue
+            localStorage.setItem('auth_issue_detected', 'token_parsing_error');
+          }
+        }
+      }
+      
+      // If we still don't have a user ID, this is a serious issue - log it prominently
+      if (!currentUserId && currentAccessToken) {
+        console.error('⚠️ WARNING: No valid user ID available for authenticated request!');
+        console.error('This will cause backend authentication to fail.');
+        console.error('Token is present but user ID is missing.');
+      }
       
       // Add authentication headers using our utility function
       // Ensure token has Bearer prefix

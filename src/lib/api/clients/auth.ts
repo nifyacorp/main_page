@@ -131,6 +131,12 @@ export async function authClient<T>({
               console.log('Extracted user ID from token:', decodedPayload.sub);
               localStorage.setItem('userId', decodedPayload.sub);
               
+              // CRITICAL: Log this explicitly to verify 
+              console.log('🔒 Stored user ID from token - this is REQUIRED for backend authentication', {
+                userId: decodedPayload.sub,
+                token: token.substring(0, 15) + '...'
+              });
+              
               // Store email if available in token
               if (decodedPayload.email) {
                 console.log('Extracted email from token:', decodedPayload.email);

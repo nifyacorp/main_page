@@ -1,9 +1,10 @@
-import React, { lazy, Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import React, { lazy, Suspense, useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Bell, ClipboardCheck, PieChart } from 'lucide-react';
 import ErrorBoundary from './components/ErrorBoundary';
 import AuthErrorHandler from './components/App';
-import Auth from './pages/Auth';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
 import Subscriptions from './pages/Subscriptions';
 import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
@@ -35,6 +36,27 @@ const checkIsAuthenticated = () => {
 
 // Moved to src/data/landingContent.ts
 // ... existing code ...
+
+// Create a component to handle auth route redirection
+const AuthRedirect = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const mode = searchParams.get('mode');
+    navigate(mode === 'signup' ? '/signup' : '/login', { replace: true });
+  }, [location.search, navigate]);
+  
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="text-center">
+        <h2 className="text-xl font-medium mb-2">Redirigiendo...</h2>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+      </div>
+    </div>
+  );
+};
 
 export default function App() {
   try {
@@ -70,9 +92,9 @@ export default function App() {
                           </ErrorBoundary>
                         }
                       />
-                      <Route path="/auth" element={<Auth />} />
-                      {/* Redirect /login to /auth to prevent infinite loops */}
-                      <Route path="/login" element={<Navigate to="/auth" replace />} />
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/signup" element={<Signup />} />
+                      <Route path="/auth" element={<AuthRedirect />} />
                       
                       {/* Protected routes with lazy loaded components */}
                       <Route path="/dashboard" element={
