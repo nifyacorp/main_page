@@ -7,14 +7,15 @@ import { validateWithZod } from '../../utils/validation';
 export interface SubscriptionType {
   id: string;
   name: string;
+  display_name: string;
   description: string;
-  type: string;
-  defaultPrompts: string[];
-  icon?: string;
-  category?: string;
-  metadata?: Record<string, any>;
+  icon: string;
+  parser_url?: string;
+  logo_url?: string;
+  is_system: boolean;
   created_at: string;
   updated_at: string;
+  metadata?: Record<string, any>;
 }
 
 export interface SubscriptionTypesResponse {

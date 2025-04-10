@@ -65,20 +65,29 @@ export default function SubscriptionTypeSelector({ onSelect, selectedTypeId }: S
         >
           <div className="flex items-center mb-2">
             {type.icon && (
-              <img src={type.icon} alt={type.name} className="w-6 h-6 mr-2" />
+              <img 
+                src={type.logo_url || type.icon} 
+                alt={type.display_name || type.name} 
+                className="w-6 h-6 mr-2" 
+              />
             )}
-            <h3 className="text-lg font-medium">{type.name}</h3>
+            <h3 className="text-lg font-medium">{type.display_name || type.name}</h3>
+            {type.is_system && (
+              <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full">
+                System
+              </span>
+            )}
           </div>
           <p className="text-gray-600 text-sm">{type.description}</p>
-          {type.defaultPrompts && type.defaultPrompts.length > 0 && (
+          {type.metadata?.default_prompts && Array.isArray(type.metadata.default_prompts) && type.metadata.default_prompts.length > 0 && (
             <div className="mt-2">
               <span className="text-xs text-gray-500">Default prompts:</span>
               <ul className="mt-1 list-disc pl-5 text-xs text-gray-600">
-                {type.defaultPrompts.slice(0, 2).map((prompt, idx) => (
+                {type.metadata.default_prompts.slice(0, 2).map((prompt, idx) => (
                   <li key={idx}>{prompt}</li>
                 ))}
-                {type.defaultPrompts.length > 2 && (
-                  <li>+{type.defaultPrompts.length - 2} more</li>
+                {type.metadata.default_prompts.length > 2 && (
+                  <li>+{type.metadata.default_prompts.length - 2} more</li>
                 )}
               </ul>
             </div>

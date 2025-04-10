@@ -6,51 +6,35 @@ export interface Subscription {
   id: string;
   name: string;
   description?: string;
-  source: string;
-  keywords: string[];
-  categories?: string[];
-  frequency: 'realtime' | 'daily' | 'weekly' | 'monthly' | 'immediate';
-  notificationType?: 'email' | 'push' | 'both';
-  filters?: {
-    includePatterns?: string[];
-    excludePatterns?: string[];
-    dateRange?: {
-      start?: string;
-      end?: string;
-    };
-  };
-  isActive: boolean;
-  userId: string;
-  createdAt: string;
-  updatedAt: string;
-  prompts?: string[];
+  type_id: string;
+  type_name?: string;
+  type_icon?: string;
+  user_id: string;
+  prompts: string[];
+  frequency: 'immediate' | 'daily';
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+  metadata?: Record<string, any>;
 }
 
 export interface SubscriptionFormData {
   name: string;
   description?: string;
-  source: string;
-  keywords: string[];
-  categories?: string[];
-  frequency: 'realtime' | 'daily' | 'weekly' | 'monthly';
-  notificationType: 'email' | 'push' | 'both';
-  filters?: {
-    includePatterns?: string[];
-    excludePatterns?: string[];
-    dateRange?: {
-      start?: string;
-      end?: string;
-    };
-  };
+  type_id: string; 
+  prompts: string[];
+  frequency: 'immediate' | 'daily';
+  active?: boolean;
+  metadata?: Record<string, any>;
 }
 
 export interface SubscriptionListParams {
   page?: number;
   limit?: number;
   search?: string;
-  source?: string;
+  type_id?: string;
   frequency?: string;
-  isActive?: boolean;
+  active?: boolean;
   sort?: string;
 }
 
@@ -127,9 +111,9 @@ class SubscriptionService {
       
       // Modify params: map 'isActive' to 'status'
       const apiParams = { ...params };
-      if (apiParams.isActive !== undefined) {
-        apiParams.status = apiParams.isActive ? 'active' : 'inactive';
-        delete apiParams.isActive;
+      if (apiParams.active !== undefined) {
+        apiParams.status = apiParams.active ? 'active' : 'inactive';
+        delete apiParams.active;
       }
       
       // Get subscription list from API
@@ -412,15 +396,16 @@ class SubscriptionService {
               id: `mock-${source.toLowerCase()}-${i}`,
               name: `${source} Subscription ${i+1}`,
               description: `This is a mock subscription created from stats data (${source})`,
-              source: source,
+              type_id: source,
+              type_name: source,
+              type_icon: '',
+              user_id: "current-user",
               prompts: [`${source} terms`, 'Example prompt'],
-              keywords: [`${source} terms`, 'Example prompt'],
               frequency: Object.keys(frequencies)[i % Object.keys(frequencies).length] as 'immediate' | 'daily',
-              notificationType: 'email',
-              isActive: true,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-              userId: "current-user"
+              active: true,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              metadata: {}
             });
           }
         }
@@ -512,15 +497,12 @@ class SubscriptionService {
       const formattedData = {
         name: data.name,
         description: data.description || '',
-        // Map source to type field for backend compatibility
-        type: data.source.toLowerCase(),
-        typeId: data.typeId,
-        prompts: Array.isArray(data.keywords) ? data.keywords : [data.keywords],
+        type_id: data.type_id,
+        prompts: Array.isArray(data.prompts) ? data.prompts : [data.prompts],
         logo: data.logo || 'https://nifya.com/assets/logo.png',
-        frequency: data.frequency === 'realtime' ? 'immediate' : 
-                   data.frequency.toLowerCase() === 'weekly' ? 'daily' : 
-                   data.frequency.toLowerCase() === 'monthly' ? 'daily' : 
-                   data.frequency.toLowerCase()
+        frequency: data.frequency === 'immediate' ? 'immediate' : 'daily',
+        active: data.active || true,
+        metadata: data.metadata || {}
       };
 
       console.log('Formatted subscription data for API:', formattedData);
@@ -561,11 +543,10 @@ class SubscriptionService {
       const formattedData = {
         name: data.name,
         description: data.description || '',
-        prompts: Array.isArray(data.keywords) ? data.keywords : [data.keywords],
-        frequency: data.frequency === 'realtime' ? 'immediate' : 
-                 data.frequency.toLowerCase() === 'weekly' ? 'daily' : 
-                 data.frequency.toLowerCase() === 'monthly' ? 'daily' : 
-                 data.frequency.toLowerCase(),
+        prompts: Array.isArray(data.prompts) ? data.prompts : [data.prompts],
+        frequency: data.frequency === 'immediate' ? 'immediate' : 'daily',
+        active: data.active || true,
+        metadata: data.metadata || {}
       };
       
       // Use PUT instead of PATCH to comply with API standards

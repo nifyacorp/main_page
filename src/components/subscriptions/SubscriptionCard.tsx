@@ -17,16 +17,21 @@ import {
 import { cn } from '../../lib/utils';
 import { buttonVariants } from '../ui/button';
 
-// Define the structure of a subscription object based on usage in Subscriptions.tsx
+// Define the structure of a subscription object based on the new database schema
 interface Subscription {
   id: string;
   name: string;
   description?: string;
-  isActive: boolean;
-  source: string;
-  keywords?: string[];
-  prompts?: string[]; // Handle both keywords and prompts
-  frequency: 'realtime' | 'immediate' | 'daily' | 'weekly' | 'monthly' | string; // Allow string for flexibility
+  type_id: string;
+  type_name?: string;
+  type_icon?: string;
+  user_id: string;
+  prompts: string[];
+  frequency: 'immediate' | 'daily';
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+  metadata?: Record<string, any>;
 }
 
 interface SubscriptionCardProps {
@@ -50,20 +55,16 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
   onDelete,
   onConfirmDelete,
 }) => {
-  const keywords = subscription.keywords || subscription.prompts || [];
-  const frequencyText = 
-    subscription.frequency === 'realtime' || subscription.frequency === 'immediate' ? 'Tiempo real' :
-    subscription.frequency === 'daily' ? 'Diaria' :
-    subscription.frequency === 'weekly' ? 'Semanal' :
-    subscription.frequency === 'monthly' ? 'Mensual' : subscription.frequency; // Fallback to raw value
+  const keywords = subscription.prompts || [];
+  const frequencyText = subscription.frequency === 'immediate' ? 'Tiempo real' : 'Diaria';
 
   return (
     <Card className="overflow-hidden flex flex-col h-full">
       <CardHeader className="pb-2">
         <div className="flex flex-wrap justify-between items-start mb-2 gap-1">
           <div className="flex gap-1 items-center flex-wrap">
-            <Badge variant={subscription.isActive ? "default" : "outline"}>
-              {subscription.isActive ? "Activa" : "Inactiva"}
+            <Badge variant={subscription.active ? "default" : "outline"}>
+              {subscription.active ? "Activa" : "Inactiva"}
             </Badge>
             {emailNotificationsEnabled && (
               <Badge variant="outline" className="bg-primary/10 text-xs flex items-center gap-1">
@@ -72,7 +73,7 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
               </Badge>
             )}
           </div>
-          <Badge variant="secondary" className="flex-shrink-0">{subscription.source}</Badge>
+          <Badge variant="secondary" className="flex-shrink-0">{subscription.type_name}</Badge>
         </div>
         <Link to={`/subscriptions/${subscription.id}`}>
           <CardTitle className="text-lg hover:text-primary transition-colors line-clamp-2">

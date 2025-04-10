@@ -55,37 +55,11 @@ import { SubscriptionType } from '../../lib/api/services/subscription-types';
 const formSchema = z.object({
   name: z.string().min(3, { message: 'Name must be at least 3 characters' }).max(50, { message: 'Name must be less than 50 characters' }),
   description: z.string().min(5, { message: 'Description must be at least 5 characters' }).max(200, { message: 'Description must be less than 200 characters' }),
-  source: z.enum(['BOE', 'DOGA']),
-  keywords: z.array(z.string()).min(1, { message: 'At least one keyword is required' }),
-  frequency: z.enum(['Instant', 'Daily', 'Weekly']),
-  notificationType: z.enum(['email', 'webapp', 'both']).default('both'),
-  emailNotifications: z.boolean().default(true),
-  categories: z.array(z.string()).optional().default([]),
-  advancedFilters: z.object({
-    includeRegions: z.array(z.string()).optional().default([]),
-    excludeSections: z.array(z.string()).optional().default([]),
-    dateRange: z.object({
-      enabled: z.boolean().default(false),
-      startDate: z.string().optional().default(''),
-      endDate: z.string().optional().default(''),
-    }).optional().default({ enabled: false, startDate: '', endDate: '' }),
-  }).optional().default({
-    includeRegions: [],
-    excludeSections: [],
-    dateRange: { enabled: false, startDate: '', endDate: '' },
-  }),
-  filters: z.object({
-    includePatterns: z.array(z.string()).optional().default([]),
-    excludePatterns: z.array(z.string()).optional().default([]),
-    dateRange: z.object({
-      start: z.string().optional().default(''),
-      end: z.string().optional().default(''),
-    }).optional().default({ start: '', end: '' }),
-  }).optional().default({
-    includePatterns: [],
-    excludePatterns: [],
-    dateRange: { start: '', end: '' },
-  }),
+  type_id: z.string().min(1, { message: 'Subscription type is required' }),
+  prompts: z.array(z.string()).min(1, { message: 'At least one prompt is required' }),
+  frequency: z.enum(['immediate', 'daily']),
+  active: z.boolean().default(true),
+  metadata: z.record(z.any()).optional().default({})
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -170,37 +144,19 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
     defaultValues: initialData || {
       name: '',
       description: '',
-      source: 'BOE',
-      keywords: [],
-      frequency: 'Instant',
-      notificationType: 'both',
-      emailNotifications: true,
-      categories: [],
-      advancedFilters: {
-        includeRegions: [],
-        excludeSections: [],
-        dateRange: {
-          enabled: false,
-          startDate: '',
-          endDate: '',
-        },
-      },
-      filters: {
-        includePatterns: [],
-        excludePatterns: [],
-        dateRange: {
-          start: '',
-          end: '',
-        },
-      },
+      type_id: '',
+      prompts: [],
+      frequency: 'immediate',
+      active: true,
+      metadata: {}
     },
     mode: 'onChange' // Validate fields on change for immediate feedback
   });
   
   // Set keywords from form values
   useEffect(() => {
-    if (form.getValues('keywords')) {
-      setKeywords(form.getValues('keywords'));
+    if (form.getValues('prompts')) {
+      setKeywords(form.getValues('prompts'));
     }
   }, [form]);
 
@@ -215,7 +171,7 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
     if (keywordInput.trim() && !keywords.includes(keywordInput.trim())) {
       const newKeywords = [...keywords, keywordInput.trim()];
       setKeywords(newKeywords);
-      form.setValue('keywords', newKeywords, { shouldValidate: true });
+      form.setValue('prompts', newKeywords, { shouldValidate: true });
       setKeywordInput('');
     }
   };
@@ -223,7 +179,7 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
   const handleRemoveKeyword = (keyword: string) => {
     const newKeywords = keywords.filter(k => k !== keyword);
     setKeywords(newKeywords);
-    form.setValue('keywords', newKeywords, { shouldValidate: true });
+    form.setValue('prompts', newKeywords, { shouldValidate: true });
   };
   
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -235,10 +191,10 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
 
   const handleAddIncludePattern = () => {
     if (newIncludePattern.trim() !== "") {
-      const currentPatterns = form.getValues("filters.includePatterns") || [];
+      const currentPatterns = form.getValues("metadata.filters.includePatterns") || [];
       if (!currentPatterns.includes(newIncludePattern.trim())) {
         const updatedPatterns = [...currentPatterns, newIncludePattern.trim()];
-        form.setValue("filters.includePatterns", updatedPatterns, { shouldValidate: true });
+        form.setValue("metadata.filters.includePatterns", updatedPatterns, { shouldValidate: true });
       }
       setNewIncludePattern("");
     }
@@ -246,17 +202,17 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
 
   const handleAddExcludePattern = () => {
     if (newExcludePattern.trim() !== "") {
-      const currentPatterns = form.getValues("filters.excludePatterns") || [];
+      const currentPatterns = form.getValues("metadata.filters.excludePatterns") || [];
       if (!currentPatterns.includes(newExcludePattern.trim())) {
         const updatedPatterns = [...currentPatterns, newExcludePattern.trim()];
-        form.setValue("filters.excludePatterns", updatedPatterns, { shouldValidate: true });
+        form.setValue("metadata.filters.excludePatterns", updatedPatterns, { shouldValidate: true });
       }
       setNewExcludePattern("");
     }
   };
 
   const handleRemovePattern = (pattern: string, type: 'include' | 'exclude') => {
-    const field = type === 'include' ? 'filters.includePatterns' : 'filters.excludePatterns';
+    const field = type === 'include' ? 'metadata.filters.includePatterns' : 'metadata.filters.excludePatterns';
     const currentPatterns = form.getValues(field) || [];
     form.setValue(
       field,
@@ -272,23 +228,22 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
     // Update form with template values
     form.setValue('name', type.name, { shouldValidate: true });
     form.setValue('description', type.description, { shouldValidate: true });
-    form.setValue('source', type.type.toUpperCase() as 'BOE' | 'DOGA', { shouldValidate: true });
+    form.setValue('type_id', type.type.toUpperCase() as 'BOE' | 'DOGA', { shouldValidate: true });
     
     // Set keywords from template's default prompts
     if (type.defaultPrompts && type.defaultPrompts.length > 0) {
       setKeywords(type.defaultPrompts);
-      form.setValue('keywords', type.defaultPrompts, { shouldValidate: true });
+      form.setValue('prompts', type.defaultPrompts, { shouldValidate: true });
     }
     
     // Set frequency based on template metadata or default
-    const frequencyMap: Record<string, 'Instant' | 'Daily' | 'Weekly'> = {
-      'immediate': 'Instant',
-      'daily': 'Daily',
-      'weekly': 'Weekly'
+    const frequencyMap: Record<string, 'immediate' | 'daily'> = {
+      'immediate': 'immediate',
+      'daily': 'daily'
     };
     
     const templateFrequency = (type.metadata?.frequency || 'immediate') as string;
-    form.setValue('frequency', frequencyMap[templateFrequency] || 'Instant', { shouldValidate: true });
+    form.setValue('frequency', frequencyMap[templateFrequency] || 'immediate', { shouldValidate: true });
     
     // Move to the basic info tab after selecting a template
     setActiveTab('basic');
@@ -298,7 +253,7 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
     setSubmitError(null);
     
     // Make sure we have at least one keyword
-    if (!data.keywords || data.keywords.length === 0) {
+    if (!data.prompts || data.prompts.length === 0) {
       setSubmitError("At least one keyword is required");
       setActiveTab("basic");
       return;
@@ -309,29 +264,20 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
       const formData = JSON.parse(JSON.stringify(data));
       
       // Ensure all required fields have default values if not provided
-      if (!formData.notificationType) formData.notificationType = 'both';
-      if (!formData.categories) formData.categories = [];
+      if (!formData.active) formData.active = true;
       
       // Ensure nested objects exist
-      if (!formData.filters) {
-        formData.filters = {
+      if (!formData.metadata.filters) {
+        formData.metadata.filters = {
           includePatterns: [],
           excludePatterns: [],
           dateRange: { start: '', end: '' }
         };
       }
       
-      if (!formData.advancedFilters) {
-        formData.advancedFilters = {
-          includeRegions: [],
-          excludeSections: [],
-          dateRange: { enabled: false, startDate: '', endDate: '' }
-        };
-      }
-      
       // Add template ID if one was selected
       if (selectedTypeId) {
-        formData.typeId = selectedTypeId;
+        formData.type_id = selectedTypeId;
       }
       
       if (isEditing && initialData) {
@@ -464,7 +410,7 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
               
               <FormField
                 control={form.control}
-                name="source"
+                name="type_id"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Source</FormLabel>
@@ -495,10 +441,10 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
               />
               
               <div>
-                <FormLabel htmlFor="keywords">Keywords</FormLabel>
+                <FormLabel htmlFor="prompts">Keywords</FormLabel>
                 <div className="flex gap-2 mt-1.5">
                   <Input
-                    id="keywords"
+                    id="prompts"
                     placeholder="Add a keyword"
                     value={keywordInput}
                     onChange={(e) => setKeywordInput(e.target.value)}
@@ -528,9 +474,9 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
                     </Badge>
                   ))}
                 </div>
-                {form.formState.errors.keywords && (
+                {form.formState.errors.prompts && (
                   <p className="text-sm font-medium text-destructive mt-2">
-                    {form.formState.errors.keywords.message?.toString()}
+                    {form.formState.errors.prompts.message?.toString()}
                   </p>
                 )}
               </div>
@@ -554,9 +500,8 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="Instant">Instant (As soon as published)</SelectItem>
-                        <SelectItem value="Daily">Daily Digest</SelectItem>
-                        <SelectItem value="Weekly">Weekly Digest</SelectItem>
+                        <SelectItem value="immediate">Instant (As soon as published)</SelectItem>
+                        <SelectItem value="daily">Daily Digest</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormDescription>
@@ -569,50 +514,7 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
               
               <FormField
                 control={form.control}
-                name="notificationType"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel>Notification Method</FormLabel>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex flex-col space-y-1"
-                      >
-                        <FormItem className="flex items-center space-x-3 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="email" />
-                          </FormControl>
-                          <FormLabel className="font-normal">
-                            Email only
-                          </FormLabel>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-3 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="webapp" />
-                          </FormControl>
-                          <FormLabel className="font-normal">
-                            Web app only
-                          </FormLabel>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-3 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="both" />
-                          </FormControl>
-                          <FormLabel className="font-normal">
-                            Both email and web app
-                          </FormLabel>
-                        </FormItem>
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="emailNotifications"
+                name="active"
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                     <FormControl>
@@ -623,10 +525,10 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
                     </FormControl>
                     <div className="space-y-1 leading-none">
                       <FormLabel>
-                        Include full publication text in emails
+                        Active
                       </FormLabel>
                       <FormDescription>
-                        If unchecked, only a summary with a link will be sent
+                        If unchecked, this subscription will be inactive
                       </FormDescription>
                     </div>
                   </FormItem>
@@ -679,7 +581,7 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
                       
                       <ScrollArea className="h-20 mt-2">
                         <div className="flex flex-wrap gap-2">
-                          {form.getValues("filters.includePatterns")?.map((pattern) => (
+                          {form.getValues("metadata.filters.includePatterns")?.map((pattern) => (
                             <Badge key={pattern} variant="outline" className="p-2">
                               {pattern}
                               <Button
@@ -713,7 +615,7 @@ export function SubscriptionForm({ initialData, isEditing = false }: Subscriptio
                       
                       <ScrollArea className="h-20 mt-2">
                         <div className="flex flex-wrap gap-2">
-                          {form.getValues("filters.excludePatterns")?.map((pattern) => (
+                          {form.getValues("metadata.filters.excludePatterns")?.map((pattern) => (
                             <Badge key={pattern} variant="outline" className="p-2">
                               {pattern}
                               <Button

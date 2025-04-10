@@ -299,7 +299,7 @@ export default function Subscriptions() {
           Crea tu primera subscripción para empezar a recibir notificaciones.
         </p>
         <Button asChild size="lg">
-          <Link to="/subscriptions/new" className="flex items-center gap-2">
+          <Link to="/subscriptions/types" className="flex items-center gap-2">
             <Plus className="h-5 w-5" />
             <span>Crear Subscripción</span>
           </Link>
@@ -385,7 +385,7 @@ export default function Subscriptions() {
         </div>
         <div className="flex gap-2">
           <Button asChild>
-            <Link to="/subscriptions/new" className="flex items-center gap-2">
+            <Link to="/subscriptions/types" className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
               <span>Nueva Subscripción</span>
             </Link>

@@ -21,6 +21,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import Debug from './components/Debug';
 import LoadingPage from './components/LoadingPage';
+import SubscriptionTypes from './pages/SubscriptionTypes';
 
 // Lazy-load the pages
 const LandingPage = lazy(() => import('./pages/Landing'));
@@ -84,14 +85,29 @@ export default function App() {
                           <Subscriptions />
                         </ProtectedRoute>
                       } />
+                      <Route path="/subscriptions/types" element={
+                        <ProtectedRoute>
+                          <SubscriptionTypes />
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/subscriptions/create/:typeId" element={
+                        <ProtectedRoute>
+                          <SubscriptionPrompt mode="create" />
+                        </ProtectedRoute>
+                      } />
                       <Route path="/subscriptions/create" element={
                         <ProtectedRoute>
-                          <NewSubscription />
+                          <Navigate to="/subscriptions/types" replace />
                         </ProtectedRoute>
                       } />
                       <Route path="/subscriptions/new" element={
                         <ProtectedRoute>
-                          <Navigate to="/subscriptions/create" replace />
+                          <Navigate to="/subscriptions/types" replace />
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/subscriptions/catalog" element={
+                        <ProtectedRoute>
+                          <Navigate to="/subscriptions/types" replace />
                         </ProtectedRoute>
                       } />
                       <Route path="/notifications" element={
@@ -105,30 +121,6 @@ export default function App() {
                         </ProtectedRoute>
                       } />
                       <Route path="/auth/google/callback" element={<GoogleCallback />} />
-                      <Route
-                        path="/subscriptions/catalog"
-                        element={
-                          <ProtectedRoute>
-                            <Navigate to="/subscriptions/create" replace />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/subscriptions/create/:typeId"
-                        element={
-                          <ProtectedRoute>
-                            <SubscriptionPrompt mode="create" />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/subscriptions/new/:typeId"
-                        element={
-                          <ProtectedRoute>
-                            <Navigate to={(location) => location.pathname.replace('/new/', '/create/')} replace />
-                          </ProtectedRoute>
-                        }
-                      />
                       <Route
                         path="/subscriptions/:id"
                         element={
