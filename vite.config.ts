@@ -44,7 +44,7 @@ export default defineConfig(({ mode }) => {
         },
         // Proxy auth requests
         '/api/auth': {
-          target: env.VITE_AUTH_URL || 'https://authentication-415554190254.us-central1.run.app',
+          target: env.VITE_AUTH_URL || 'https://authentication-service-415554190254.us-central1.run.app',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api\/auth/, '/api/auth'),
           configure: (proxy, _options) => {
@@ -57,6 +57,9 @@ export default defineConfig(({ mode }) => {
     },
     optimizeDeps: {
       exclude: ['lucide-react'],
+      esbuildOptions: {
+        target: 'es2020'
+      }
     },
     resolve: {
       alias: {
@@ -94,7 +97,16 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks: undefined
         },
-        external: ['/assets/env-config.js'] // Mark env-config.js as external
+        external: ['/assets/env-config.js'], // Mark env-config.js as external
+        onwarn(warning, warn) {
+          // Skip certain warnings
+          if (warning.code === 'MISSING_EXPORT') return;
+          if (warning.code === 'CIRCULAR_DEPENDENCY') return;
+          if (warning.message.includes('Module level directives')) return;
+          
+          // Use default for everything else
+          warn(warning);
+        }
       }
     }
   };
