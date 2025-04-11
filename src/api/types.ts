@@ -69,7 +69,7 @@ export interface RegisterRequest {
 }
 
 export interface AuthResponse {
-  token: string;
+  accessToken: string;
   refreshToken: string;
   user: User;
 }
@@ -107,4 +107,56 @@ export interface TemplatesResponse {
     totalCount: number;
     hasMore: boolean;
   };
+}
+
+// Standard Error Interfaces
+export interface ApiErrorResponse {
+  error: {
+    code: string;
+    message: string;
+    status: number;
+    details?: any;
+    help?: {
+      endpoint_info?: {
+        method: string;
+        auth_required: boolean;
+        description: string;
+      };
+      documentation_url?: string;
+      related_endpoints?: {
+        path: string;
+        methods: string[];
+        description: string;
+      }[];
+    };
+  };
+}
+
+// Error codes matching backend error codes
+export enum ErrorCode {
+  // Authentication errors
+  UNAUTHORIZED = 'UNAUTHORIZED',
+  INVALID_CREDENTIALS = 'INVALID_CREDENTIALS',
+  USER_NOT_FOUND = 'USER_NOT_FOUND',
+  ACCOUNT_LOCKED = 'ACCOUNT_LOCKED',
+  INVALID_TOKEN = 'INVALID_TOKEN',
+  SESSION_EXPIRED = 'SESSION_EXPIRED',
+  EMAIL_EXISTS = 'EMAIL_EXISTS',
+  
+  // Permission errors
+  FORBIDDEN = 'FORBIDDEN',
+  
+  // Resource errors
+  NOT_FOUND = 'NOT_FOUND',
+  
+  // Request errors
+  VALIDATION_ERROR = 'VALIDATION_ERROR', 
+  BAD_REQUEST = 'BAD_REQUEST',
+  TOO_MANY_REQUESTS = 'TOO_MANY_REQUESTS',
+  
+  // Server errors
+  SERVER_ERROR = 'SERVER_ERROR',
+  
+  // OAuth errors
+  INVALID_LOGIN_METHOD = 'INVALID_LOGIN_METHOD',
 } 

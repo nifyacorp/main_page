@@ -94,6 +94,8 @@ const Login: React.FC = () => {
           throw new Error('Invalid email or password. Please try again.');
         } else if (errorCode === 'ACCOUNT_LOCKED') {
           throw new Error('Your account has been temporarily locked due to too many failed login attempts. Please try again later.');
+        } else if (errorCode === 'SERVER_ERROR' && error.includes('404')) {
+          throw new Error('Cannot connect to the authentication service. Please try again later.');
         } else {
           throw new Error(error);
         }

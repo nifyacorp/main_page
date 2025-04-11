@@ -1,5 +1,5 @@
 import apiClient from '../clients/axios-config';
-import { User, AuthResponse, LoginRequest, RegisterRequest } from '../types';
+import { User, AuthResponse, LoginRequest, RegisterRequest, ApiErrorResponse, ErrorCode } from '../types';
 
 // Environment variables
 const AUTH_URL = import.meta.env.VITE_AUTH_URL;
@@ -52,18 +52,62 @@ class AuthService {
   /**
    * Login user with email and password
    */
-  async login(credentials: LoginRequest): Promise<AuthResponse> {
+  async login(credentials: LoginRequest): Promise<{ data?: AuthResponse; error?: string; errorCode?: string }> {
     try {
+      console.log('🔐 Auth Service Request');
+      console.log('Request Details:', {
+        url: apiClient.defaults.baseURL + '/auth/login',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: {
+          email: credentials.email,
+          password: '********'
+        }
+      });
+
+      console.log('Login attempt:', { 
+        email: credentials.email, 
+        password: '********' 
+      });
+      
       const response = await apiClient.post<AuthResponse>('/auth/login', credentials);
-      const { token, refreshToken, user } = response.data;
+      const { accessToken, refreshToken, user } = response.data;
       
       // Store tokens
-      this.setTokens(token, refreshToken);
+      if (accessToken) this.setTokens(accessToken, refreshToken);
       
-      return response.data;
-    } catch (error) {
+      return { data: response.data };
+    } catch (error: any) {
       console.error('Login error:', error);
-      throw error;
+      
+      // Check if the error has the standardized API error format
+      if (error?.response?.data?.error) {
+        const apiError = error.response.data as ApiErrorResponse;
+        console.log('Server error response:', apiError);
+        
+        // Return the standardized error
+        return {
+          error: apiError.error.message,
+          errorCode: apiError.error.code
+        };
+      }
+      
+      // Handle network errors and other non-API errors
+      if (error?.response?.status === 404) {
+        console.log('📝 DEBUG: 404 Not Found Error');
+        return {
+          error: 'Cannot connect to authentication service. Please try again later.',
+          errorCode: 'SERVER_ERROR'
+        };
+      }
+      
+      console.log('📝 DEBUG: No access token in login response:', error?.response?.data || error?.message || error);
+      return {
+        error: error?.message || 'Login failed. Please try again.',
+        errorCode: 'SERVER_ERROR'
+      };
     }
   }
 
@@ -176,7 +220,7 @@ class AuthService {
   /**
    * Get the current user profile
    */
-  async getCurrentUser(): Promise<User> {
+  async getProfile(): Promise<{ data?: any; error?: string; errorCode?: string }> {
     console.log('🔒 User Profile Flow');
     console.log('Step 1: Checking authentication state');
     
@@ -193,7 +237,7 @@ class AuthService {
       console.log('👤 Get User Profile');
       console.log('Fetching user profile...');
       
-      const response = await apiClient.get<User>('/v1/users/me');
+      const response = await apiClient.get('/auth/me');
       
       console.log('Step 3: Processing API response');
       console.log('Response data:', {
@@ -204,10 +248,26 @@ class AuthService {
       console.log('Step 3 Success: Valid profile data received');
       console.log('✅ Profile fetch completed successfully');
       
-      return response.data;
-    } catch (error) {
+      return { data: response.data };
+    } catch (error: any) {
       console.error('Get current user error:', error);
-      throw error;
+      
+      // Check if the error has the standardized API error format
+      if (error?.response?.data?.error) {
+        const apiError = error.response.data as ApiErrorResponse;
+        console.log('Server error response:', apiError);
+        
+        // Return the standardized error
+        return {
+          error: apiError.error.message,
+          errorCode: apiError.error.code
+        };
+      }
+      
+      return {
+        error: error?.message || 'Failed to get user profile',
+        errorCode: 'SERVER_ERROR'
+      };
     }
   }
 
