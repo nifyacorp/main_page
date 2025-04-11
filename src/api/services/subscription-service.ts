@@ -271,6 +271,19 @@ class SubscriptionService {
       throw error;
     }
   }
+
+  /**
+   * Delete all subscriptions
+   */
+  async deleteAllSubscriptions(): Promise<{ success: boolean; deletedCount: number; message: string }> {
+    try {
+      const response = await apiClient.delete<{ success: boolean; deletedCount: number; message: string }>('/v1/subscriptions');
+      return response.data;
+    } catch (error) {
+      console.error('Delete all subscriptions error:', error);
+      throw error;
+    }
+  }
 }
 
 export default new SubscriptionService(); 

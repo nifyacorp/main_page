@@ -214,7 +214,7 @@ export default function Subscriptions() {
     try {
       // Use the dedicated mutation or call the service method directly
       // Assuming subscriptionService has a deleteAll method now
-      const subscriptionService = (await import('@/services/api/subscription-service')).default;
+      const subscriptionService = (await import('../api/services/subscription-service')).default;
       const response = await subscriptionService.deleteAllSubscriptions(); // Call the new bulk delete method - UNCOMMENTED
       
       // Placeholder response until backend/service call is implemented - REMOVED
