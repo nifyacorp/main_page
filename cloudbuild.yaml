@@ -3,28 +3,48 @@ steps:
   - name: 'gcr.io/cloud-builders/git'
     args: ['clone', '--branch', 'main', 'https://github.com/nifyacorp/main_page.git', '.']
   
-  # Install dependencies
-  - name: 'node:18'
-    args: ['npm', 'ci']
+  # Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build', 
+      '-t', 
+      'gcr.io/$PROJECT_ID/nifya-frontend', 
+      '--build-arg', 
+      'BUILD_TIMESTAMP=${_BUILD_TIMESTAMP}',
+      '--build-arg',
+      'COMMIT_SHA=$COMMIT_SHA',
+      '--build-arg',
+      'DEPLOYMENT_ID=$BUILD_ID',
+      '.'
+    ]
   
-  # Build the frontend
-  - name: 'node:18'
-    args: ['npm', 'run', 'build']
-    env:
-      - 'VITE_AUTH_URL=${_AUTH_URL}'
-      - 'VITE_BACKEND_URL=${_BACKEND_URL}'
-      - 'VITE_SUBSCRIPTION_WORKER=${_SUBSCRIPTION_WORKER_URL}'
-      - 'VITE_ENV=production'
-      - 'NODE_ENV=production'
+  # Push the Docker image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/nifya-frontend']
   
-  # Archive the build artifacts (if needed for deployment)
-  - name: 'gcr.io/cloud-builders/gcloud'
-    args: ['storage', 'cp', '-r', 'dist/*', 'gs://${_STORAGE_BUCKET}/']
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'nifya-frontend'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/nifya-frontend'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--set-env-vars'
+      - 'AUTH_SERVICE_URL=${_AUTH_URL},BACKEND_SERVICE_URL=${_BACKEND_URL},NODE_ENV=production'
 
 substitutions:
+  _BUILD_TIMESTAMP: '$(date -u +"%Y-%m-%dT%H:%M:%SZ")'
   _AUTH_URL: 'https://authentication-service-415554190254.us-central1.run.app'
   _BACKEND_URL: 'https://backend-415554190254.us-central1.run.app'
-  _SUBSCRIPTION_WORKER_URL: 'https://subscription-worker-415554190254.us-central1.run.app'
-  _STORAGE_BUCKET: 'nifya-frontend-builds'  # Replace with your actual storage bucket
+
+images:
+  - 'gcr.io/$PROJECT_ID/nifya-frontend'
 
 timeout: '1200s' 
