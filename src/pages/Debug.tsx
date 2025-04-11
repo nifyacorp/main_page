@@ -2,7 +2,6 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SubscriptionApiDebug } from '@/components/SubscriptionApiDebug';
-import { useSubscriptionsEnhanced } from '@/hooks/use-subscriptions-enhanced';
 import { useSubscriptions } from '@/hooks/use-subscriptions';
 import { Separator } from '@/components/ui/separator';
 
@@ -10,8 +9,7 @@ import { Separator } from '@/components/ui/separator';
  * Debug page for developers and administrators to test system functionality
  */
 export default function DebugPage() {
-  const regularHook = useSubscriptions();
-  const enhancedHook = useSubscriptionsEnhanced();
+  const subscriptionsData = useSubscriptions();
 
   return (
     <div className="container mx-auto p-4">
@@ -20,7 +18,7 @@ export default function DebugPage() {
       <Tabs defaultValue="subscription-api">
         <TabsList className="mb-4">
           <TabsTrigger value="subscription-api">Subscription API</TabsTrigger>
-          <TabsTrigger value="data-comparison">Data Comparison</TabsTrigger>
+          <TabsTrigger value="data-info">Data Info</TabsTrigger>
           <TabsTrigger value="system-info">System Info</TabsTrigger>
         </TabsList>
         
@@ -30,13 +28,13 @@ export default function DebugPage() {
           </div>
         </TabsContent>
         
-        <TabsContent value="data-comparison">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <TabsContent value="data-info">
+          <div className="grid grid-cols-1 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Standard Hook Data</CardTitle>
+                <CardTitle>Subscription Data</CardTitle>
                 <CardDescription>
-                  Using standard hook without fallback
+                  Data from the unified useSubscriptions hook
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -44,58 +42,23 @@ export default function DebugPage() {
                   <div>
                     <h3 className="text-sm font-medium mb-2">Subscriptions:</h3>
                     <pre className="text-xs overflow-auto max-h-60 p-4 bg-slate-100 dark:bg-slate-900 rounded-md">
-                      {JSON.stringify(regularHook.subscriptions, null, 2)}
+                      {JSON.stringify(subscriptionsData.subscriptions, null, 2)}
                     </pre>
                   </div>
                   
                   <div>
                     <h3 className="text-sm font-medium mb-2">Stats:</h3>
                     <pre className="text-xs overflow-auto max-h-40 p-4 bg-slate-100 dark:bg-slate-900 rounded-md">
-                      {JSON.stringify(regularHook.stats, null, 2)}
+                      {JSON.stringify(subscriptionsData.stats, null, 2)}
                     </pre>
                   </div>
                   
                   <div>
                     <h3 className="text-sm font-medium mb-2">Status:</h3>
                     <ul className="text-sm">
-                      <li>Loading: {regularHook.isLoadingSubscriptions ? 'Yes' : 'No'}</li>
-                      <li>Error: {regularHook.isErrorSubscriptions ? 'Yes' : 'No'}</li>
-                      <li>Using Fallback: N/A</li>
-                    </ul>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Enhanced Hook Data</CardTitle>
-                <CardDescription>
-                  Using enhanced hook with fallback capability
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-sm font-medium mb-2">Subscriptions:</h3>
-                    <pre className="text-xs overflow-auto max-h-60 p-4 bg-slate-100 dark:bg-slate-900 rounded-md">
-                      {JSON.stringify(enhancedHook.subscriptions, null, 2)}
-                    </pre>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium mb-2">Stats:</h3>
-                    <pre className="text-xs overflow-auto max-h-40 p-4 bg-slate-100 dark:bg-slate-900 rounded-md">
-                      {JSON.stringify(enhancedHook.stats, null, 2)}
-                    </pre>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium mb-2">Status:</h3>
-                    <ul className="text-sm">
-                      <li>Loading: {enhancedHook.isLoadingSubscriptions ? 'Yes' : 'No'}</li>
-                      <li>Error: {enhancedHook.isErrorSubscriptions ? 'Yes' : 'No'}</li>
-                      <li>Using Fallback: {enhancedHook.usingFallback ? 'Yes' : 'No'}</li>
+                      <li>Loading: {subscriptionsData.isLoadingSubscriptions ? 'Yes' : 'No'}</li>
+                      <li>Error: {subscriptionsData.isErrorSubscriptions ? 'Yes' : 'No'}</li>
+                      <li>Using Fallback: {subscriptionsData.usingFallback ? 'Yes' : 'No'}</li>
                     </ul>
                   </div>
                 </div>
@@ -143,8 +106,7 @@ export default function DebugPage() {
                     <button 
                       className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm"
                       onClick={() => {
-                        enhancedHook.refetchSubscriptions();
-                        regularHook.refetchSubscriptions();
+                        subscriptionsData.refetchSubscriptions();
                       }}
                     >
                       Refetch All Data

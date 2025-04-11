@@ -1,6 +1,6 @@
 import React from 'react';
 import { Bell, Mail, Zap } from 'lucide-react';
-import type { UserProfile } from '../../lib/api/types';
+import { UserProfile } from '../../api';
 
 interface NotificationsSectionProps {
   profile: UserProfile | null;

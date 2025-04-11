@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Mail, Lock, Eye, EyeOff, Check, X } from 'lucide-react';
-import { auth } from '../lib/api/index';
+import { authService } from '../api';
 import { useAuth } from '../hooks/use-auth';
 
 interface PasswordRequirement {
@@ -55,7 +55,7 @@ const Signup: React.FC = () => {
     try {
       console.log('Processing signup');
       
-      const response = await auth.signup(formData.email, formData.password, '');
+      const response = await authService.signup(formData.email, formData.password, '');
       
       if (response && response.error) {
         setError(response.error);

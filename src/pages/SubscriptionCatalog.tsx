@@ -1,8 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Building2, Brain, ChevronRight, Search, Plus, Clock, Zap, Lock, Globe, AlertTriangle, X, LucideIcon } from 'lucide-react';
-import { templates } from '../lib/api';
-import type { Template } from '../lib/api/types';
+import { templateService, Template } from '../api';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardFooter, CardTitle, CardDescription } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -52,7 +51,7 @@ const SubscriptionCatalog = () => {
       try {
         setLoading(true);
         setError(null);
-        const { data, error } = await templates.list(currentPage, itemsPerPage);
+        const { data, error } = await templateService.list(currentPage, itemsPerPage);
         
         if (error) {
           throw new Error(error);
@@ -97,13 +96,13 @@ const SubscriptionCatalog = () => {
     e.preventDefault();
     try {
       setCreating(true);
-      const { error } = await templates.create(newTemplate);
+      const { error } = await templateService.create(newTemplate);
       if (error) throw new Error(error);
       
       setShowCreateModal(false);
       // Refresh template list
       setCurrentPage(1);
-      const { data, error: fetchError } = await templates.list(1, itemsPerPage);
+      const { data, error: fetchError } = await templateService.list(1, itemsPerPage);
       if (fetchError) throw new Error(fetchError);
       if (data) {
         setTemplateList(data.templates);

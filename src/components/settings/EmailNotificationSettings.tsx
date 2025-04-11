@@ -17,7 +17,7 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/components/ui/use-toast';
 import { useEmailPreferences } from '@/hooks/use-email-preferences';
 import { useAuth } from '@/contexts/AuthContext';
-import { EmailPreferences } from '@/lib/api/types';
+import { EmailPreferences } from '../../api';
 
 // Default preferences state
 const DEFAULT_PREFERENCES: EmailPreferences = {

@@ -8,11 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "hybrid": "./hybrid-dev.sh",
-    "hybrid:wsl": "./hybrid-dev-wsl.sh",
     "build": "tsc --noEmit && vite build --mode production",
-    "build:netlify": "npx vite build --mode production",
-    "build:local": "./local-build.sh",
     "lint": "eslint .",
     "preview": "vite preview",
     "type-check": "tsc --noEmit"

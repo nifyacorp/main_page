@@ -1,137 +1,58 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useToast } from '@/components/ui/use-toast';
-
-import notificationService, {
+import { useContext } from 'react';
+import { NotificationContext } from '../contexts/NotificationContext';
+import { 
+  notificationService,
   Notification,
   NotificationListParams,
-} from '@/services/api/notification-service';
+  NotificationApiResponse,
+  NotificationsResponse,
+  NotificationFilterOptions
+} from '../api';
+import { useQuery } from '@tanstack/react-query';
 
 /**
- * Custom hook for managing notifications
+ * Custom hook for working with notifications
+ * This is the central access point for notification functionality
  */
-export function useNotifications(params?: NotificationListParams) {
-  const [filter, setFilter] = useState<NotificationListParams>(params || {});
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  // Check authentication status
-  const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-
-  // Fetch notifications - only if authenticated
-  const {
-    data,
-    isLoading,
-    isError,
-    error,
-    refetch,
-  } = useQuery({
-    queryKey: ['notifications', filter],
-    queryFn: () => notificationService.getNotifications(filter),
-    staleTime: 30000, // 30 seconds
-    enabled: isAuthenticated, // Only run query if authenticated
-    retry: 1, // Add retry configuration
-  });
-
-  // Get notification count - only if authenticated
-  const {
-    data: notificationCount,
-    isLoading: isLoadingCount,
-    refetch: refetchCount,
-    error: countError
-  } = useQuery({
-    queryKey: ['notificationCount'],
-    queryFn: () => notificationService.getNotificationCount(),
-    staleTime: 30000, // 30 seconds
-    enabled: isAuthenticated, // Only run query if authenticated
-    retry: 1, // Add retry configuration
-  });
-
-  // Mark as read mutation
-  const markAsRead = useMutation({
-    mutationFn: (id: string) => notificationService.markAsRead(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      queryClient.invalidateQueries({ queryKey: ['notificationCount'] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to mark notification as read',
-        variant: 'destructive',
-      });
-    },
-  });
-
-  // Mark all as read mutation
-  const markAllAsRead = useMutation({
-    mutationFn: () => notificationService.markAllAsRead(),
-    onSuccess: () => {
-      toast({
-        title: 'Success',
-        description: 'All notifications marked as read',
-        variant: 'default',
-      });
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      queryClient.invalidateQueries({ queryKey: ['notificationCount'] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to mark all notifications as read',
-        variant: 'destructive',
-      });
-    },
-  });
-
-  // Delete notification mutation
-  const deleteNotification = useMutation({
-    mutationFn: (id: string) => notificationService.deleteNotification(id),
-    onSuccess: () => {
-      toast({
-        title: 'Success',
-        description: 'Notification deleted successfully',
-        variant: 'default',
-      });
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      queryClient.invalidateQueries({ queryKey: ['notificationCount'] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to delete notification',
-        variant: 'destructive',
-      });
-    },
-  });
-
+export function useNotifications() {
+  // Get the core notification context
+  const notificationContext = useContext(NotificationContext);
+  
+  if (!notificationContext) {
+    throw new Error('useNotifications must be used within a NotificationProvider');
+  }
+  
+  /**
+   * Fetch a paginated list of notifications
+   */
+  const getNotifications = (params: NotificationListParams = { page: 1, limit: 10 }) => {
+    return useQuery({
+      queryKey: ['notifications', params],
+      queryFn: () => notificationService.list(params),
+      staleTime: 60000, // 1 minute
+    });
+  };
+  
+  /**
+   * Get notification details by ID
+   */
+  const getNotificationById = (id: string | null) => {
+    return useQuery({
+      queryKey: ['notification', id],
+      queryFn: () => notificationService.getById(id || ''),
+      enabled: !!id,
+      staleTime: 60000, // 1 minute
+    });
+  };
+  
   return {
-    // Queries
-    notifications: data?.notifications || [],
-    metadata: data
-      ? {
-          total: data.total,
-          page: data.page,
-          limit: data.limit,
-          totalPages: data.totalPages,
-          unreadCount: data.unreadCount,
-        }
-      : undefined,
-    notificationCount,
-    filter,
-    isLoading,
-    isError,
-    error,
-    isLoadingCount,
+    // Core notification context functions
+    ...notificationContext,
     
-    // Mutations
-    markAsRead,
-    markAllAsRead,
-    deleteNotification,
-    
-    // Actions
-    setFilter,
-    refetchNotifications: refetch,
-    refetchCount,
+    // Enhanced notification capabilities
+    getNotifications,
+    getNotificationById,
   };
 }
+
+export default useNotifications;

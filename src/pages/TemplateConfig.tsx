@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, FileText, Building2, Brain, Plus, X, Bell, Clock, Loader2 } from 'lucide-react';
-import { templates } from '../lib/api';
-import type { Template } from '../lib/api/types';
+import { templateService, Template } from '../api';
 import type { IconType } from 'lucide-react';
 
 const iconMap: Record<string, IconType> = {

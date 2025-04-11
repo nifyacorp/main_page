@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import subscriptionService from '@/services/api/subscription-service';
+import { subscriptionService } from '../api';
 
 /**
  * Custom hook for tracking subscription processing status

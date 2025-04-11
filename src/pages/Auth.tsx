@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Mail, Lock, Eye, EyeOff, User, Check, X, AlertCircle } from 'lucide-react';
-import { auth } from '../lib/api/index';
+import { authService } from '../api';
 import { useAuth } from '../hooks/use-auth';
 import { resetAuthState, detectAndBreakAuthRedirectLoop } from '../lib/utils/auth-recovery';
 
@@ -212,7 +212,7 @@ const Auth: React.FC = () => {
         
         try {
           console.log('🔍 Auth.tsx: Calling auth.login API');
-          const { error, data } = await auth.login({
+          const { error, data } = await authService.login({
             email: formData.email,
             password: formData.password
           });
@@ -290,7 +290,7 @@ const Auth: React.FC = () => {
         
         try {
           console.log('🔍 Auth.tsx: Calling auth.signup API');
-          const response = await auth.signup(formData.email, formData.password, formData.name);
+          const response = await authService.signup(formData.email, formData.password, formData.name);
           
           console.log('Signup response received:', response);
           console.groupEnd();
@@ -326,7 +326,7 @@ const Auth: React.FC = () => {
       // Call the API function to initiate Google Login
       // This typically redirects the user, so we don't expect a direct response with tokens here.
       console.log('🔍 Auth.tsx: Calling auth.googleLogin API');
-      await auth.googleLogin();
+      await authService.googleLogin();
 
       // If the await completes without redirecting (e.g., popup blocker or error before redirect),
       // we might need error handling, but accessing response.data/error is likely incorrect.

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/use-auth';
 import { handleAuthErrorWithUI, ensureProperTokenFormat } from '../lib/utils/auth-recovery';
 
 /**
@@ -45,7 +45,7 @@ const AuthErrorHandler: React.FC<{ children: React.ReactNode }> = ({ children })
                   console.log('Fixed token format, refreshing page to retry');
                   // Instead of showing error UI immediately, refresh the page to try with fixed token
                   window.location.reload();
-                  return;
+                  return response;
                 }
                 
                 // If token is already formatted correctly or missing, show auth error UI
@@ -58,7 +58,7 @@ const AuthErrorHandler: React.FC<{ children: React.ReactNode }> = ({ children })
         }
         
         return response;
-      } catch (error) {
+      } catch (error: any) {
         // For network errors, check if it's auth-related
         if (isAuthenticated && error.message?.includes('Unauthorized')) {
           handleAuthErrorWithUI(error);

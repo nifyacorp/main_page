@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { subscriptionTypesService, SubscriptionType } from '../../lib/api/services/subscription-types';
+import { subscriptionService, SubscriptionType } from '../../api';
 
 interface SubscriptionTypeSelectorProps {
   onSelect: (type: SubscriptionType) => void;
@@ -16,7 +16,7 @@ export default function SubscriptionTypeSelector({ onSelect, selectedTypeId }: S
     const fetchTypes = async () => {
       try {
         setLoading(true);
-        const response = await subscriptionTypesService.list();
+        const response = await subscriptionService.list();
         
         if (response.ok && response.data?.data?.types) {
           setTypes(response.data.data.types);

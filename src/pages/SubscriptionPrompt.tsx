@@ -13,8 +13,7 @@ import {
   AlertCircle,
   LucideIcon
 } from 'lucide-react';
-import { subscriptions, templates } from '../lib/api';
-import type { Template } from '../lib/api/types';
+import { subscriptionService, templateService, Template } from '../api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
@@ -73,7 +72,7 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
       try {
         if (mode === 'edit' && subscriptionId) {
           // Fetch existing subscription details
-          const { data, error } = await subscriptions.getDetails(subscriptionId);
+          const { data, error } = await subscriptionService.getDetails(subscriptionId);
           if (error) throw new Error(error);
           
           if (data?.subscription) {
@@ -98,7 +97,7 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
           }
         } else if (mode === 'create' && typeId) {
           // Fetch template details for new subscription
-          const response = await templates.getDetails(typeId);
+          const response = await templateService.getDetails(typeId);
           if (response.error) throw new Error(response.error);
 
           if (response.data) {
@@ -175,7 +174,7 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
     try {
       if (mode === 'edit' && subscription) {
         // Update existing subscription
-        const response = await subscriptions.update(subscription.id, {
+        const response = await subscriptionService.update(subscription.id, {
           prompts: validPrompts,
           frequency
         });
@@ -232,7 +231,7 @@ const SubscriptionPrompt: React.FC<SubscriptionPromptProps> = ({ mode }) => {
         console.log('Subscription data being sent:', subscriptionData);
         
         try {
-          const createResponse = await subscriptions.create(subscriptionData);
+          const createResponse = await subscriptionService.create(subscriptionData);
           
           // Log the complete response for debugging
           console.log('Subscription creation complete response:', createResponse);

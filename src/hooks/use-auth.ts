@@ -1,7 +1,11 @@
 import { useContext } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
 
-// Custom hook to use the auth context
+/**
+ * Custom hook to use the auth context
+ * This is the only hook that should be used for authentication across the app
+ * It provides consistent access to auth state and methods
+ */
 export function useAuth() {
   const context = useContext(AuthContext);
   
@@ -9,7 +13,7 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   
-  // Add a utility function to get auth headers
+  // Add utility functions for auth
   const authHeaders = () => {
     // Get token from localStorage
     let token = localStorage.getItem('accessToken');
@@ -27,9 +31,16 @@ export function useAuth() {
     };
   };
   
+  // Check if user has specific permission
+  const hasPermission = (permission: string): boolean => {
+    // Simple permission check - in a real app, would check user roles/permissions
+    return context.isAuthenticated;
+  };
+  
   return {
     ...context,
     authHeaders,
+    hasPermission,
   };
 }
 

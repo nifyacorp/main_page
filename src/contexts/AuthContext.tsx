@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
-import { user as userService, auth } from '../lib/api';
+import { authService } from '../api';
 import { toast } from '../components/ui/use-toast';
 
 /**
@@ -196,7 +196,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           console.log('AuthContext: Attempting to load user profile for authenticated user');
           try {
             console.log('🔍 AuthContext.tsx: Calling userService.getProfile()');
-            const response = await userService.getProfile();
+            const response = await authService.getProfile();
             if (isMounted) {
               if (response.data && !response.error) {
                 console.log('🔍 AuthContext.tsx: User profile loaded successfully');
@@ -326,7 +326,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       try {
         console.log('🔍 AuthContext.tsx: Fetching complete user profile');
         console.log('AuthContext: Fetching profile immediately after login');
-        const response = await userService.getProfile();
+        const response = await authService.getProfile();
         if (response.data && !response.error) {
           console.log('🔍 AuthContext.tsx: User profile loaded successfully');
           setUser(response.data.profile);

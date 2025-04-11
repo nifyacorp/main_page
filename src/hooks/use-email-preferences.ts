@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react';
-import { user as userService } from '@/lib/api';
-import { EmailPreferences } from '@/lib/api/types';
+import { authService, EmailPreferences } from '../api';
 
 interface UpdateEmailPreferenceParams {
   email_notifications?: boolean;
@@ -23,7 +22,7 @@ export function useEmailPreferences() {
     setError(null);
 
     try {
-      const { data, error: apiError } = await userService.getEmailPreferences();
+      const { data, error: apiError } = await authService.getEmailPreferences();
       
       if (apiError) {
         throw new Error(apiError);
@@ -53,7 +52,7 @@ export function useEmailPreferences() {
     setError(null);
 
     try {
-      const { data: responseData, error: apiError } = await userService.updateEmailPreferences(data);
+      const { data: responseData, error: apiError } = await authService.updateEmailPreferences(data);
       
       if (apiError) {
         throw new Error(apiError);
@@ -75,7 +74,7 @@ export function useEmailPreferences() {
     setError(null);
 
     try {
-      const { data: responseData, error: apiError } = await userService.sendTestEmail();
+      const { data: responseData, error: apiError } = await authService.sendTestEmail();
       
       if (apiError) {
         throw new Error(apiError);

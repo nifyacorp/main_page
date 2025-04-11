@@ -1,6 +1,6 @@
 import React from 'react';
 import { User } from 'lucide-react';
-import type { UserProfile } from '../../lib/api/types';
+import { UserProfile } from '../../api';
 
 interface ProfileSectionProps {
   profile: UserProfile | null;

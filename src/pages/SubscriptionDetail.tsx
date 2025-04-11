@@ -32,8 +32,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "../components/ui/alert-dialog";
-import { ProcessingStatusTracker } from '../components/subscription/ProcessingStatusTracker';
-import { ProcessSubscriptionButton } from '../components/subscription/ProcessSubscriptionButton';
+import { ProcessingStatusTracker, ProcessSubscriptionButton } from '../components/subscriptions';
 
 // Hooks
 import { useSubscriptions } from '../hooks/use-subscriptions';

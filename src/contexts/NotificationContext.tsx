@@ -1,7 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { 
+  notificationService,
   Notification, 
-  notificationService, 
+  NotificationsResponse, 
+  NotificationFilterOptions 
+} from '../api';
+import { 
   NotificationApiResponse,
   enhanceNotifications, 
   enhanceNotification 

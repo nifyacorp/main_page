@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { auth } from '../lib/api/index';
+import { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { authService } from '../api';
 
 const GoogleCallback: React.FC = () => {
   const navigate = useNavigate();
@@ -26,7 +26,7 @@ const GoogleCallback: React.FC = () => {
         }
 
         // Exchange code for tokens
-        const { data, error: authError } = await auth.googleCallback(code as string, state);
+        const { data, error: authError } = await authService.googleCallback(code as string, state);
         if (authError) throw new Error(authError);
 
         if (data?.accessToken) {

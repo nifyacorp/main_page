@@ -22,7 +22,7 @@ import {
   Sparkles,
   PlusCircle 
 } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/use-auth';
 import { useNotifications } from '../hooks/use-notifications';
 import { useSubscriptions } from '../hooks/use-subscriptions';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
@@ -30,8 +30,7 @@ import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { ScrollArea } from "../components/ui/scroll-area";
 import { Separator } from "../components/ui/separator";
-import notificationService from '../services/api/notification-service';
-import subscriptionService from '../services/api/subscription-service';
+import { notificationService, subscriptionService } from '../api';
 
 // Define types for our data structures
 interface DayActivity {
@@ -107,11 +106,19 @@ const Dashboard: React.FC = () => {
   
   // Get notifications data using the hook
   const { 
-    notifications: notificationsData, 
-    notificationCount,
-    refetchNotifications,
-    isLoading: isLoadingNotifications 
-  } = useNotifications({ limit: 4 });
+    unreadCount,
+    refreshUnreadCount
+  } = useNotifications();
+  
+  // Get paginated notifications list
+  const notificationsQuery = useNotifications().getNotifications({ limit: 4 });
+  const notificationsData = notificationsQuery.data?.data?.notifications || [];
+  const notificationCount = {
+    total: notificationsQuery.data?.data?.total || 0,
+    unread: unreadCount || 0,
+    change: 0, // Will be calculated from activity data
+    isIncrease: false
+  };
   
   // Get subscription data using the hook
   const { 
@@ -134,7 +141,8 @@ const Dashboard: React.FC = () => {
     
     try {
       // Get recent notifications
-      await refetchNotifications();
+      await notificationsQuery.refetch();
+      await refreshUnreadCount();
       
       let activityData = {
         activityByDay: [],

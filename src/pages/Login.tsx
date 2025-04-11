@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { auth } from '../lib/api/index';
+import { authService } from '../api';
 import { useAuth } from '../hooks/use-auth';
 
 interface LoginFormData {
@@ -81,7 +81,7 @@ const Login: React.FC = () => {
     try {
       console.log('Processing login');
       
-      const { error, data, errorCode } = await auth.login({
+      const { error, data, errorCode } = await authService.login({
         email: formData.email,
         password: formData.password
       });

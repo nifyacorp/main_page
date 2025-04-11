@@ -4,10 +4,8 @@ import { ArrowLeft, Loader2, Bell, FileText, Building2, Newspaper, Plus, CheckCi
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
 import { Separator } from '../components/ui/separator';
-import MainLayout from '../components/MainLayout';
-import { templateService } from '../lib/api/services/templates';
-import { subscriptions } from '../lib/api';
-import type { Template } from '../lib/api/types';
+import DashboardLayout from '../components/DashboardLayout';
+import { templateService, subscriptionService, Template } from '../api';
 
 // Map of icon names to Lucide React components
 const iconMap: Record<string, React.ReactNode> = {
@@ -57,13 +55,13 @@ const NewSubscription: React.FC = () => {
         
         // Fetch user's existing subscriptions
         setSubscriptionsLoading(true);
-        const subscriptionsResponse = await subscriptions.list();
+        const subscriptionsResponse = await subscriptionService.getSubscriptions();
         
         if (subscriptionsResponse.error) {
           console.error('Error fetching subscriptions:', subscriptionsResponse.error);
-        } else if (subscriptionsResponse.data?.subscriptions) {
+        } else if (subscriptionsResponse.subscriptions) {
           // Add icon information based on subscription type
-          const enhancedSubscriptions = subscriptionsResponse.data.subscriptions.map(sub => ({
+          const enhancedSubscriptions = subscriptionsResponse.subscriptions.map(sub => ({
             ...sub,
             icon: sub.type === 'boe' ? 'FileText' : 
                  sub.type === 'real-estate' ? 'Building2' : 'Bell'
@@ -84,9 +82,9 @@ const NewSubscription: React.FC = () => {
               {
                 id: 'boe-general',
                 name: 'BOE General',
-                description: 'Seguimiento general del Boletín Oficial del Estado',
+                description: 'Seguimiento general del Bolet??n Oficial del Estado',
                 type: 'boe',
-                prompts: ['disposición', 'ley', 'real decreto'],
+                prompts: ['disposici??n', 'ley', 'real decreto'],
                 icon: 'FileText',
                 logo: 'https://www.boe.es/favicon.ico',
                 isBuiltIn: true,
@@ -99,9 +97,9 @@ const NewSubscription: React.FC = () => {
               {
                 id: 'boe-subvenciones',
                 name: 'Subvenciones BOE',
-                description: 'Alertas de subvenciones y ayudas públicas',
+                description: 'Alertas de subvenciones y ayudas p??blicas',
                 type: 'boe',
-                prompts: ['subvención', 'ayuda', 'convocatoria'],
+                prompts: ['subvenci??n', 'ayuda', 'convocatoria'],
                 icon: 'Coins',
                 logo: 'https://www.boe.es/favicon.ico',
                 isBuiltIn: true,
@@ -114,7 +112,7 @@ const NewSubscription: React.FC = () => {
               {
                 id: 'real-estate-rental',
                 name: 'Alquiler de Viviendas',
-                description: 'Búsqueda de alquileres en zonas específicas',
+                description: 'B??squeda de alquileres en zonas espec??ficas',
                 type: 'real-estate',
                 prompts: ['alquiler', 'piso', 'apartamento'],
                 icon: 'Building2',
@@ -169,7 +167,7 @@ const NewSubscription: React.FC = () => {
   };
 
   return (
-    <MainLayout hideNav={true}>
+    <DashboardLayout>
       <div className="container mx-auto py-8">
         <div className="flex items-center mb-6">
           <Button 
@@ -295,7 +293,7 @@ const NewSubscription: React.FC = () => {
           </div>
         </div>
       </div>
-    </MainLayout>
+    </DashboardLayout>
   );
 };
 

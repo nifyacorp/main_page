@@ -3,11 +3,11 @@ import { format, isToday, isYesterday, isThisWeek, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { CheckCircle, Bell, ExternalLink, Trash2, Eye } from 'lucide-react';
 import { 
-  Notification, 
-  notificationService, 
-  enhanceNotification, 
-  enhanceNotifications 
-} from '../../lib/api/services/notifications';
+  notificationService,
+  Notification,
+  NotificationsResponse,
+  NotificationFilterOptions
+} from '../../api';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
 import { Button } from '../ui/button';

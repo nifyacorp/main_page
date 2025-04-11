@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, AlertCircle, Plus, Search } from 'lucide-react';
 import { Button } from '../components/ui/button';
-import MainLayout from '../components/MainLayout';
-import { SubscriptionType, subscriptionTypesService } from '../lib/api/services/subscription-types';
-import SubscriptionTypeSelector from '../components/subscriptions/SubscriptionTypeSelector';
+import DashboardLayout from '../components/DashboardLayout';
+import { subscriptionService } from '../api';
+import { SubscriptionTypeSelector } from '../components/subscriptions';
 
 const SubscriptionTypes = () => {
   const navigate = useNavigate();
@@ -17,7 +17,7 @@ const SubscriptionTypes = () => {
   };
 
   return (
-    <MainLayout hideNav={true}>
+    <DashboardLayout>
       <div className="container mx-auto py-8">
         <div className="flex items-center mb-6">
           <Button 
@@ -60,7 +60,7 @@ const SubscriptionTypes = () => {
           )}
         </div>
       </div>
-    </MainLayout>
+    </DashboardLayout>
   );
 };
 

@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { user } from '../lib/api';
-import type { UserProfile, ApiResponse } from '../lib/api/types';
+import { authService, UserProfile, ApiResponse } from '../api';
 import { ProfileSection } from '../components/settings/ProfileSection';
-import { AppearanceSection } from '../components/settings/AppearanceSection';
 import { EmailNotificationSettings } from '../components/settings/EmailNotificationSettings';
 import { PreferencesSection } from '../components/settings/PreferencesSection';
 import { SecuritySection } from '../components/settings/SecuritySection';
@@ -34,7 +32,7 @@ const Settings = () => {
         console.group('⚙️ Settings - Profile Fetch');
         console.log('Fetching user profile data');
         
-        const { data, error } = await user.getProfile();
+        const { data, error } = await authService.getProfile();
         
         if (error) {
           console.error('Profile fetch failed:', error);
@@ -67,7 +65,7 @@ const Settings = () => {
         console.group('⚙️ Settings - Preferences Fetch');
         console.log('Fetching user preferences data');
         
-        const { data, error } = await user.getPreferences();
+        const { data, error } = await authService.getPreferences();
         
         if (error) {
           console.error('Preferences fetch failed:', error);
@@ -105,7 +103,7 @@ const Settings = () => {
       setError(null);
       
       if (section === 'Preferencias' && updates.language !== undefined) {
-        const { data, error } = await user.updatePreferences(updates);
+        const { data, error } = await authService.updatePreferences(updates);
         
         if (error) {
           console.error('Preferences update failed:', error);
@@ -124,7 +122,7 @@ const Settings = () => {
           setSuccessMessage(`${section} actualizado correctamente`);
         }
       } else {
-        const { data, error } = await user.updateProfile(updates);
+        const { data, error } = await authService.updateProfile(updates);
         
         if (error) {
           console.error('Section update failed:', error);
@@ -179,7 +177,7 @@ const Settings = () => {
       const base64Data = await base64Promise;
       
       console.log('Step 3: Updating profile with new avatar');
-      const { data, error: updateError } = await user.updateProfile({
+      const { data, error: updateError } = await authService.updateProfile({
         avatar: base64Data
       });
 
@@ -225,8 +223,8 @@ const Settings = () => {
       const preferencesUpdates: Partial<UserProfile> = {};
       
       Object.entries(unsavedChanges).forEach(([key, value]) => {
-        if (key === 'language' || key === 'theme') {
-          preferencesUpdates[key as 'language' | 'theme'] = value as any;
+        if (key === 'language') {
+          preferencesUpdates[key as 'language'] = value as any;
         } else {
           (profileUpdates as any)[key] = value;
         }
@@ -241,7 +239,7 @@ const Settings = () => {
       
       if (Object.keys(profileUpdates).length > 0) {
         promises.push(
-          user.updateProfile(profileUpdates).then(result => {
+          authService.updateProfile(profileUpdates).then(result => {
             profileResult = result;
             return result;
           })
@@ -250,7 +248,7 @@ const Settings = () => {
       
       if (Object.keys(preferencesUpdates).length > 0) {
         promises.push(
-          user.updatePreferences(preferencesUpdates).then(result => {
+          authService.updatePreferences(preferencesUpdates).then(result => {
             preferencesResult = result;
             return result;
           })
@@ -337,16 +335,6 @@ const Settings = () => {
           onAvatarUpload={handleAvatarUpload}
           onSave={() => handleSectionUpdate('Perfil', {
             bio: unsavedChanges.bio
-          })}
-        />
-
-        <AppearanceSection
-          profile={profile}
-          unsavedChanges={unsavedChanges}
-          saving={savingSections['Apariencia']}
-          onFieldChange={handleFieldChange}
-          onSave={() => handleSectionUpdate('Apariencia', {
-            theme: unsavedChanges.theme
           })}
         />
 

@@ -1,283 +1,50 @@
 # NIFYA Frontend
 
-![NIFYA](https://ik.imagekit.io/appraisily/NYFIA/logo.png)
+A modern React application for NIFYA (Notificaciones Inteligentes) - an AI-powered notification platform.
 
-NIFYA is a modern platform that leverages artificial intelligence to provide personalized notifications about relevant information from BOE, real estate market, and more.
+## Overview
 
-## 🌟 Key Features
+NIFYA Frontend is built with React, TypeScript, and Vite, providing a responsive user interface for:
 
-- **📰 BOE Monitoring**: Automated monitoring of official publications with intelligent filtering based on your interests
-- **🏠 Real Estate Alerts**: Track Idealista and Fotocasa with customized filters and real-time alerts
-- **🧠 Adaptive AI**: Learning system that improves with use and refines search criteria automatically
-- **📊 Comprehensive Dashboard**: Overview of all active subscriptions and recent notifications
-- **📱 Responsive Design**: Interface adaptable to all devices with optimized mobile navigation
+- User authentication and management
+- Subscription creation and management
+- Notification monitoring and processing
+- Dashboard analytics and visualization
 
-## 🛠️ Technology Stack
+## Tech Stack
 
-- **Frontend Framework**: React 18 with TypeScript
+- **Framework**: React 18 with TypeScript
 - **Build Tool**: Vite
-- **State Management**: React Context API and React Query
+- **State Management**: React Context and React Query
+- **UI Components**: Custom components with Radix UI primitives
 - **Styling**: TailwindCSS
-- **Routing**: React Router v6
 - **HTTP Client**: Axios
-- **Real-time Updates**: Socket.IO
-- **Testing**: Vitest (in progress)
+- **Charting**: Recharts
+- **Form Validation**: Zod
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 frontend/
-├── src/                        # Source code
-│   ├── components/             # Reusable components
-│   │   ├── ui/                 # Base UI components
-│   │   ├── notifications/      # Notification components
-│   │   └── settings/           # Settings components
-│   ├── contexts/               # React contexts
-│   │   ├── AuthContext.tsx     # Authentication state management
-│   │   └── NotificationContext.tsx # Notification state management
-│   ├── hooks/                  # Custom React hooks
-│   │   ├── use-auth.ts         # Authentication hook
-│   │   ├── use-notifications.ts # Notifications hook
-│   │   └── use-subscriptions.ts # Subscription management hook
-│   ├── lib/                    # Utilities and helpers
-│   │   ├── api/                # API services and types
-│   │   └── utils/              # Utility functions
-│   ├── pages/                  # Page components
-│   ├── App.tsx                 # Main app component
-│   └── main.tsx                # Entry point
-├── public/                     # Static assets
-└── dist/                       # Build output (generated)
+├── src/                    # Source code
+│   ├── components/         # UI components
+│   ├── contexts/           # React context providers
+│   ├── hooks/              # Custom React hooks
+│   ├── lib/                # Utilities and API services
+│   ├── pages/              # Page components
+│   ├── styles/             # Global styles
+│   ├── App.tsx             # Main application component
+│   └── main.tsx            # Application entry point
+├── public/                 # Static assets
+└── dist/                   # Build output (generated)
 ```
 
-## ✨ Core Components and Functions
+## Getting Started
 
-### Authentication
+### Prerequisites
 
-#### `src/contexts/AuthContext.tsx`
-Provides authentication state and methods across the application.
-
-```typescript
-// Key exported values:
-interface AuthContextType {
-  isAuthenticated: boolean;
-  user: User | null;
-  token: string | null;
-  login: (email: string, password: string) => Promise<User>;
-  logout: () => void;
-  signup: (email: string, password: string, name: string) => Promise<User>;
-  isLoading: boolean;
-  error: string | null;
-}
-```
-
-#### `src/hooks/use-auth.ts`
-Custom hook for consuming the auth context.
-
-```typescript
-// Usage:
-const { 
-  isAuthenticated, 
-  user, 
-  login, 
-  logout 
-} = useAuth();
-```
-
-### Subscriptions
-
-#### `src/lib/schemas/subscription/*.ts`
-Standardized schemas for subscription data validation and type safety.
-
-```typescript
-// Available schemas:
-import { 
-  // Base schemas and types
-  BaseSubscriptionSchema,
-  SubscriptionType,
-  SubscriptionFrequency,
-  PromptsSchema,
-  
-  // Operation-specific schemas
-  CreateSubscriptionSchema,
-  UpdateSubscriptionSchema,
-  
-  // Response schemas
-  SubscriptionResponseSchema,
-  SubscriptionListResponseSchema,
-  SubscriptionGetResponseSchema,
-  SubscriptionCreateUpdateResponseSchema,
-  SubscriptionDeleteResponseSchema,
-  
-  // Type definitions
-  BaseSubscription,
-  CreateSubscription,
-  UpdateSubscription,
-  SubscriptionResponse,
-  SubscriptionListResponse,
-  SubscriptionGetResponse,
-  SubscriptionCreateUpdateResponse,
-  SubscriptionDeleteResponse
-} from '../../lib/schemas/subscription';
-```
-
-These schemas provide standardized validation for all subscription operations and ensure type safety across the application. See [Subscription Schema Documentation](../docs/subscription-schemas.md) for detailed usage.
-
-#### `src/lib/api/services/subscriptions.ts`
-API service for subscription management.
-
-```typescript
-// Main functions:
-const subscriptionsService = {
-  // Get all user subscriptions
-  getSubscriptions: async () => {...},
-  
-  // Get subscription details
-  getSubscription: async (id: string) => {...},
-  
-  // Create new subscription
-  createSubscription: async (data: CreateSubscriptionDto) => {...},
-  
-  // Update subscription
-  updateSubscription: async (id: string, data: UpdateSubscriptionDto) => {...},
-  
-  // Delete subscription
-  deleteSubscription: async (id: string) => {...},
-  
-  // Process subscription
-  processSubscription: async (id: string) => {...}
-};
-```
-
-#### `src/hooks/use-subscriptions.ts`
-Hook for subscription operations.
-
-```typescript
-// Usage:
-const {
-  subscriptions,
-  isLoading,
-  error,
-  createSubscription,
-  updateSubscription,
-  deleteSubscription,
-  processSubscription
-} = useSubscriptions();
-```
-
-#### `src/hooks/use-subscriptions-enhanced.ts`
-Enhanced subscription hook with additional functionality.
-
-```typescript
-// Returns additional data:
-interface EnhancedSubscriptionHook {
-  subscriptions: Subscription[];
-  isLoading: boolean;
-  error: Error | null;
-  createSubscription: (data: CreateSubscriptionDto) => Promise<Subscription>;
-  updateSubscription: (id: string, data: UpdateSubscriptionDto) => Promise<Subscription>;
-  deleteSubscription: (id: string) => Promise<void>;
-  processSubscription: (id: string) => Promise<ProcessingResult>;
-  subscriptionsByType: Record<string, Subscription[]>;
-  activeSubscriptions: Subscription[];
-  pendingSubscriptions: Subscription[];
-  processingSubscriptions: Subscription[];
-  getSubscriptionStatus: (id: string) => SubscriptionStatus;
-}
-```
-
-### Notifications
-
-#### `src/lib/api/services/notifications.ts`
-API service for notifications.
-
-```typescript
-// Main functions:
-const notificationsService = {
-  // Get all notifications
-  getNotifications: async (params?: NotificationQueryParams) => {...},
-  
-  // Mark notification as read
-  markAsRead: async (id: string) => {...},
-  
-  // Mark all notifications as read
-  markAllAsRead: async () => {...},
-  
-  // Delete notification
-  deleteNotification: async (id: string) => {...}
-};
-```
-
-#### `src/hooks/use-notifications.ts`
-Hook for notification operations.
-
-```typescript
-// Usage:
-const {
-  notifications,
-  isLoading,
-  error,
-  unreadCount,
-  markAsRead,
-  markAllAsRead,
-  deleteNotification
-} = useNotifications();
-```
-
-### WebSocket Connection
-
-#### `src/lib/api/websocket.ts`
-Manages real-time connections for notifications.
-
-```typescript
-// Main functions:
-export const socketService = {
-  // Connect to notification socket
-  connect: (token: string) => {...},
-  
-  // Disconnect socket
-  disconnect: () => {...},
-  
-  // Subscribe to notification events
-  onNotification: (callback: (notification: Notification) => void) => {...},
-  
-  // Handle processing status updates
-  onProcessingUpdate: (callback: (update: ProcessingUpdate) => void) => {...}
-};
-```
-
-### Form Components
-
-#### `src/components/subscriptions/SubscriptionForm.tsx`
-Reusable form for creating and editing subscriptions.
-
-```typescript
-// Props:
-interface SubscriptionFormProps {
-  initialValues?: Partial<CreateSubscriptionDto>;
-  onSubmit: (values: CreateSubscriptionDto) => Promise<void>;
-  isEdit?: boolean;
-  subscriptionTypes?: SubscriptionType[];
-}
-```
-
-#### `src/components/ui/button.tsx`
-Core button component with multiple variants.
-
-```typescript
-// Variants:
-type ButtonVariant = 
-  | "default"
-  | "destructive"
-  | "outline"
-  | "secondary"
-  | "ghost"
-  | "link";
-
-// Sizes:
-type ButtonSize = "default" | "sm" | "lg" | "icon";
-```
-
-## 🚀 Development Guide
+- Node.js 18+
+- npm or yarn
 
 ### Installation
 
@@ -292,131 +59,61 @@ npm run dev
 ### Available Scripts
 
 - `npm run dev` - Start development server
-- `npm run hybrid` - Run with connections to production services but local frontend
-- `npm run hybrid:wsl` - Hybrid mode for WSL environments
 - `npm run build` - Build for production
-- `npm run build:netlify` - Build specifically for Netlify
-- `npm run lint` - Run ESLint
-- `npm run type-check` - Run TypeScript type checking
+- `npm run lint` - Run linting
+- `npm run preview` - Preview production build
+- `npm run type-check` - Check TypeScript types
 
-### Environment Configuration
+## Environment Configuration
 
-Create a `.env` file in the project root:
+The application uses environment variables for configuration:
 
-```env
-# Authentication Service URL
-VITE_AUTH_URL=http://localhost:4000
-
+```
 # Backend API URL
-VITE_BACKEND_URL=http://localhost:3000
+VITE_BACKEND_URL=https://backend-415554190254.us-central1.run.app
 
-# Subscription Worker URL
-VITE_SUBSCRIPTION_WORKER=http://localhost:5000
+# Authentication Service URL
+VITE_AUTH_URL=https://authentication-service-415554190254.us-central1.run.app
 
-# Enable detailed logging
-VITE_ENABLE_LOGGING=true
-
-# Environment type
+# Environment settings
+NODE_ENV=development
 VITE_ENV=development
 VITE_APP_ENV=development
 
-# Use Netlify redirects (set to false for local development)
-VITE_USE_NETLIFY_REDIRECTS=false
+# Feature flags
+VITE_ENABLE_LOGGING=true
+VITE_DISABLE_WEBSOCKET=true
 ```
 
-### Docker Deployment
+## Core Features
 
-The application includes a Dockerfile for containerized deployment:
+### Authentication
 
-```bash
-# Build the Docker image
-docker build -t nifya-frontend .
+The application provides user authentication with email/password and Google OAuth, managed by the AuthContext provider.
 
-# Run the container
-docker run -p 8080:8080 \
-  -e AUTH_SERVICE_URL=https://authentication-service-415554190254.us-central1.run.app \
-  -e BACKEND_SERVICE_URL=https://backend-415554190254.us-central1.run.app \
-  nifya-frontend
-```
+### Subscriptions
 
-### Cloud Run Deployment
+Users can create, view, edit, and delete subscriptions to various notification sources:
+- BOE (Boletín Oficial del Estado)
+- DOGA (Diario Oficial de Galicia)
+- Real estate notifications
+- Custom notification sources
 
-For Google Cloud Run deployment:
+### Notifications
 
-```bash
-# Build and deploy to Cloud Run
-gcloud builds submit --tag gcr.io/PROJECT_ID/nifya-frontend
-gcloud run deploy nifya-frontend \
-  --image gcr.io/PROJECT_ID/nifya-frontend \
-  --platform managed \
-  --allow-unauthenticated \
-  --set-env-vars="AUTH_SERVICE_URL=https://authentication-service-415554190254.us-central1.run.app,BACKEND_SERVICE_URL=https://backend-415554190254.us-central1.run.app"
-```
+The application displays notifications generated from user subscriptions and allows users to:
+- View notification details
+- Mark notifications as read
+- Delete notifications
+- See notification statistics
 
-## 🔍 Troubleshooting
+### Dashboard
 
-### CORS Issues
+A central dashboard provides an overview of user activity, subscription status, and recent notifications.
 
-When encountering CORS errors:
-- Verify that backend services have correct CORS configuration
-- Check that environment URLs are properly set in `.env`
-- Ensure authentication headers are formatted correctly
+## API Integration
 
-### Auth Token Issues
-
-If authentication fails:
-- Verify token storage and retrieval
-- Check token expiration
-- Ensure correct headers are included in requests
-- Verify user synchronization between auth and backend services
-
-### API Connection Problems
-
-When API requests fail:
-- Check network connectivity
-- Verify environment variables are correctly set
-- Confirm that backend services are running
-- Check browser console for detailed error messages
-
-## 🧪 Testing
-
-For manual testing, use the built-in debugging tools:
-
-```bash
-# Start in development mode
-npm run dev
-
-# Access the debug page
-# Navigate to: http://localhost:5173/debug
-```
-
-For API testing, consider using the testing tools from `/testing-tools` directory in the project root.
-
-## 📋 Recent Updates
-
-### WebSocket Connection Removal
-
-- Removed WebSocket connection code as it's not needed in this project
-- Replaced real-time updates with polling for notifications
-- Added environment variable `VITE_DISABLE_WEBSOCKET=true` to explicitly disable WebSockets
-- Fixed console errors related to WebSocket connection failures
-
-### User Synchronization
-
-Recent changes include improved user synchronization between the authentication service and backend database:
-
-- Users authenticated with valid JWT tokens are now automatically created in the backend database if they don't exist
-- This fixes foreign key constraint errors when creating subscriptions for users that exist in auth but not in backend
-- CORS configuration has been updated to allow connections from all Cloud Run domains
-
-## 🤝 Contributing
-
-When contributing to this codebase:
-1. Follow the existing code style and architecture
-2. Maintain TypeScript type safety
-3. Add appropriate documentation for new features
-4. Test all changes thoroughly before submitting
-
----
-
-Developed with ❤️ by the NIFYA Team
+The frontend communicates with multiple backend services:
+- Authentication Service: User management and authentication
+- Backend API: Core business logic, subscriptions, and notifications
+- Subscription Worker: Processes subscriptions and generates notifications 

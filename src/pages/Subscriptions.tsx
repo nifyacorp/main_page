@@ -28,9 +28,7 @@ import {
 import { cn } from '@/lib/utils';
 
 // Extracted components
-import SubscriptionCard from '../components/subscriptions/SubscriptionCard';
-import SubscriptionFilterBar from '@/components/subscriptions/SubscriptionFilterBar';
-import { SubscriptionForm } from '@/components/subscriptions/SubscriptionForm';
+import { SubscriptionCard, SubscriptionFilterBar, SubscriptionForm } from '../components/subscriptions';
 
 // Define Subscription type (can be shared or defined closer to hook if preferred)
 interface Subscription {
