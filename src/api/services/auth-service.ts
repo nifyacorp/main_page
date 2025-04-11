@@ -93,7 +93,16 @@ class AuthService {
       
       // Handle network errors and other non-API errors
       if (error?.response?.status === 404) {
-        console.log('📝 DEBUG: 404 Not Found Error');
+        // Check if this is an actual API endpoint not found or a user authentication error
+        if (error?.response?.data?.error?.code === 'USER_NOT_FOUND') {
+          // This is a user authentication error, not a 404 endpoint error
+          return {
+            error: error.response.data.error.message || 'User not found. Please check your email or register.',
+            errorCode: error.response.data.error.code
+          };
+        }
+        
+        console.log('📝 DEBUG: 404 Not Found Error - API endpoint not found');
         return {
           error: 'Cannot connect to authentication service. Please try again later.',
           errorCode: 'SERVER_ERROR'

@@ -3,15 +3,19 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const alertVariants = cva(
-  "relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground",
+  "relative w-full rounded-md border border-border/60 p-3.5 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-3.5 [&>svg]:top-3.5 [&>svg]:text-foreground/80",
   {
     variants: {
       variant: {
         default: "bg-background text-foreground",
         destructive:
-          "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive",
+          "border-destructive/30 bg-destructive/5 text-destructive dark:border-destructive/30 [&>svg]:text-destructive/80",
         success: 
-          "border-green-500/50 text-green-700 dark:text-green-400 dark:border-green-500/50 [&>svg]:text-green-500",
+          "border-green-500/30 bg-green-50 text-green-700 dark:bg-green-900/10 dark:text-green-400 dark:border-green-500/30 [&>svg]:text-green-500/80",
+        info:
+          "border-blue-500/30 bg-blue-50 text-blue-700 dark:bg-blue-900/10 dark:text-blue-400 dark:border-blue-500/30 [&>svg]:text-blue-500/80",
+        warning:
+          "border-yellow-500/30 bg-yellow-50 text-yellow-700 dark:bg-yellow-900/10 dark:text-yellow-400 dark:border-yellow-500/30 [&>svg]:text-yellow-500/80",
       },
     },
     defaultVariants: {
@@ -39,7 +43,7 @@ const AlertTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <h5
     ref={ref}
-    className={cn("mb-1 font-medium leading-none tracking-tight", className)}
+    className={cn("mb-1 font-medium leading-none tracking-tight text-foreground", className)}
     {...props}
   />
 ))
@@ -51,7 +55,7 @@ const AlertDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("text-sm [&_p]:leading-relaxed", className)}
+    className={cn("text-sm [&_p]:leading-relaxed text-foreground/80", className)}
     {...props}
   />
 ))

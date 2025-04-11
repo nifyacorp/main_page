@@ -275,7 +275,17 @@ const Auth: React.FC = () => {
           }
         } catch (err) {
           console.error('Login error:', err);
-          setError(err instanceof Error ? err.message : 'Login failed. Please check your credentials.');
+          // Display a more user-friendly error message
+          let errorMessage = err instanceof Error ? err.message : 'Login failed. Please check your credentials.';
+          
+          // Display specific messages for common errors
+          if (errorMessage.includes('User not found')) {
+            errorMessage = 'No account exists with this email. Please check your email or register a new account.';
+          } else if (errorMessage.includes('Invalid credentials')) {
+            errorMessage = 'Incorrect email or password. Please try again.';
+          }
+          
+          setError(errorMessage);
         } finally {
           console.groupEnd();
         }

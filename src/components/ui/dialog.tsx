@@ -1,5 +1,6 @@
 import React from "react";
 import { cn } from "../../lib/utils";
+import { X } from "lucide-react";
 
 /* Dialog Root */
 interface DialogProps {
@@ -98,7 +99,7 @@ export function DialogOverlay({ className }: DialogOverlayProps) {
   return (
     <div
       className={cn(
-        "fixed inset-0 bg-black/50 backdrop-blur-sm z-50 transition-opacity", 
+        "fixed inset-0 bg-background/80 backdrop-blur-sm z-50 transition-opacity", 
         className
       )}
     />
@@ -122,16 +123,16 @@ export function DialogContent({ className, children }: DialogContentProps) {
       <div className="fixed inset-0 flex items-center justify-center z-50">
         <div
           className={cn(
-            "bg-white rounded-lg p-6 shadow-lg max-w-md w-full mx-4 relative",
+            "bg-card rounded-md border border-border/60 p-5 shadow-md max-w-md w-full mx-4 relative",
             className
           )}
         >
           <button
-            className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+            className="absolute top-3 right-3 text-muted-foreground/70 hover:text-foreground rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-1 focus:ring-ring focus:ring-offset-1 disabled:pointer-events-none"
             onClick={() => onOpenChange(false)}
             aria-label="Close"
           >
-            &times;
+            <X className="h-4 w-4" />
           </button>
           {children}
         </div>
@@ -148,7 +149,7 @@ interface DialogHeaderProps {
 
 export function DialogHeader({ className, children }: DialogHeaderProps) {
   return (
-    <div className={cn("mb-4", className)}>
+    <div className={cn("mb-4 space-y-1.5", className)}>
       {children}
     </div>
   );
@@ -162,7 +163,7 @@ interface DialogTitleProps {
 
 export function DialogTitle({ className, children }: DialogTitleProps) {
   return (
-    <h2 className={cn("text-xl font-semibold", className)}>
+    <h2 className={cn("text-lg font-medium leading-none tracking-tight", className)}>
       {children}
     </h2>
   );
@@ -176,7 +177,7 @@ interface DialogDescriptionProps {
 
 export function DialogDescription({ className, children }: DialogDescriptionProps) {
   return (
-    <p className={cn("text-gray-600 mt-2", className)}>
+    <p className={cn("text-sm text-muted-foreground/90", className)}>
       {children}
     </p>
   );
@@ -190,7 +191,7 @@ interface DialogFooterProps {
 
 export function DialogFooter({ className, children }: DialogFooterProps) {
   return (
-    <div className={cn("mt-6 flex justify-end space-x-2", className)}>
+    <div className={cn("mt-5 flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2", className)}>
       {children}
     </div>
   );
