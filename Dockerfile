@@ -27,8 +27,8 @@ COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/templates/default.conf.template
 
 # Set environment variables that will be available during container startup
-ENV AUTH_SERVICE_URL=https://authentication-service-415554190254.us-central1.run.app
-ENV BACKEND_SERVICE_URL=https://backend-415554190254.us-central1.run.app
+ENV AUTH_SERVICE_URL="https://authentication-service-415554190254.us-central1.run.app"
+ENV BACKEND_SERVICE_URL="https://backend-415554190254.us-central1.run.app"
 
 # Expose port 8080 (Cloud Run standard)
 EXPOSE 8080
@@ -37,9 +37,7 @@ EXPOSE 8080
 RUN apk add --no-cache gettext
 
 # Start script that processes the nginx template
-RUN echo $'#!/bin/sh\n\
-envsubst < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf\n\
-nginx -g "daemon off;"' > /start.sh && chmod +x /start.sh
+RUN echo '#!/bin/sh\nenvsubst "$$AUTH_SERVICE_URL $$BACKEND_SERVICE_URL" < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf\nnginx -g "daemon off;"' > /start.sh && chmod +x /start.sh
 
 # Command to run
 CMD ["/start.sh"] 
