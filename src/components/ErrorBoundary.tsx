@@ -50,10 +50,10 @@ class ErrorBoundary extends Component<Props, State> {
       const hasToken = !!localStorage.getItem('accessToken');
       
       if (!hasToken) {
-        console.warn('No access token found, redirecting to login...');
-        // Redirect to login page after a short delay
+        console.warn('No access token found, redirecting to auth...');
+        // Redirect to auth page after a short delay
         setTimeout(() => {
-          window.location.href = '/auth';
+          window.location.href = '/auth?mode=login';
         }, 1000);
       }
     }
@@ -119,7 +119,7 @@ class ErrorBoundary extends Component<Props, State> {
             
             {isAuthError && (
               <a 
-                href="/auth" 
+                href="/auth?mode=login" 
                 className="px-3 py-1 text-sm bg-green-500 text-white rounded hover:bg-green-600"
               >
                 Log In

@@ -2,8 +2,7 @@ import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import ErrorBoundary from './components/ErrorBoundary';
 import AuthErrorHandler from './components/App';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
+import Auth from './pages/Auth';
 import Subscriptions from './pages/Subscriptions';
 import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
@@ -36,27 +35,6 @@ const checkIsAuthenticated = () => {
 
 // Moved to src/data/landingContent.ts
 // ... existing code ...
-
-// Create a component to handle auth route redirection
-const AuthRedirect = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  
-  useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const mode = searchParams.get('mode');
-    navigate(mode === 'signup' ? '/signup' : '/login', { replace: true });
-  }, [location.search, navigate]);
-  
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="text-center">
-        <h2 className="text-xl font-medium mb-2">Redirigiendo...</h2>
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-      </div>
-    </div>
-  );
-};
 
 export default function App() {
   // Track authentication issues
@@ -110,7 +88,7 @@ export default function App() {
                       localStorage.removeItem('accessToken');
                       localStorage.removeItem('refreshToken');
                       localStorage.removeItem('isAuthenticated');
-                      window.location.href = '/login';
+                      window.location.href = '/auth?mode=login';
                     }}
                     className="underline font-bold"
                   >
@@ -144,9 +122,9 @@ export default function App() {
                         </ErrorBoundary>
                       }
                     />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/signup" element={<Signup />} />
-                    <Route path="/auth" element={<AuthRedirect />} />
+                    <Route path="/login" element={<Navigate to="/auth?mode=login" replace />} />
+                    <Route path="/signup" element={<Navigate to="/auth?mode=signup" replace />} />
+                    <Route path="/auth" element={<Auth />} />
                     
                     {/* Protected routes with lazy loaded components */}
                     <Route path="/dashboard" element={
