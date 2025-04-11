@@ -224,16 +224,16 @@ const Settings = () => {
       
       Object.entries(unsavedChanges).forEach(([key, value]) => {
         if (key === 'language') {
-          preferencesUpdates[key as 'language'] = value as any;
+          preferencesUpdates[key] = value as string;
         } else {
-          (profileUpdates as any)[key] = value;
+          (profileUpdates as Record<string, string | boolean | number>)[key] = value;
         }
       });
       
       console.log('Profile updates:', profileUpdates);
       console.log('Preferences updates:', preferencesUpdates);
       
-      const promises: Promise<ApiResponse<any>>[] = [];
+      const promises: Promise<ApiResponse<ProfileResponse | PreferencesResponse>>[] = [];
       let profileResult: ApiResponse<ProfileResponse> | null = null;
       let preferencesResult: ApiResponse<PreferencesResponse> | null = null;
       

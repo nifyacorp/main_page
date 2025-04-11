@@ -1,0 +1,30 @@
+steps:
+  # Clone with explicit branch specification
+  - name: 'gcr.io/cloud-builders/git'
+    args: ['clone', '--branch', 'main', 'https://github.com/nifyacorp/main_page.git', '.']
+  
+  # Install dependencies
+  - name: 'node:18'
+    args: ['npm', 'ci']
+  
+  # Build the frontend
+  - name: 'node:18'
+    args: ['npm', 'run', 'build']
+    env:
+      - 'VITE_AUTH_URL=${_AUTH_URL}'
+      - 'VITE_BACKEND_URL=${_BACKEND_URL}'
+      - 'VITE_SUBSCRIPTION_WORKER=${_SUBSCRIPTION_WORKER_URL}'
+      - 'VITE_ENV=production'
+      - 'NODE_ENV=production'
+  
+  # Archive the build artifacts (if needed for deployment)
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args: ['storage', 'cp', '-r', 'dist/*', 'gs://${_STORAGE_BUCKET}/']
+
+substitutions:
+  _AUTH_URL: 'https://authentication-service-415554190254.us-central1.run.app'
+  _BACKEND_URL: 'https://backend-415554190254.us-central1.run.app'
+  _SUBSCRIPTION_WORKER_URL: 'https://subscription-worker-415554190254.us-central1.run.app'
+  _STORAGE_BUCKET: 'nifya-frontend-builds'  # Replace with your actual storage bucket
+
+timeout: '1200s' 

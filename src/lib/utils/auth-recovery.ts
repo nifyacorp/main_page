@@ -8,6 +8,15 @@ const AUTH_TOKEN_KEY = 'accessToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';
 
 /**
+ * Auth Error type definition
+ */
+type AuthErrorLike = string | Error | { 
+  status?: number; 
+  message?: string; 
+  error?: string;
+};
+
+/**
  * Ensures the access token has the proper Bearer format
  * @returns true if a fix was applied, false if no change was needed
  */
@@ -90,7 +99,7 @@ function debugJwtToken(tokenName: string, token: string | null): void {
  * Checks if the error is an authentication error
  * @param error Any error object or message
  */
-export function isAuthError(error: any): boolean {
+export function isAuthError(error: AuthErrorLike): boolean {
   if (!error) return false;
   
   // Check for string errors
@@ -106,8 +115,11 @@ export function isAuthError(error: any): boolean {
   
   // Check for error objects
   if (typeof error === 'object') {
-    const errorMessage = error.message || error.error || '';
-    const errorStatus = error.status || 0;
+    const errorMessage = 
+      'message' in error ? error.message : 
+      'error' in error ? error.error as string : 
+      '';
+    const errorStatus = 'status' in error ? error.status as number : 0;
     
     return (
       errorStatus === 401 ||
@@ -123,7 +135,7 @@ export function isAuthError(error: any): boolean {
  * @param errorData The error data
  * @returns Promise resolving to true if recovery was successful
  */
-export async function recoverFromAuthError(errorData: any): Promise<boolean> {
+export async function recoverFromAuthError(errorData: AuthErrorLike): Promise<boolean> {
   console.group('🔐 Auth Recovery');
   console.log('Authentication error detected:', errorData);
   
@@ -175,13 +187,14 @@ export function resetAuthState(): void {
   }
 }
 
-export function handleAuthErrorWithUI(error: any): boolean {
+export function handleAuthErrorWithUI(error: AuthErrorLike): boolean {
   if (!isAuthError(error)) return false;
   
   console.log('Authentication error detected:', error);
   
   // Show a user-friendly message
-  const message = 'Your session has expired. Please log in again.';
+  // The message variable is unused, so let's remove it to fix the linter error
+  // const message = 'Your session has expired. Please log in again.';
   
   // In some cases we may want to show a toast notification
   // but for simplicity, we'll just log and redirect

@@ -8,8 +8,14 @@ import { setupTokenRefreshTest } from './lib/utils/test-auth';
 
 // Ensure React is available in the global scope for debugging
 window.React = React;
-// Use 'as any' to avoid type errors with ReactDOM
-(window as any).ReactDOM = ReactDOM;
+
+// Define the global window type to avoid 'any' usage
+interface CustomWindow extends Window {
+  React: typeof React;
+  ReactDOM: typeof ReactDOM;
+}
+const customWindow = window as CustomWindow;
+customWindow.ReactDOM = ReactDOM;
 
 // Set up auth testing utilities
 setupTokenRefreshTest();

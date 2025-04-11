@@ -58,9 +58,9 @@ const AuthErrorHandler: React.FC<{ children: React.ReactNode }> = ({ children })
         }
         
         return response;
-      } catch (error: any) {
+      } catch (error: unknown) {
         // For network errors, check if it's auth-related
-        if (isAuthenticated && error.message?.includes('Unauthorized')) {
+        if (isAuthenticated && error instanceof Error && error.message?.includes('Unauthorized')) {
           handleAuthErrorWithUI(error);
         }
         throw error;
