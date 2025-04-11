@@ -4,7 +4,12 @@ WORKDIR /app
 
 # Copy package.json and package-lock.json
 COPY package*.json ./
-RUN npm ci
+
+# Set npm config to skip optional platform-specific dependencies
+RUN npm config set omit=optional --global
+
+# Install dependencies without optional platform-specific packages
+RUN npm ci --no-optional --ignore-scripts 
 
 # Copy the rest of the code
 COPY . .

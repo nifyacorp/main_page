@@ -5,8 +5,8 @@ import { User, AuthResponse, LoginRequest, RegisterRequest, ApiErrorResponse, Er
 const AUTH_URL = import.meta.env.VITE_AUTH_URL;
 console.log('Auth URL being used:', AUTH_URL || '(Using Netlify redirects)');
 
-const AUTH_TOKEN_KEY = import.meta.env.VITE_AUTH_TOKEN_KEY || 'nifya_auth_token';
-const REFRESH_TOKEN_KEY = import.meta.env.VITE_REFRESH_TOKEN_KEY || 'nifya_refresh_token';
+const AUTH_TOKEN_KEY = 'accessToken';
+const REFRESH_TOKEN_KEY = 'refreshToken';
 
 /**
  * Service for handling authentication-related API calls
@@ -117,10 +117,10 @@ class AuthService {
   async register(userData: RegisterRequest): Promise<AuthResponse> {
     try {
       const response = await apiClient.post<AuthResponse>('/auth/register', userData);
-      const { token, refreshToken, user } = response.data;
+      const { accessToken, refreshToken, user } = response.data;
       
       // Store tokens
-      this.setTokens(token, refreshToken);
+      this.setTokens(accessToken, refreshToken);
       
       return response.data;
     } catch (error) {
@@ -156,7 +156,7 @@ class AuthService {
   /**
    * Refresh the authentication token
    */
-  async refreshToken(): Promise<{ token: string; refreshToken: string }> {
+  async refreshToken(): Promise<{ accessToken: string; refreshToken: string }> {
     try {
       console.group('🔄 Auth Service - Refresh Token');
       const refreshToken = this.getRefreshToken();
@@ -172,7 +172,7 @@ class AuthService {
         refreshToken.match(/^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.[A-Za-z0-9-_.+/=]*$/) ? 'Yes' : 'No');
       
       console.log('Making token refresh request...');
-      const response = await apiClient.post<{ token: string; refreshToken: string }>('/auth/refresh', {
+      const response = await apiClient.post<{ accessToken: string; refreshToken: string }>('/auth/refresh', {
         refreshToken,
       });
       
@@ -185,15 +185,15 @@ class AuthService {
         throw new Error('Invalid response from token refresh endpoint');
       }
       
-      const { token, refreshToken: newRefreshToken } = response.data;
+      const { accessToken, refreshToken: newRefreshToken } = response.data;
       
       console.log('Received new tokens:', {
-        hasAccessToken: !!token, 
+        hasAccessToken: !!accessToken, 
         hasRefreshToken: !!newRefreshToken
       });
       
       // Update tokens
-      this.setTokens(token, newRefreshToken);
+      this.setTokens(accessToken, newRefreshToken);
       console.log('Tokens successfully updated in storage');
       console.groupEnd();
       
