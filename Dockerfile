@@ -24,7 +24,7 @@ FROM nginx:alpine
 COPY --from=build /app/dist /usr/share/nginx/html
 
 # Copy nginx config template
-COPY nginx.conf /etc/nginx/templates/default.conf.template
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Set environment variables that will be available during container startup
 ENV AUTH_SERVICE_URL="https://authentication-service-415554190254.us-central1.run.app"
@@ -33,11 +33,12 @@ ENV BACKEND_SERVICE_URL="https://backend-415554190254.us-central1.run.app"
 # Expose port 8080 (Cloud Run standard)
 EXPOSE 8080
 
-# Install envsubst utility
-RUN apk add --no-cache gettext
+# Use the standard nginx configuration
+RUN sed -i 's/listen       80/listen       8080/g' /etc/nginx/conf.d/default.conf
 
-# Start script that processes the nginx template
-RUN echo '#!/bin/sh\nenvsubst "$$AUTH_SERVICE_URL $$BACKEND_SERVICE_URL" < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf\nnginx -g "daemon off;"' > /start.sh && chmod +x /start.sh
+# Direct configuration rather than using environment variables
+RUN sed -i 's|\${AUTH_SERVICE_URL}|https://authentication-service-415554190254.us-central1.run.app|g' /etc/nginx/conf.d/default.conf
+RUN sed -i 's|\${BACKEND_SERVICE_URL}|https://backend-415554190254.us-central1.run.app|g' /etc/nginx/conf.d/default.conf
 
 # Command to run
-CMD ["/start.sh"] 
+CMD ["nginx", "-g", "daemon off;"] 
