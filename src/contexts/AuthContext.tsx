@@ -191,7 +191,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
         
         if (isAuthenticated && accessToken) {
-          // Profile fetch is now primary source of truth after initial check
+          // Profile fetch is required for authentication
           console.log('🔍 AuthContext.tsx: Fetching user profile for authenticated user');
           console.log('AuthContext: Attempting to load user profile for authenticated user');
           try {
@@ -205,17 +205,29 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               } else {
                 console.log('🔍 AuthContext.tsx: Failed to load user profile, logging out');
                 console.error('AuthContext: Failed to load user profile, logging out.', response.error);
-                console.log('📝 DEBUG: Profile fetch failed - accessToken:', accessToken ? accessToken.substring(0, 15) + '...' : 'null');
                 setAuthError('Failed to load user profile. Please try logging in again.');
+                // Show error to the user
+                toast({
+                  title: "Error de sesión",
+                  description: "No se pudo cargar tu perfil de usuario. Por favor, inicia sesión nuevamente.",
+                  variant: "destructive",
+                  duration: 5000,
+                });
                 logout(); // Log out if profile fetch fails
               }
             }
           } catch (apiError) {
             console.log('🔍 AuthContext.tsx: Exception during profile fetch');
             console.error('AuthContext: Error fetching user profile during initial check:', apiError);
-            console.log('📝 DEBUG: Profile fetch exception - accessToken:', accessToken ? accessToken.substring(0, 15) + '...' : 'null');
             if (isMounted) {
               setAuthError('An error occurred while verifying your session. Please try logging in again.');
+              // Show error to the user
+              toast({
+                title: "Error de verificación",
+                description: "Ocurrió un error al verificar tu sesión. Por favor, inicia sesión nuevamente.",
+                variant: "destructive",
+                duration: 5000,
+              });
               logout(); // Log out on critical API error
             }
           }
@@ -223,7 +235,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           console.log('🔍 AuthContext.tsx: No valid auth tokens found');
           console.log('AuthContext: No valid auth tokens/state found, user is logged out.');
           if (isMounted) {
-             setUser(null); // Ensure user state is null if not authenticated
+            setUser(null); // Ensure user state is null if not authenticated
           }
         }
       } catch (error) {
@@ -231,6 +243,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         console.error('AuthContext: Auth check failed catastrophically:', error);
         if (isMounted) {
           setAuthError('An unexpected error occurred during authentication check.');
+          // Show error to the user
+          toast({
+            title: "Error de autenticación",
+            description: "Ocurrió un error inesperado durante la verificación de autenticación.",
+            variant: "destructive",
+            duration: 5000,
+          });
           logout();
         }
       } finally {
@@ -307,45 +326,30 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         console.warn('Could not extract user ID from token. This will cause backend authentication issues.');
       }
       
-      // Set user information immediately based on token (temporary)
-      console.log('🔍 AuthContext.tsx: Setting temporary user data from token');
-      const tempUser: User = {
-        id: userId || 'unknown-id',
-        email: email || 'unknown-email',
-      };
-      
-      // Add name if available
-      if (userName) {
-        tempUser.name = userName;
-      }
-      
-      setUser(tempUser);
-      console.log('AuthContext: Set temporary user data from token', tempUser);
-      
       // After setting tokens, fetch the user profile to get full details
-      try {
-        console.log('🔍 AuthContext.tsx: Fetching complete user profile');
-        console.log('AuthContext: Fetching profile immediately after login');
-        const response = await authService.getProfile();
-        if (response.data && !response.error) {
-          console.log('🔍 AuthContext.tsx: User profile loaded successfully');
-          setUser(response.data.profile);
-          console.log('AuthContext: User profile loaded successfully after login', response.data.profile);
-        } else {
-          console.log('🔍 AuthContext.tsx: Failed to load complete profile, using token data');
-          console.warn('AuthContext: Failed to load profile immediately after login, using token data.', response.error);
-          console.log('📝 DEBUG: Profile fetch failed during login - using token fallback');
-          // Keep the temporary user data from token but still consider the user logged in
-          console.log('AuthContext: Using fallback user data from token to maintain login state');
-          // Don't set auth error as this prevents the user from proceeding
-        }
-      } catch (profileError) {
-        console.log('🔍 AuthContext.tsx: Exception during profile fetch after login');
-        console.error('AuthContext: Error fetching profile after login:', profileError);
-        console.log('📝 DEBUG: Profile fetch exception during login - using token fallback');
-        // Keep the temporary user data from token and maintain login state
-        console.log('AuthContext: Using fallback user data from token due to profile fetch error');
-        // Don't show error to user to allow them to proceed with basic functionality
+      console.log('🔍 AuthContext.tsx: Fetching complete user profile');
+      console.log('AuthContext: Fetching profile immediately after login');
+      const response = await authService.getProfile();
+      
+      if (response.data && !response.error) {
+        console.log('🔍 AuthContext.tsx: User profile loaded successfully');
+        setUser(response.data.profile);
+        console.log('AuthContext: User profile loaded successfully after login', response.data.profile);
+      } else {
+        console.log('🔍 AuthContext.tsx: Failed to load profile, login failed');
+        console.error('AuthContext: Profile retrieval failed:', response.error);
+        const errorMessage = response.error || 'Failed to retrieve user profile';
+        setAuthError(errorMessage);
+        // Show error to the user
+        toast({
+          title: "Error de autenticación",
+          description: "No se pudo obtener el perfil de usuario. Por favor, intenta iniciar sesión nuevamente.",
+          variant: "destructive",
+          duration: 5000,
+        });
+        // Log out user since profile retrieval is required
+        logout();
+        throw new Error(errorMessage);
       }
     } catch (error) {
       console.log('🔍 AuthContext.tsx: Login failed with error');
