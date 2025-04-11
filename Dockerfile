@@ -5,11 +5,11 @@ WORKDIR /app
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
-# Remove existing package-lock.json to avoid optional dependency issues
+# Remove existing package-lock.json to avoid dependency issues
 RUN rm -f package-lock.json
 
-# Install dependencies with proper platform detection
-RUN npm install --no-optional
+# Install dependencies including platform-specific ones for Linux
+RUN npm install
 
 # Copy the rest of the code
 COPY . .
