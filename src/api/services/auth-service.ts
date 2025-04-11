@@ -1,12 +1,9 @@
-import apiClient from '../clients/axios-config';
+import apiClient, { authClient, AUTH_TOKEN_KEY, REFRESH_TOKEN_KEY } from '../clients/axios-config';
 import { User, AuthResponse, LoginRequest, RegisterRequest, ApiErrorResponse, ErrorCode } from '../types';
 
 // Environment variables
 const AUTH_URL = import.meta.env.VITE_AUTH_URL;
 console.log('Auth URL being used:', AUTH_URL || '(Using Netlify redirects)');
-
-const AUTH_TOKEN_KEY = 'accessToken';
-const REFRESH_TOKEN_KEY = 'refreshToken';
 
 /**
  * Service for handling authentication-related API calls
@@ -56,7 +53,7 @@ class AuthService {
     try {
       console.log('🔐 Auth Service Request');
       console.log('Request Details:', {
-        url: apiClient.defaults.baseURL + '/auth/login',
+        url: authClient.defaults.baseURL + '/auth/login',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -72,7 +69,7 @@ class AuthService {
         password: '********' 
       });
       
-      const response = await apiClient.post<AuthResponse>('/auth/login', credentials);
+      const response = await authClient.post<AuthResponse>('/auth/login', credentials);
       const { accessToken, refreshToken, user } = response.data;
       
       // Store tokens
@@ -116,7 +113,7 @@ class AuthService {
    */
   async register(userData: RegisterRequest): Promise<AuthResponse> {
     try {
-      const response = await apiClient.post<AuthResponse>('/auth/register', userData);
+      const response = await authClient.post<AuthResponse>('/auth/signup', userData);
       const { accessToken, refreshToken, user } = response.data;
       
       // Store tokens
@@ -138,7 +135,7 @@ class AuthService {
       
       // Only call the API if we have a refresh token to invalidate
       if (refreshToken) {
-        await apiClient.post('/auth/logout', { refreshToken });
+        await authClient.post('/auth/logout', { refreshToken });
       }
       
       // Clear tokens regardless of API call success
@@ -172,7 +169,7 @@ class AuthService {
         refreshToken.match(/^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.[A-Za-z0-9-_.+/=]*$/) ? 'Yes' : 'No');
       
       console.log('Making token refresh request...');
-      const response = await apiClient.post<{ accessToken: string; refreshToken: string }>('/auth/refresh', {
+      const response = await authClient.post<{ accessToken: string; refreshToken: string }>('/auth/refresh', {
         refreshToken,
       });
       
@@ -232,12 +229,12 @@ class AuthService {
     
     try {
       console.log('Step 2: Fetching user profile from API');
-      console.log('Making request to /api/users/me endpoint');
+      console.log('Making request to /api/auth/me endpoint');
       
       console.log('👤 Get User Profile');
       console.log('Fetching user profile...');
       
-      const response = await apiClient.get('/auth/me');
+      const response = await authClient.get('/auth/me');
       
       console.log('Step 3: Processing API response');
       console.log('Response data:', {
@@ -276,7 +273,7 @@ class AuthService {
    */
   async updateProfile(userData: Partial<User>): Promise<User> {
     try {
-      const response = await apiClient.put<User>('/auth/profile', userData);
+      const response = await authClient.put<User>('/auth/profile', userData);
       return response.data;
     } catch (error) {
       console.error('Update profile error:', error);
@@ -289,7 +286,7 @@ class AuthService {
    */
   async changePassword(data: { currentPassword: string; newPassword: string }): Promise<{ message: string }> {
     try {
-      const response = await apiClient.post<{ message: string }>('/auth/change-password', data);
+      const response = await authClient.post<{ message: string }>('/auth/change-password', data);
       return response.data;
     } catch (error) {
       console.error('Change password error:', error);
@@ -302,7 +299,7 @@ class AuthService {
    */
   async requestPasswordReset(email: string): Promise<{ message: string }> {
     try {
-      const response = await apiClient.post<{ message: string }>('/auth/forgot-password', { email });
+      const response = await authClient.post<{ message: string }>('/auth/forgot-password', { email });
       return response.data;
     } catch (error) {
       console.error('Request password reset error:', error);
@@ -315,7 +312,7 @@ class AuthService {
    */
   async resetPassword(data: { token: string; password: string }): Promise<{ message: string }> {
     try {
-      const response = await apiClient.post<{ message: string }>('/auth/reset-password', data);
+      const response = await authClient.post<{ message: string }>('/auth/reset-password', data);
       return response.data;
     } catch (error) {
       console.error('Reset password error:', error);

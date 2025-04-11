@@ -81,125 +81,133 @@ function debugJwtToken(tokenName: string, token: string | null): void {
   console.groupEnd();
 }
 
-// Create a custom axios instance
-const apiClient: AxiosInstance = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 15000,
-  headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  },
-});
-
-// Request interceptor for adding auth token
-apiClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
-    // Verify and fix auth headers before making the request
-    verifyAuthHeaders();
-    
-    // Get auth token - ONLY use the primary storage key
-    const token = localStorage.getItem(AUTH_TOKEN_KEY);
-    const userId = localStorage.getItem('userId');
-    
-    // Debug the token being sent with this request
-    console.group(`🔒 API Request: ${config.method?.toUpperCase()} ${config.url}`);
-    console.log('Using token from localStorage');
-    debugJwtToken('Request Token', token);
-    console.groupEnd();
-    
-    if (!token) {
-      console.log('AuthContext: No valid auth token found');
-    }
-    
-    // Add auth headers if token exists
-    if (token && config.headers) {
-      // Check if token already has Bearer prefix
-      if (token.startsWith('Bearer ')) {
-        config.headers.Authorization = token;
-      } else {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
+// Helper function to create axios instances with correct auth headers
+function createApiClient(baseURL: string, prefix: string = 'API'): AxiosInstance {
+  const axiosInstance = axios.create({
+    baseURL,
+    timeout: 15000,
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+  });
+  
+  // Request interceptor for adding auth token
+  axiosInstance.interceptors.request.use(
+    (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
+      // Verify and fix auth headers before making the request
+      verifyAuthHeaders();
       
-      // Add user ID header with proper case for backend compatibility
-      if (userId) {
-        // Ensure both header formats for maximum compatibility with different servers
-        config.headers['x-user-id'] = userId;
-        config.headers['X-User-ID'] = userId;
-      }
-    }
-    
-    // Ensure credentials are included for CORS requests
-    config.withCredentials = true;
-    
-    return config;
-  },
-  (error: AxiosError): Promise<AxiosError> => {
-    return Promise.reject(error);
-  }
-);
-
-// Response interceptor
-apiClient.interceptors.response.use(
-  (response: AxiosResponse): AxiosResponse => {
-    return response;
-  },
-  async (error: AxiosError): Promise<any> => {
-    if (!error.config) {
-      return Promise.reject(error);
-    }
-    
-    const originalRequest = error.config;
-    
-    // Add the _retry property to the config type
-    interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
-      _retry?: boolean;
-    }
-    
-    const typedRequest = originalRequest as ExtendedAxiosRequestConfig;
-    
-    // Handle 401 errors (unauthorized) by redirecting to login
-    if (error.response?.status === 401 && !typedRequest._retry) {
-      console.group('🔄 Auth Error - Redirecting to Login');
-      console.log('Auth error detected in fetch response:', error.response?.data);
+      // Get auth token - ONLY use the primary storage key
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      const userId = localStorage.getItem('userId');
       
-      // No token refresh - just redirect to login
-      localStorage.removeItem(AUTH_TOKEN_KEY);
-      localStorage.removeItem(REFRESH_TOKEN_KEY);
-      localStorage.removeItem('isAuthenticated');
-      localStorage.removeItem('userId');
-      
-      // Set flag to indicate token expired
-      localStorage.setItem('token_expired', 'true');
-      
-      console.log('Redirecting to login page due to auth error');
+      // Debug the token being sent with this request
+      console.group(`🔒 ${prefix} Request: ${config.method?.toUpperCase()} ${config.url}`);
+      console.log('Using token from localStorage');
+      debugJwtToken('Request Token', token);
       console.groupEnd();
       
-      // Redirect to login page
-      window.location.href = '/auth';
+      if (!token) {
+        console.log(`${prefix}: No valid auth token found`);
+      }
+      
+      // Add auth headers if token exists
+      if (token && config.headers) {
+        // Check if token already has Bearer prefix
+        if (token.startsWith('Bearer ')) {
+          config.headers.Authorization = token;
+        } else {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+        
+        // Add user ID header with proper case for backend compatibility
+        if (userId) {
+          // Ensure both header formats for maximum compatibility with different servers
+          config.headers['x-user-id'] = userId;
+          config.headers['X-User-ID'] = userId;
+        }
+      }
+      
+      // Ensure credentials are included for CORS requests
+      config.withCredentials = true;
+      
+      return config;
+    },
+    (error: AxiosError): Promise<AxiosError> => {
       return Promise.reject(error);
     }
-    
-    // Format error for consistent handling across the app
-    const errorData = error.response?.data || {};
-    const errorMessage = typeof errorData === 'object' && errorData.message 
-      ? errorData.message 
-      : typeof error.message === 'string' 
-        ? error.message 
-        : 'An unexpected error occurred';
-        
-    const errorDetails = typeof errorData === 'object' && errorData.details
-      ? errorData.details
-      : error.toString();
+  );
+  
+  // Response interceptor
+  axiosInstance.interceptors.response.use(
+    (response: AxiosResponse): AxiosResponse => {
+      return response;
+    },
+    async (error: AxiosError): Promise<any> => {
+      if (!error.config) {
+        return Promise.reject(error);
+      }
       
-    const apiError: ApiError = {
-      status: error.response?.status || 500,
-      message: errorMessage,
-      details: errorDetails,
-    };
-    
-    return Promise.reject(apiError);
-  }
-);
+      const originalRequest = error.config;
+      
+      // Add the _retry property to the config type
+      interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
+        _retry?: boolean;
+      }
+      
+      const typedRequest = originalRequest as ExtendedAxiosRequestConfig;
+      
+      // Handle 401 errors (unauthorized) by redirecting to login
+      if (error.response?.status === 401 && !typedRequest._retry) {
+        console.group('🔄 Auth Error - Redirecting to Login');
+        console.log('Auth error detected in fetch response:', error.response?.data);
+        
+        // No token refresh - just redirect to login
+        localStorage.removeItem(AUTH_TOKEN_KEY);
+        localStorage.removeItem(REFRESH_TOKEN_KEY);
+        localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('userId');
+        
+        // Set flag to indicate token expired
+        localStorage.setItem('token_expired', 'true');
+        
+        console.log('Redirecting to login page due to auth error');
+        console.groupEnd();
+        
+        // Redirect to login page
+        window.location.href = '/auth';
+        return Promise.reject(error);
+      }
+      
+      // Format error for consistent handling across the app
+      const errorData = error.response?.data || {};
+      const errorMessage = errorData && typeof errorData === 'object' && 'message' in errorData
+        ? errorData.message 
+        : typeof error.message === 'string' 
+          ? error.message 
+          : 'An unexpected error occurred';
+          
+      const errorDetails = errorData && typeof errorData === 'object' && 'details' in errorData
+        ? errorData.details
+        : error.toString();
+        
+      const apiError: ApiError = {
+        status: error.response?.status || 500,
+        message: errorMessage as string,
+        details: errorDetails as string,
+      };
+      
+      return Promise.reject(apiError);
+    }
+  );
+  
+  return axiosInstance;
+}
+
+// Create API clients for different services
+const apiClient = createApiClient(API_BASE_URL, 'Backend');
+const authClient = createApiClient(AUTH_URL, 'Auth');
 
 export default apiClient;
-export { AUTH_TOKEN_KEY, REFRESH_TOKEN_KEY }; 
+export { authClient, AUTH_TOKEN_KEY, REFRESH_TOKEN_KEY }; 

@@ -38,23 +38,23 @@ export default function Header() {
   // Only show one logout button to prevent duplication
   // We'll use the dropdown menu only, and remove the absolute positioned button
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-14 items-center justify-between">
         <div className="flex items-center">
           <Link 
             to={authState.isAuthenticated ? "/dashboard" : "/"} 
             className="mr-6 flex items-center space-x-2"
             onClick={handleLogoClick}
           >
-            <img src="https://ik.imagekit.io/appraisily/NYFIA/logo.png" alt="NIFYA" className="h-8 w-8" />
-            <span className="font-bold text-xl">NIFYA</span>
+            <img src="https://ik.imagekit.io/appraisily/NYFIA/logo.png" alt="NIFYA" className="h-7 w-7" />
+            <span className="font-medium text-lg tracking-tight">NIFYA</span>
           </Link>
           
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-4">
+          <nav className="hidden md:flex items-center space-x-5">
             {authState.isAuthenticated && (
               <>
-                <Link to="/dashboard" className="text-sm font-medium hover:text-primary">
+                <Link to="/dashboard" className="text-sm font-medium text-foreground/80 hover:text-primary">
                   Dashboard
                 </Link>
               </>
@@ -66,14 +66,14 @@ export default function Header() {
         <div className="flex items-center gap-4">
           {authState.isAuthenticated ? (
             <>
-              <div className="p-2 hover:bg-accent rounded-full">
+              <div className="p-1.5 hover:bg-accent/30 rounded-full">
                 <NotificationBadge />
               </div>
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full h-9 w-9">
-                    <div className="h-8 w-8 bg-primary/10 text-primary rounded-full flex items-center justify-center">
+                  <Button variant="ghost" size="icon" className="rounded-full h-8 w-8">
+                    <div className="h-7 w-7 bg-primary/5 text-primary rounded-full flex items-center justify-center">
                       {authState.user?.name?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || 'U'}
                     </div>
                   </Button>
@@ -95,11 +95,11 @@ export default function Header() {
               </DropdownMenu>
             </>
           ) : (
-            <div className="hidden md:flex items-center gap-4">
-              <Link to="/auth?mode=login" className="text-sm font-medium px-4 py-2 hover:bg-accent rounded-md">
+            <div className="hidden md:flex items-center gap-3">
+              <Link to="/auth?mode=login" className="text-sm font-medium px-3 py-1.5 hover:bg-accent/40 rounded-md">
                 Log in
               </Link>
-              <Link to="/auth?mode=signup" className="text-sm font-medium px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90">
+              <Link to="/auth?mode=signup" className="text-sm font-medium px-3 py-1.5 bg-primary/90 text-white rounded-md hover:bg-primary">
                 Sign up
               </Link>
             </div>
@@ -108,7 +108,7 @@ export default function Header() {
           {/* Mobile menu button - only show for non-authenticated or on landing page */}
           {(!authState.isAuthenticated || location.pathname === '/') && (
             <button 
-              className="md:hidden p-2 hover:bg-accent rounded-full"
+              className="md:hidden p-1.5 hover:bg-accent/30 rounded-full"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               {mobileMenuOpen ? (
@@ -123,15 +123,15 @@ export default function Header() {
       
       {/* Mobile menu - only for non-authenticated */}
       {mobileMenuOpen && !authState.isAuthenticated && (
-        <div className="md:hidden p-4 bg-background border-t">
+        <div className="md:hidden p-4 bg-background border-t border-border/40">
           <div className="flex flex-col space-y-4">
-            <Link to="/" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
+            <Link to="/" className="text-sm font-medium text-foreground/80" onClick={() => setMobileMenuOpen(false)}>
               Home
             </Link>
-            <Link to="/auth?mode=login" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
+            <Link to="/auth?mode=login" className="text-sm font-medium text-foreground/80" onClick={() => setMobileMenuOpen(false)}>
               Log in
             </Link>
-            <Link to="/auth?mode=signup" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
+            <Link to="/auth?mode=signup" className="text-sm font-medium text-foreground/80" onClick={() => setMobileMenuOpen(false)}>
               Sign up
             </Link>
           </div>
@@ -140,16 +140,16 @@ export default function Header() {
       
       {/* Mobile menu - for authenticated users */}
       {mobileMenuOpen && authState.isAuthenticated && (
-        <div className="md:hidden p-4 bg-background border-t">
+        <div className="md:hidden p-4 bg-background border-t border-border/40">
           <div className="flex flex-col space-y-4">
-            <Link to="/dashboard" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
+            <Link to="/dashboard" className="text-sm font-medium text-foreground/80" onClick={() => setMobileMenuOpen(false)}>
               Dashboard
             </Link>
-            <Link to="/settings" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
+            <Link to="/settings" className="text-sm font-medium text-foreground/80" onClick={() => setMobileMenuOpen(false)}>
               Settings
             </Link>
             <button 
-              className="text-sm font-medium text-left text-red-500 flex items-center"
+              className="text-sm font-medium text-left text-destructive/80 flex items-center"
               onClick={() => {
                 handleLogout();
                 setMobileMenuOpen(false);
