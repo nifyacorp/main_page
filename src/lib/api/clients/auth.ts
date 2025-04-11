@@ -57,7 +57,8 @@ export async function authClient<T>({
         console.error('Server error response:', data);
         console.groupEnd();
         return { 
-          error: data.message || data.error || `Request failed with status ${response.status}`
+          error: data.error?.message || data.message || `Request failed with status ${response.status}`,
+          errorCode: data.error?.code || data.code
         };
       } catch (jsonError) {
         console.error('Failed to parse error response:', jsonError);

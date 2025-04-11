@@ -81,13 +81,22 @@ const Login: React.FC = () => {
     try {
       console.log('Processing login');
       
-      const { error, data } = await auth.login({
+      const { error, data, errorCode } = await auth.login({
         email: formData.email,
         password: formData.password
       });
       
       if (error) {
-        throw new Error(error);
+        // Handle specific error codes
+        if (errorCode === 'USER_NOT_FOUND') {
+          throw new Error('No account exists with this email address. Please sign up first.');
+        } else if (errorCode === 'INVALID_CREDENTIALS') {
+          throw new Error('Invalid email or password. Please try again.');
+        } else if (errorCode === 'ACCOUNT_LOCKED') {
+          throw new Error('Your account has been temporarily locked due to too many failed login attempts. Please try again later.');
+        } else {
+          throw new Error(error);
+        }
       }
       
       if (data?.accessToken) {

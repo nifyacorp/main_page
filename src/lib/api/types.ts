@@ -1,8 +1,9 @@
 export interface ApiResponse<T> {
   data?: T;
-  status: number;
   error?: string;
-  ok: boolean;
+  errorCode?: string;
+  status?: number;
+  ok?: boolean;
 }
 
 export interface NotificationSettings {
